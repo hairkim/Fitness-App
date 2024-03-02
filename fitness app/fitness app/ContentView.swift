@@ -8,6 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
+    // Example posts data
+    let posts: [Post] = [
+        Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️"),
+        Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️"),
+        Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵"),
+        // Add more posts as needed
+    ]
+    
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 16) {
@@ -41,6 +49,32 @@ struct ContentView: View {
                     }
                     .padding()
                 }
+                
+                // Profile icon in the refined bottom navigation bar
+                HStack {
+                    Spacer() // Pushes the profile icon to the right
+                    NavigationLink(destination: ProfileView()) {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(.purple)
+                            .padding(10)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(radius: 5)
+                            .padding(10)
+                    }
+                    .padding(.trailing, 20)
+                }
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.gray.opacity(0.1))
+                        .shadow(radius: 5)
+                )
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
             .navigationTitle("") // Empty title
             .toolbar {
@@ -169,10 +203,3 @@ struct Post: Identifiable {
     // Workout Split Emoji
     let workoutSplitEmoji: String
 }
-
-let posts: [Post] = [
-    Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️"),
-    Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️"),
-    Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵"),
-    // Add more posts as needed
-]
