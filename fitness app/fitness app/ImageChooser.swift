@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct ImageChooser: View {
-    @State private var showingImagePicker = false
     @State private var inputImage: UIImage?
     @State private var image: Image?
     @State private var sourceType: UIImagePickerController.SourceType?
+    
+    @Binding var postImage: UIImage?
 
     var body: some View {
         NavigationView {
@@ -20,21 +22,22 @@ struct ImageChooser: View {
                 HStack(spacing: 30){
                     Button("Select Image"){
                         self.sourceType = .photoLibrary
-                        showingImagePicker = true
                     }
                     Button(action: {
                         self.sourceType = .camera
-                        showingImagePicker = true
                     }){
                         Image(systemName: "camera")
                     }
 
                 }
             }
-            .sheet(item: $sourceType) { sourceType in
+            .sheet(item: $sourceType, onDismiss: nil) { sourceType in
                 ImagePicker(selectedImage: $inputImage, sourceType: sourceType)
             }
-            .onChange(of: inputImage) { oldValue, newValue in loadImage()
+//            .onChange(of: inputImage) { oldValue, newValue in loadImage()
+//            }
+            .onChange(of: inputImage) { _, _ in
+                loadImage()
             }
 
 
@@ -43,6 +46,7 @@ struct ImageChooser: View {
 
     func loadImage(){
         guard let inputImage = inputImage else { return }
+        postImage = inputImage
         image = Image(uiImage: inputImage)
     }
 
@@ -53,6 +57,16 @@ extension UIImagePickerController.SourceType: Identifiable {
     }
 }
 
-#Preview {
-    ImageChooser()
+//#Preview {
+//    @State static var previewPostImage: UIImage?
+//    ImageChooser(postImage: $previewPostImage)
+//}
+
+struct ImageChooser_Previews: PreviewProvider {
+    @State static var previewPostImage: UIImage?
+
+    static var previews: some View {
+        ImageChooser(postImage: $previewPostImage)
+    }
 }
+
