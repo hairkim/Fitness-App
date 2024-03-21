@@ -72,12 +72,12 @@ struct LoginView: View {
                         // Handle sign up button action
                     }) {
                         Text("Sign Up")
-                            .foregroundColor(Color("LoginButtonBackground"))
-                            .fontWeight(.black)
+                            .background(Color("LoginButtonBackground"))
+                            .cornerRadius(10)
                     }
                     .padding(.trailing, 20)
                 }
-                .padding(.bottom, 20)
+                .padding(.bottom, 17)
             }
             .padding()
         }
