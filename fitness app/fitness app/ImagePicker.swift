@@ -16,16 +16,16 @@ class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerContro
         self.parent = parent
     }
 
-    func imagePickerController( picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    func imagePickerController( _ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         if let image = info[.originalImage] as? UIImage {
             parent.selectedImage = image
         }
         //parent.presentationMode.wrappedValue.dismiss()
     }
+    
 }
 
 struct ImagePicker: UIViewControllerRepresentable {
-    //@Environment(.presentationMode) var presentationMode
     @Binding var selectedImage: UIImage?
 
     var sourceType: UIImagePickerController.SourceType = .camera
@@ -35,12 +35,13 @@ struct ImagePicker: UIViewControllerRepresentable {
         picker.delegate = context.coordinator
         picker.sourceType = sourceType
         return picker
+        
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: UIViewControllerRepresentableContext<ImagePicker>) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
+        return Coordinator(parent: self)
     }
 
 }
