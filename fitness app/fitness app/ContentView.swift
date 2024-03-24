@@ -184,9 +184,9 @@ struct CustomPostView: View {
     }
 }
 
-struct LoginView_Previews: PreviewProvider {
+struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        LoginView()
+       ContentView()
     }
 }
 
