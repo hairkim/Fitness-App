@@ -9,10 +9,8 @@
 import SwiftUI
 
 struct LoginView: View {
+
     @Environment(\.managedObjectContext) var managedObjectContext
-    
-    @State private var username: String = ""
-    @State private var password: String = ""
     
     var body: some View {
         NavigationStack {
@@ -34,14 +32,14 @@ struct LoginView: View {
                         .padding(.bottom, 50)
                     
                     VStack(spacing: 20) {
-                        TextField("Username", text: $username)
+                        TextField("Email", text: $viewModel.email)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding()
                             .foregroundColor(.black)
                             .background(Color("TextFieldBackground"))
                             .cornerRadius(10)
                         
-                        SecureField("Password", text: $password)
+                        SecureField("Password", text: $viewModel.password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding()
                             .foregroundColor(.black)
@@ -50,16 +48,6 @@ struct LoginView: View {
                         
                         Button(action: {
                             // Handle login button action
-                            let success = PersistenceController.shared.UserLogin(username: username, password: password, context: managedObjectContext)
-                            if success {
-                                // Handle successful login
-                                print("Login successful")
-                                UserManager.shared.login(username: username)
-                                //go to content view
-                            } else {
-                                // Handle failed login
-                                print("Login failed")
-                            }
                         }) {
                             Text("Login")
                                 .foregroundColor(.black)

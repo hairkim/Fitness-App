@@ -7,11 +7,32 @@
 
 import SwiftUI
 
+@MainActor
+final class SignupViewModel: ObservableObject {
+    @Published var email = ""
+    @Published var password = ""
+    
+    func signUp() async throws {
+        guard !email.isEmpty, !password.isEmpty else {
+            print("No email or password found.")
+            return
+        }
+        
+        Task {
+            do {
+                let returnedData = try await AuthenticationManager.shared.createUser(email: email, password: password)
+                print("success")
+                print(returnedData)
+            } catch {
+                print("Error: \(error)")
+            }
+        }
+    }
+}
+
 struct SignupView: View {
+    @StateObject private var viewModel = SignupViewModel()
     @Environment(\.managedObjectContext) var managedObjectContext
-    @State private var username: String = ""
-    @State private var password: String = ""
-    @State private var confirmPassword: String = ""
     
     var body: some View {
         ZStack {
@@ -25,29 +46,30 @@ struct SignupView: View {
                     .foregroundColor(.black)
                     .padding(.bottom, 20)
                 
-                TextField("Username", text: $username)
+                TextField("Username", text: $viewModel.email)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                     .background(Color("TextFieldBackground"))
                     .cornerRadius(10)
                 
-                SecureField("Password", text: $password)
+                SecureField("Password", text: $viewModel.password)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                     .background(Color("TextFieldBackground"))
                     .cornerRadius(10)
                 
-                SecureField("Confirm Password", text: $confirmPassword)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                    .background(Color("TextFieldBackground"))
-                    .cornerRadius(10)
                 
                 Button(action: {
                     // Handle sign up button action
                     // Add your sign up logic here
                     print("signup successful")
-                    PersistenceController.shared.CreateUser(username: username, password: password, context: managedObjectContext)
+                    Task {
+                        do {
+                            try await viewModel.logIn()
+                        } catch {
+                            print("Login error: \(error)")
+                        }
+                    }
                 }) {
                     Text("Sign Up")
                         .foregroundColor(.black)
