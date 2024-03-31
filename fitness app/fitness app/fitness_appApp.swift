@@ -15,9 +15,7 @@ struct fitness_appApp: App {
     
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                LoginView()
-            }
+            ContentView()
         }
     }
 }

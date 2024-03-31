@@ -16,70 +16,95 @@ struct ContentView: View {
         // Add more posts as needed
     ]
     
+    @State private var showSignInView: Bool = false
+    
     var body: some View {
-        NavigationView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Customized top bar
-                HStack {
-                    Text("YourApp")
-                        .font(.title)
-                        .foregroundColor(.purple)
-                        .padding(.leading, 16)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        // Action for a custom navigation item
-                        print("Custom navigation item tapped")
-                    }) {
-                        Image(systemName: "gear")
-                            .imageScale(.large)
+        ZStack {
+            NavigationView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Customized top bar
+                    HStack {
+                        Text("YourApp")
+                            .font(.title)
                             .foregroundColor(.purple)
-                            .padding(.trailing, 16)
-                    }
-                }
-                .padding(.horizontal)
-
-                // List of posts with revised layout
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 16) {
-                        ForEach(posts, id: \.id) { post in
-                            CustomPostView(post: post)
+                            .padding(.leading, 16)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            // Action for a custom navigation item
+                            print("Custom navigation item tapped")
+                        }) {
+                            Image(systemName: "gear")
+                                .imageScale(.large)
+                                .foregroundColor(.purple)
+                                .padding(.trailing, 16)
                         }
                     }
-                    .padding()
-                }
-                
-                // Profile icon in the refined bottom navigation bar
-                HStack {
-                    Spacer() // Pushes the profile icon to the right
-                    NavigationLink(destination: ProfileView()) {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 30, height: 30)
-                            .foregroundColor(.purple)
-                            .padding(10)
-                            .background(Color.white)
-                            .clipShape(Circle())
-                            .shadow(radius: 5)
-                            .padding(10)
+                    .padding(.horizontal)
+
+                    // List of posts with revised layout
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 16) {
+                            ForEach(posts, id: \.id) { post in
+                                CustomPostView(post: post)
+                            }
+                        }
+                        .padding()
                     }
-                    .padding(.trailing, 20)
+                    
+                    // Profile icon in the refined bottom navigation bar
+                    HStack {
+                        NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
+                            Image(systemName: "gear")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 30, height: 30)
+                                .foregroundColor(.purple)
+                                .padding(10)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(radius: 5)
+                                .padding(10)
+                        }
+                        Spacer() // Pushes the profile icon to the right
+                        NavigationLink(destination: ProfileView()) {
+                            Image(systemName: "person.circle.fill")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 30, height: 30)
+                                .foregroundColor(.purple)
+                                .padding(10)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(radius: 5)
+                                .padding(10)
+                        }
+                        .padding(.trailing, 20)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.gray.opacity(0.1))
+                            .shadow(radius: 5)
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.gray.opacity(0.1))
-                        .shadow(radius: 5)
-                )
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
+                .navigationTitle("") // Empty title
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        // Left side navigation items can be added here if needed
+                    }
+                }
             }
-            .navigationTitle("") // Empty title
-            .toolbar {
-                ToolbarItem(placement: .navigation) {
-                    // Left side navigation items can be added here if needed
+            .onAppear {
+                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
+                self.showSignInView = authUser == nil
+            }
+            .fullScreenCover(isPresented: $showSignInView) {
+                NavigationStack {
+                    LoginView(showSignInView: $showSignInView)
                 }
             }
         }

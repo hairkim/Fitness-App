@@ -34,6 +34,8 @@ struct SignupView: View {
     @StateObject private var viewModel = SignupViewModel()
     @Environment(\.managedObjectContext) var managedObjectContext
     
+    @Binding var showSignInView: Bool
+    
     var body: some View {
         ZStack {
             LinearGradient(gradient: Gradient(colors: [Color("BackgroundTop"), Color("BackgroundBottom")]), startPoint: .top, endPoint: .bottom)
@@ -62,10 +64,10 @@ struct SignupView: View {
                 Button(action: {
                     // Handle sign up button action
                     // Add your sign up logic here
-                    print("signup successful")
                     Task {
                         do {
-                            try await viewModel.logIn()
+                            try await viewModel.signUp()
+                            showSignInView = false
                         } catch {
                             print("Login error: \(error)")
                         }
@@ -96,5 +98,5 @@ struct SignupView: View {
 
 
 #Preview {
-    SignupView()
+    SignupView(showSignInView: .constant(false))
 }

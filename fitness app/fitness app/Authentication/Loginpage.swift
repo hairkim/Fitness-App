@@ -8,9 +8,34 @@
 
 import SwiftUI
 
-struct LoginView: View {
+@MainActor
+final class LoginViewModel: ObservableObject {
+    @Published var email = ""
+    @Published var password = ""
+    
+    func logIn() async throws {
+        guard !email.isEmpty, !password.isEmpty else {
+            print("No email or password found.")
+            return
+        }
+        
+        Task {
+            do {
+                let returnedData = try await AuthenticationManager.shared.logInUser(email: email, password: password)
+                print("success")
+                print(returnedData)
+            } catch {
+                print("Error: \(error)")
+            }
+        }
+    }
+}
 
+struct LoginView: View {
+    @StateObject private var viewModel = LoginViewModel()
     @Environment(\.managedObjectContext) var managedObjectContext
+    
+    @Binding var showSignInView: Bool
     
     var body: some View {
         NavigationStack {
@@ -48,6 +73,15 @@ struct LoginView: View {
                         
                         Button(action: {
                             // Handle login button action
+                            print("login successful")
+                            Task {
+                                do {
+                                    try await viewModel.logIn()
+                                    showSignInView = false
+                                } catch {
+                                    print("Login error: \(error)")
+                                }
+                            }
                         }) {
                             Text("Login")
                                 .foregroundColor(.black)
@@ -69,7 +103,8 @@ struct LoginView: View {
                         Spacer()
                         Text("Don't have an account?")
                             .foregroundColor(.black)
-                        NavigationLink(destination: SignupView().environment(\.managedObjectContext, managedObjectContext)) {
+                        NavigationLink(destination:
+                                        SignupView(showSignInView: .constant(false))) {
                             Text("Sign Up")
                                 .padding()
                                 .background(Color("LoginButtonBackground"))
@@ -97,6 +132,8 @@ extension UIApplication {
 
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-        LoginView()
+        NavigationStack {
+            LoginView(showSignInView: .constant(false))
+        }
     }
 }
