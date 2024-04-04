@@ -31,10 +31,7 @@ struct ContentView: View {
                         
                         Spacer()
                         
-                        Button(action: {
-                            // Action for a custom navigation item
-                            print("Custom navigation item tapped")
-                        }) {
+                        NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
                             Image(systemName: "gear")
                                 .imageScale(.large)
                                 .foregroundColor(.purple)
@@ -52,11 +49,14 @@ struct ContentView: View {
                         }
                         .padding()
                     }
+
                     
                     // Profile icon in the refined bottom navigation bar
                     HStack {
-                        NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
-                            Image(systemName: "gear")
+                        Spacer()
+                        //change this so that it goes to the image chooser
+                        NavigationLink(destination: ContentView()) {
+                            Image(systemName: "plus")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 30, height: 30)
@@ -67,6 +67,8 @@ struct ContentView: View {
                                 .shadow(radius: 5)
                                 .padding(10)
                         }
+                        .padding(.trailing, 20)
+                        
                         Spacer() // Pushes the profile icon to the right
                         NavigationLink(destination: ProfileView()) {
                             Image(systemName: "person.circle.fill")
@@ -101,15 +103,15 @@ struct ContentView: View {
             
             //uncomment for testing
             //this shows login page if user is not logged in already
-//            .onAppear {
-//                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
-//                self.showSignInView = authUser == nil
-//            }
-//            .fullScreenCover(isPresented: $showSignInView) {
-//                NavigationStack {
-//                    LoginView(showSignInView: $showSignInView)
-//                }
-//            }
+            .onAppear {
+                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
+                self.showSignInView = authUser == nil
+            }
+            .fullScreenCover(isPresented: $showSignInView) {
+                NavigationStack {
+                    LoginView(showSignInView: $showSignInView)
+                }
+            }
         }
     }
 }

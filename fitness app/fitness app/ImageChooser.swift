@@ -57,10 +57,6 @@ extension UIImagePickerController.SourceType: Identifiable {
     }
 }
 
-//#Preview {
-//    @State static var previewPostImage: UIImage?
-//    ImageChooser(postImage: $previewPostImage)
-//}
 
 struct ImageChooser_Previews: PreviewProvider {
     @State static var previewPostImage: UIImage?
