@@ -54,6 +54,7 @@ struct ContentView: View {
                     // Profile icon in the refined bottom navigation bar
                     HStack {
                         Spacer()
+                        Spacer()
                         //change this so that it goes to the image chooser
                         NavigationLink(destination: ContentView()) {
                             Image(systemName: "plus")
