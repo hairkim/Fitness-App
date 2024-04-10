@@ -7,6 +7,16 @@
 
 import SwiftUI
 
+struct Post: Identifiable {
+    let id: UUID = UUID()
+    let username: String
+    let imageName: String
+    let caption: String
+    let multiplePictures: Bool
+    let workoutSplit: String
+    let workoutSplitEmoji: String
+}
+
 struct ContentView: View {
     // Example posts data
     let posts: [Post] = [
@@ -43,7 +53,7 @@ struct ContentView: View {
                     // List of posts with revised layout
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 16) {
-                            ForEach(posts, id: \.id) { post in
+                            ForEach(posts) { post in
                                 CustomPostView(post: post)
                             }
                         }
@@ -102,18 +112,19 @@ struct ContentView: View {
                 }
             }
             
-            //uncomment for testing
-            //this shows login page if user is not logged in already
-            .onAppear {
-                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
-                self.showSignInView = authUser == nil
-            }
-            .fullScreenCover(isPresented: $showSignInView) {
-                NavigationStack {
-                    LoginView(showSignInView: $showSignInView)
-                }
-            }
+//            //uncomment for testing
+//            //this shows login page if user is not logged in already
+//            .onAppear {
+//                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
+//                self.showSignInView = authUser == nil
+//            }
+//            .fullScreenCover(isPresented: $showSignInView) {
+//                NavigationStack {
+//                    LoginView(showSignInView: $showSignInView)
+//                }
+//            }
         }
+        
     }
 }
 
@@ -121,6 +132,7 @@ struct CustomPostView: View {
     let post: Post // Assuming you have a Post model
     
     @State private var isLiked = false
+    @State private var animateLike = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -183,20 +195,24 @@ struct CustomPostView: View {
 
             HStack(spacing: 20) {
                 Button(action: {
-                    // Action for custom post action
-                    self.isLiked.toggle()
+                    // Action for custom post action (like)
+                    withAnimation {
+                        self.isLiked.toggle()
+                        self.animateLike.toggle()
+                    }
                 }) {
-                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                    Image(systemName: "dumbbell")
                         .resizable()
                         .frame(width: 25, height: 25)
-                        .foregroundColor(isLiked ? .red : .purple)
+                        .foregroundColor(isLiked ? .green : .purple) // Customize colors as needed
+                        .rotationEffect(Angle(degrees: animateLike ? 30 : 0))
                 }
                 
                 Button(action: {
-                    // Action for custom post action
+                    // Action for custom post action (comment)
                     print("Comment button tapped")
                 }) {
-                    Image(systemName: "message")
+                    Image(systemName: "bubble.left.and.bubble.right")
                         .resizable()
                         .frame(width: 25, height: 25)
                         .foregroundColor(.purple)
@@ -219,18 +235,4 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
        ContentView()
     }
-}
-
-struct Post: Identifiable {
-    let id: UUID = UUID()
-    let username: String
-    let imageName: String // Image name or URL
-    let caption: String
-    let multiplePictures: Bool // Indicates if the user has posted multiple pictures
-    
-    // Workout Split
-    let workoutSplit: String
-    
-    // Workout Split Emoji
-    let workoutSplitEmoji: String
 }
