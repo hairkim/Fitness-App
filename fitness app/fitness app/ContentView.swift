@@ -7,6 +7,12 @@
 
 import SwiftUI
 
+struct Comment: Identifiable {
+    let id: UUID = UUID()
+    let username: String
+    let text: String
+}
+
 struct Post: Identifiable {
     let id: UUID = UUID()
     let username: String
@@ -15,14 +21,15 @@ struct Post: Identifiable {
     let multiplePictures: Bool
     let workoutSplit: String
     let workoutSplitEmoji: String
+    var comments: [Comment]
 }
 
 struct ContentView: View {
     // Example posts data
-    let posts: [Post] = [
-        Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️"),
-        Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️"),
-        Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵"),
+    @State var posts: [Post] = [
+        Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️", comments: []),
+        Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️", comments: []),
+        Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵", comments: []),
         // Add more posts as needed
     ]
     
@@ -53,8 +60,10 @@ struct ContentView: View {
                     // List of posts with revised layout
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 16) {
-                            ForEach(posts) { post in
-                                CustomPostView(post: post)
+                            ForEach(posts.indices, id: \.self) { index in
+                                CustomPostView(post: $posts[index], deleteComment: { comment in
+                                    deleteComment(comment, at: index)
+                                })
                             }
                         }
                         .padding()
@@ -111,28 +120,23 @@ struct ContentView: View {
                     }
                 }
             }
-            
-//            //uncomment for testing
-//            //this shows login page if user is not logged in already
-//            .onAppear {
-//                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
-//                self.showSignInView = authUser == nil
-//            }
-//            .fullScreenCover(isPresented: $showSignInView) {
-//                NavigationStack {
-//                    LoginView(showSignInView: $showSignInView)
-//                }
-//            }
         }
-        
+    }
+    
+    // Function to delete a comment
+    private func deleteComment(_ comment: Comment, at index: Int) {
+        posts[index].comments.removeAll(where: { $0.id == comment.id })
     }
 }
 
 struct CustomPostView: View {
-    let post: Post // Assuming you have a Post model
+    @Binding var post: Post
+    let deleteComment: (Comment) -> Void
     
     @State private var isLiked = false
     @State private var animateLike = false
+    @State private var isCommenting = false
+    @State private var commentText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -210,7 +214,7 @@ struct CustomPostView: View {
                 
                 Button(action: {
                     // Action for custom post action (comment)
-                    print("Comment button tapped")
+                    self.isCommenting.toggle()
                 }) {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .resizable()
@@ -223,11 +227,47 @@ struct CustomPostView: View {
             Text(post.caption)
                 .foregroundColor(.primary)
                 .padding(.horizontal, 16)
+            
+            // Display existing comments
+            ForEach(post.comments) { comment in
+                HStack {
+                    Text("\(comment.username): \(comment.text)")
+                        .padding(.horizontal, 16)
+                    
+                    Spacer()
+                    
+                    // Delete button
+                    Button(action: {
+                        deleteComment(comment)
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                    .padding(.trailing, 16)
+                }
+            }
+            
+            // Text field to add new comment
+            if isCommenting {
+                TextField("Write a comment...", text: $commentText, onCommit: {
+                    addComment()
+                })
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
         }
         .padding(8)
         .background(Color.white)
         .cornerRadius(20)
         .shadow(radius: 5)
+    }
+    
+    // Function to add a comment
+    private func addComment() {
+        post.comments.append(Comment(username: "CurrentUser", text: commentText))
+        commentText = ""
+        isCommenting = false
     }
 }
 
