@@ -38,6 +38,7 @@
 		6F962CDF2B896A9400C52234 /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		6F962CE12B896AB900C52234 /* ImageChooser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageChooser.swift; sourceTree = "<group>"; };
 		6FB9B0D52BC62BEA00072477 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		6FB9B0D72BCFA4C200072477 /* fitnessapp-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "fitnessapp-Info.plist"; sourceTree = "<group>"; };
 		6FD608772BB3B014002ED034 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
 		6FD608832BB41B02002ED034 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -68,6 +69,7 @@
 		6F962CC32B8969FB00C52234 = {
 			isa = PBXGroup;
 			children = (
+				6FB9B0D72BCFA4C200072477 /* fitnessapp-Info.plist */,
 				6F962CCE2B8969FB00C52234 /* fitness app */,
 				6F962CCD2B8969FB00C52234 /* Products */,
 				6F8615CA2B8D8DE9005B2603 /* Frameworks */,
@@ -341,7 +343,9 @@
 				DEVELOPMENT_TEAM = CQP86J9UX9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "fitnessapp-Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "this is for camera";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "this is for photo library";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -371,7 +375,9 @@
 				DEVELOPMENT_TEAM = CQP86J9UX9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "fitnessapp-Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "this is for camera";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "this is for photo library";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

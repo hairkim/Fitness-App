@@ -75,7 +75,7 @@ struct ContentView: View {
                         Spacer()
                         Spacer()
                         //change this so that it goes to the image chooser
-                        NavigationLink(destination: ContentView()) {
+                        NavigationLink(destination: ImageChooser()) {
                             Image(systemName: "plus")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
@@ -120,6 +120,23 @@ struct ContentView: View {
                     }
                 }
             }
+            //DON'T DELETE THIS BLOCK OF CODE
+            //
+            
+            //uncomment for testing
+            //this shows login page if user is not logged in already
+//            .onAppear {
+//                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
+//                self.showSignInView = authUser == nil
+//            }
+//            .fullScreenCover(isPresented: $showSignInView) {
+//                NavigationStack {
+//                    LoginView(showSignInView: $showSignInView)
+//                }
+//            }
+            
+            //
+            //This is end of login page check
         }
     }
     
