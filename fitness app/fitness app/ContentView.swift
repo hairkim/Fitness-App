@@ -90,7 +90,7 @@ struct ContentView: View {
                         .padding(.trailing, 20)
                         
                         Spacer() // Pushes the profile icon to the right
-                        NavigationLink(destination: ProfileView()) {
+                        NavigationLink(destination: ProfileView(showSignInView: $showSignInView)) {
                             Image(systemName: "person.circle.fill")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
@@ -125,15 +125,15 @@ struct ContentView: View {
             
             //uncomment for testing
             //this shows login page if user is not logged in already
-//            .onAppear {
-//                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
-//                self.showSignInView = authUser == nil
-//            }
-//            .fullScreenCover(isPresented: $showSignInView) {
-//                NavigationStack {
-//                    LoginView(showSignInView: $showSignInView)
-//                }
-//            }
+            .onAppear {
+                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
+                self.showSignInView = authUser == nil
+            }
+            .fullScreenCover(isPresented: $showSignInView) {
+                NavigationStack {
+                    LoginView(showSignInView: $showSignInView)
+                }
+            }
             
             //
             //This is end of login page check

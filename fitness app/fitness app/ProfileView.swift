@@ -22,10 +22,13 @@ final class ProfileViewModel: ObservableObject{
 struct ProfileView: View {
     
     @StateObject private var viewModel = ProfileViewModel()
+    @Binding var showSignInView: Bool
     
     var body: some View {
         List {
-            Text("")
+            if let user = viewModel.user {
+                Text("Userid: \(user.uid)")
+            }
         }
         .onAppear{
             try? viewModel.loadCurrentUser()
@@ -33,13 +36,17 @@ struct ProfileView: View {
         .navigationTitle("Profile")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Image(systemName: "gear")
-                    .font(.headline)
+                NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
+                    Image(systemName: "gear")
+                        .imageScale(.large)
+                        .foregroundColor(.purple)
+                        .padding(.trailing, 16)
+                }
             }
         }
     }
     
-    
+}
     
     
     
@@ -122,7 +129,8 @@ struct ProfileView: View {
     // Uncomment this to see the preview in Xcode
     struct ProfileView_Previews: PreviewProvider {
         static var previews: some View {
-            ProfileView()
+            NavigationStack{
+                ProfileView(showSignInView: .constant(false))
+            }
         }
     }
-}
