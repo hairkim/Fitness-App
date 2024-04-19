@@ -21,6 +21,8 @@ final class SignupViewModel: ObservableObject {
         Task {
             do {
                 let returnedData = try await AuthenticationManager.shared.createUser(email: email, password: password)
+                try await UserManager.shared.createNewUser(auth: returnedData)
+
                 print("success")
                 print(returnedData)
             } catch {

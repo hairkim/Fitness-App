@@ -26,6 +26,7 @@
 		8C1F3FD82BD1FFE6002C1465 /* FirebaseFirestoreSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8C1F3FD72BD1FFE6002C1465 /* FirebaseFirestoreSwift */; };
 		8C1F3FDA2BD1FFED002C1465 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8C1F3FD92BD1FFED002C1465 /* FirebaseFirestore */; };
 		8C1F3FDD2BD20114002C1465 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */; };
+		8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAD9A6D2BD303F900CDC07C /* UserManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +46,7 @@
 		6FD608772BB3B014002ED034 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
 		6FD608832BB41B02002ED034 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
 		8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		8CAD9A6D2BD303F900CDC07C /* UserManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,6 +123,7 @@
 				27EA4EA12B8C0B460027F19E /* Loginpage.swift */,
 				6FD608772BB3B014002ED034 /* SignupView.swift */,
 				6FD608832BB41B02002ED034 /* AuthenticationManager.swift */,
+				8CAD9A6C2BD303DD00CDC07C /* Firestore */,
 			);
 			path = Authentication;
 			sourceTree = "<group>";
@@ -132,6 +135,14 @@
 				8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		8CAD9A6C2BD303DD00CDC07C /* Firestore */ = {
+			isa = PBXGroup;
+			children = (
+				8CAD9A6D2BD303F900CDC07C /* UserManager.swift */,
+			);
+			path = Firestore;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -224,6 +235,7 @@
 				6F962CE22B896AB900C52234 /* ImageChooser.swift in Sources */,
 				6FD608842BB41B02002ED034 /* AuthenticationManager.swift in Sources */,
 				6FD608782BB3B014002ED034 /* SignupView.swift in Sources */,
+				8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */,
 				6F962CD02B8969FB00C52234 /* fitness_appApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
