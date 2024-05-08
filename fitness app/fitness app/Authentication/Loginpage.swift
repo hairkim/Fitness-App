@@ -19,15 +19,7 @@ final class LoginViewModel: ObservableObject {
             return
         }
         
-        Task {
-            do {
-                let returnedData = try await AuthenticationManager.shared.logInUser(email: email, password: password)
-                print("success")
-                print(returnedData)
-            } catch {
-                print("Error: \(error)")
-            }
-        }
+        let returnedData = try await AuthenticationManager.shared.logInUser(email: email, password: password)
     }
 }
 
@@ -44,7 +36,7 @@ struct LoginView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    Text("Ryan's Gym") // Title
+                    Text("Not Kimothy's Gym") // Title
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.black)
@@ -73,11 +65,11 @@ struct LoginView: View {
                         
                         Button(action: {
                             // Handle login button action
-                            print("login successful")
                             Task {
                                 do {
                                     try await viewModel.logIn()
                                     showSignInView = false
+                                    print("login successful")
                                 } catch {
                                     print("Login error: \(error)")
                                 }

@@ -20,7 +20,7 @@ final class SettingsViewModel: ObservableObject {
     func resetPassword() async throws {
         let authUser = try AuthenticationManager.shared.getAuthenticatedUser()
         
-        let email = authUser.email 
+        let email = authUser.email
         
         try await AuthenticationManager.shared.resetPassword(email: email)
     }

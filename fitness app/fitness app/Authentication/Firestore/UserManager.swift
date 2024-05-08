@@ -9,6 +9,13 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
+struct DBUser {
+    let userId: String
+    let dateCreated: Date?
+    let email: String?
+    let photoUrl: String?
+}
+
 final class UserManager {
     
     static let shared = UserManager()
@@ -25,6 +32,20 @@ final class UserManager {
         }
         
         try await Firestore.firestore().collection("users").document(auth.uid).setData(userData, merge: false)
+    }
+    
+    func getUser(userId: String) async throws -> DBUser {
+        let document = try await Firestore.firestore().collection("users").document(userId).getDocument()
+        
+        guard let data = document.data(), let userId = data["user_id"] as? String else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let dateCreated = data["date_created"] as? Date
+        let email = data["email"] as? String
+        let photoUrl = data["photo_url"] as? String
+        
+        return DBUser(userId: userId, dateCreated: dateCreated, email: email, photoUrl: photoUrl)
     }
      
 }
