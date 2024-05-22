@@ -25,106 +25,85 @@ struct Post: Identifiable {
 }
 
 struct ContentView: View {
-    // Example posts data
     @State var posts: [Post] = [
         Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️", comments: []),
         Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️", comments: []),
         Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵", comments: []),
-        // Add more posts as needed
     ]
     
     @State private var showSignInView: Bool = false
     
     var body: some View {
         ZStack {
-            NavigationView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Customized top bar
-                    HStack {
-                        Text("YourApp")
-                            .font(.title)
-                            .foregroundColor(.purple)
-                            .padding(.leading, 16)
-                        
-                        Spacer()
-                        
-                        NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
-                            Image(systemName: "gear")
-                                .imageScale(.large)
+            TabView {
+                NavigationView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("YourApp")
+                                .font(.title)
                                 .foregroundColor(.purple)
-                                .padding(.trailing, 16)
-                        }
-                    }
-                    .padding(.horizontal)
-
-                    // List of posts with revised layout
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 16) {
-                            ForEach(posts.indices, id: \.self) { index in
-                                CustomPostView(post: $posts[index], deleteComment: { comment in
-                                    deleteComment(comment, at: index)
-                                })
+                                .padding(.leading, 16)
+                            
+                            Spacer()
+                            
+                            NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
+                                Image(systemName: "gear")
+                                    .imageScale(.large)
+                                    .foregroundColor(.purple)
+                                    .padding(.trailing, 16)
                             }
                         }
-                        .padding()
-                    }
+                        .padding(.horizontal)
 
-                    
-                    // Profile icon in the refined bottom navigation bar
-                    HStack {
-                        Spacer()
-                        Spacer()
-                        //change this so that it goes to the image chooser
-                        NavigationLink(destination: ImageChooser()) {
-                            Image(systemName: "plus")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 30, height: 30)
-                                .foregroundColor(.purple)
-                                .padding(10)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                                .shadow(radius: 5)
-                                .padding(10)
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 16) {
+                                ForEach(posts.indices, id: \.self) { index in
+                                    CustomPostView(post: $posts[index], deleteComment: { comment in
+                                        deleteComment(comment, at: index)
+                                    })
+                                }
+                            }
+                            .padding()
                         }
-                        .padding(.trailing, 20)
-                        
-                        Spacer() // Pushes the profile icon to the right
-                        NavigationLink(destination: ProfileView(showSignInView: $showSignInView)) {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 30, height: 30)
-                                .foregroundColor(.purple)
-                                .padding(10)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                                .shadow(radius: 5)
-                                .padding(10)
-                        }
-                        .padding(.trailing, 20)
                     }
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.gray.opacity(0.1))
-                            .shadow(radius: 5)
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    .navigationTitle("")
                 }
-                .navigationTitle("") // Empty title
-                .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        // Left side navigation items can be added here if needed
+                .tabItem {
+                    Image(systemName: "house.fill")
+                    Text("Home")
+                }
+                
+                PlaceholderView(pageName: "Profile")
+                    .tabItem {
+                        Image(systemName: "person.circle.fill")
+                        Text("Profile")
                     }
-                }
+                
+                PlaceholderView(pageName: "Workouts")
+                    .tabItem {
+                        Image(systemName: "figure.walk")
+                        Text("Workouts")
+                    }
+                
+                PlaceholderView(pageName: "Health")
+                    .tabItem {
+                        Image(systemName: "heart.circle.fill")
+                        Text("Health")
+                    }
+                
+                PlaceholderView(pageName: "Nutrition")
+                    .tabItem {
+                        Image(systemName: "leaf.circle.fill")
+                        Text("Nutrition")
+                    }
+                
+                PlaceholderView(pageName: "Settings")
+                    .tabItem {
+                        Image(systemName: "gearshape.circle.fill")
+                        Text("Settings")
+                    }
             }
-            //DON'T DELETE THIS BLOCK OF CODE
-            //
             
-            //uncomment for testing
-            //this shows login page if user is not logged in already
             .onAppear {
                 let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
                 self.showSignInView = authUser == nil
@@ -134,15 +113,21 @@ struct ContentView: View {
                     LoginView(showSignInView: $showSignInView)
                 }
             }
-            
-            //
-            //This is end of login page check
         }
     }
     
-    // Function to delete a comment
     private func deleteComment(_ comment: Comment, at index: Int) {
         posts[index].comments.removeAll(where: { $0.id == comment.id })
+    }
+}
+
+struct PlaceholderView: View {
+    let pageName: String
+    
+    var body: some View {
+        Text(pageName)
+            .font(.largeTitle)
+            .foregroundColor(.purple)
     }
 }
 
@@ -174,7 +159,6 @@ struct CustomPostView: View {
                 Spacer()
                 
                 Button(action: {
-                    // Action for custom button
                     print("More options button tapped")
                 }) {
                     Image(systemName: "ellipsis")
@@ -182,12 +166,11 @@ struct CustomPostView: View {
                 }
             }
 
-            // Display post content with custom styling
             ZStack(alignment: .topTrailing) {
                 Image(post.imageName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(maxHeight: 400) // Adjusted height for more vertical pictures
+                    .frame(maxHeight: 400)
                     .clipped()
                     .cornerRadius(20)
                     .overlay(
@@ -216,7 +199,6 @@ struct CustomPostView: View {
 
             HStack(spacing: 20) {
                 Button(action: {
-                    // Action for custom post action (like)
                     withAnimation {
                         self.isLiked.toggle()
                         self.animateLike.toggle()
@@ -225,12 +207,11 @@ struct CustomPostView: View {
                     Image(systemName: "dumbbell")
                         .resizable()
                         .frame(width: 25, height: 25)
-                        .foregroundColor(isLiked ? .green : .purple) // Customize colors as needed
+                        .foregroundColor(isLiked ? .green : .purple)
                         .rotationEffect(Angle(degrees: animateLike ? 30 : 0))
                 }
                 
                 Button(action: {
-                    // Action for custom post action (comment)
                     self.isCommenting.toggle()
                 }) {
                     Image(systemName: "bubble.left.and.bubble.right")
@@ -245,7 +226,6 @@ struct CustomPostView: View {
                 .foregroundColor(.primary)
                 .padding(.horizontal, 16)
             
-            // Display existing comments
             ForEach(post.comments) { comment in
                 HStack {
                     Text("\(comment.username): \(comment.text)")
@@ -253,7 +233,6 @@ struct CustomPostView: View {
                     
                     Spacer()
                     
-                    // Delete button
                     Button(action: {
                         deleteComment(comment)
                     }) {
@@ -264,7 +243,6 @@ struct CustomPostView: View {
                 }
             }
             
-            // Text field to add new comment
             if isCommenting {
                 TextField("Write a comment...", text: $commentText, onCommit: {
                     addComment()
@@ -280,7 +258,6 @@ struct CustomPostView: View {
         .shadow(radius: 5)
     }
     
-    // Function to add a comment
     private func addComment() {
         post.comments.append(Comment(username: "CurrentUser", text: commentText))
         commentText = ""
@@ -290,6 +267,6 @@ struct CustomPostView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-       ContentView()
+        ContentView()
     }
 }
