@@ -13,16 +13,6 @@ struct Comment: Identifiable {
     let text: String
 }
 
-struct Post: Identifiable {
-    let id: UUID = UUID()
-    let username: String
-    let imageName: String
-    let caption: String
-    let multiplePictures: Bool
-    let workoutSplit: String
-    let workoutSplitEmoji: String
-    var comments: [Comment]
-}
 
 struct ContentView: View {
     @State var posts: [Post] = [
@@ -104,15 +94,15 @@ struct ContentView: View {
                     }
             }
             
-            .onAppear {
-                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
-                self.showSignInView = authUser == nil
-            }
-            .fullScreenCover(isPresented: $showSignInView) {
-                NavigationStack {
-                    LoginView(showSignInView: $showSignInView)
-                }
-            }
+//            .onAppear {
+//                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
+//                self.showSignInView = authUser == nil
+//            }
+//            .fullScreenCover(isPresented: $showSignInView) {
+//                NavigationStack {
+//                    LoginView(showSignInView: $showSignInView)
+//                }
+//            }
         }
     }
     

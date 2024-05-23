@@ -14,7 +14,7 @@ final class ProfileViewModel: ObservableObject{
     @Published private(set) var user: DBUser? = nil
     
     func loadCurrentUser() async throws{
-        let authDataResult = try  AuthenticationManager.shared.getAuthenticatedUser()
+        let authDataResult = try AuthenticationManager.shared.getAuthenticatedUser()
         self.user = try await UserManager.shared.getUser(userId: authDataResult.uid)
     }
     
@@ -29,6 +29,8 @@ struct ProfileView: View {
         List {
             if let user = viewModel.user {
                 Text("Userid: \(user.userId)")
+            } else {
+                Text("No user found")
             }
         }
         .task{
