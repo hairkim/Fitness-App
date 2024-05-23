@@ -24,18 +24,24 @@ struct ImageChooser: View {
                     Text("No image selected").foregroundColor(.gray)
                 }
                 Spacer()
-                HStack(spacing: 30){
-                    Button("Select Image"){
-                        self.sourceType = .photoLibrary
-                    }
-                    Button(action: {
-                        self.sourceType = .camera
-                    }){
-                        Image(systemName: "camera")
-                    }
+                VStack{
+                    HStack(spacing: 30){
+                        Button("Select Image"){
+                            self.sourceType = .photoLibrary
+                        }
+                        Button(action: {
+                            self.sourceType = .camera
+                        }){
+                            Image(systemName: "camera")
+                        }
 
+                    }
+                    .padding(50)
+                    
+                    Button("Post") {
+                        //add this to db when post is created
+                    }
                 }
-                .padding(50)
             }
             .sheet(item: $sourceType, onDismiss: nil) { sourceType in
                 ImagePicker(selectedImage: $inputImage, sourceType: sourceType)

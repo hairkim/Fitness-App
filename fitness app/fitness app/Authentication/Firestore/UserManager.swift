@@ -11,39 +11,20 @@ import FirebaseFirestoreSwift
 
 struct DBUser: Codable {
     let userId: String
+    let username: String
     let dateCreated: Date?
     let email: String?
     let photoUrl: String?
     
-    init(auth: AuthDataResultModel) {
-        userId = auth.uid
-        dateCreated = Date()
-        email = auth.email
-        photoUrl = auth.photoUrl
+    init(auth: AuthDataResultModel, username: String) {
+        self.userId = auth.uid
+        self.username = username
+        self.dateCreated = Date()
+        self.email = auth.email
+        self.photoUrl = auth.photoUrl
     }
 }
 
-struct Post: Codable, Identifiable {
-    let id: UUID
-    let username: String
-    let imageName: String
-    let caption: String
-    let multiplePictures: Bool
-    let workoutSplit: String
-    let workoutSplitEmoji: String
-    var comments: [Comment]
-    
-    init(id: UUID = UUID(), username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment]) {
-         self.id = id
-         self.username = username
-         self.imageName = imageName
-         self.caption = caption
-         self.multiplePictures = multiplePictures
-         self.workoutSplit = workoutSplit
-         self.workoutSplitEmoji = workoutSplitEmoji
-         self.comments = comments
-     }
-}
 
 
 
