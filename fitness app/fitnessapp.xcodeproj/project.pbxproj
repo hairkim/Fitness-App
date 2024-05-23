@@ -29,6 +29,7 @@
 		8C1F3FDD2BD20114002C1465 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */; };
 		8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAD9A6D2BD303F900CDC07C /* UserManager.swift */; };
 		A914E2302BFED23B001116AF /* Forum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A914E22F2BFED23B001116AF /* Forum.swift */; };
+		A964BAE52BFFE9C30055403A /* CreateForum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A964BAE42BFFE9C30055403A /* CreateForum.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +52,7 @@
 		8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		8CAD9A6D2BD303F900CDC07C /* UserManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManager.swift; sourceTree = "<group>"; };
 		A914E22F2BFED23B001116AF /* Forum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Forum.swift; sourceTree = "<group>"; };
+		A964BAE42BFFE9C30055403A /* CreateForum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateForum.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +104,7 @@
 				6FD608822BB419CE002ED034 /* Authentication */,
 				6F962CCF2B8969FB00C52234 /* fitness_appApp.swift */,
 				A914E22F2BFED23B001116AF /* Forum.swift */,
+				A964BAE42BFFE9C30055403A /* CreateForum.swift */,
 				6F962CD12B8969FB00C52234 /* ContentView.swift */,
 				6F962CDD2B896A7600C52234 /* ProfileView.swift */,
 				6F962CE12B896AB900C52234 /* ImageChooser.swift */,
@@ -233,6 +236,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6F962CD22B8969FB00C52234 /* ContentView.swift in Sources */,
+				A964BAE52BFFE9C30055403A /* CreateForum.swift in Sources */,
 				6F962CE02B896A9500C52234 /* ImagePicker.swift in Sources */,
 				6F962CDE2B896A7600C52234 /* ProfileView.swift in Sources */,
 				27EA4EA22B8C0B460027F19E /* Loginpage.swift in Sources */,
