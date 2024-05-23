@@ -41,7 +41,7 @@ struct ContentView: View {
                         HStack {
                             Text("YourApp")
                                 .font(.title)
-                                .foregroundColor(.purple)
+                                .foregroundColor(Color(.darkGray))
                                 .padding(.leading, 16)
                             
                             Spacer()
@@ -49,7 +49,7 @@ struct ContentView: View {
                             NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
                                 Image(systemName: "gear")
                                     .imageScale(.large)
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(Color(.darkGray))
                                     .padding(.trailing, 16)
                             }
                         }
@@ -127,7 +127,7 @@ struct PlaceholderView: View {
     var body: some View {
         Text(pageName)
             .font(.largeTitle)
-            .foregroundColor(.purple)
+            .foregroundColor(Color(.darkGray))
     }
 }
 
@@ -144,12 +144,12 @@ struct CustomPostView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Circle()
-                    .stroke(Color.blue, lineWidth: 2)
+                    .stroke(Color.indigo, lineWidth: 2)
                     .frame(width: 32, height: 32)
                 
                 Text(post.username)
                     .font(.headline)
-                    .foregroundColor(.purple)
+                    .foregroundColor(Color(.darkGray))
                 
                 if post.multiplePictures {
                     Text("📷")
@@ -162,7 +162,7 @@ struct CustomPostView: View {
                     print("More options button tapped")
                 }) {
                     Image(systemName: "ellipsis")
-                        .foregroundColor(.purple)
+                        .foregroundColor(Color(.darkGray))
                 }
             }
 
@@ -184,14 +184,14 @@ struct CustomPostView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                         .padding(6)
-                        .background(Color.purple)
+                        .background(getColorForWorkoutSplit(post.workoutSplit))
                         .cornerRadius(10)
                     
                     Text(post.workoutSplitEmoji)
                         .font(.caption)
                         .foregroundColor(.white)
                         .padding(6)
-                        .background(Color.purple)
+                        .background(getColorForWorkoutSplit(post.workoutSplit))
                         .cornerRadius(10)
                 }
                 .offset(x: -10, y: 10)
@@ -207,7 +207,7 @@ struct CustomPostView: View {
                     Image(systemName: "dumbbell")
                         .resizable()
                         .frame(width: 25, height: 25)
-                        .foregroundColor(isLiked ? .green : .purple)
+                        .foregroundColor(isLiked ? .green : Color(.darkGray))
                         .rotationEffect(Angle(degrees: animateLike ? 30 : 0))
                 }
                 
@@ -217,7 +217,7 @@ struct CustomPostView: View {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .resizable()
                         .frame(width: 25, height: 25)
-                        .foregroundColor(.purple)
+                        .foregroundColor(Color(.darkGray))
                 }
             }
             .padding(.horizontal, 16)
@@ -256,6 +256,19 @@ struct CustomPostView: View {
         .background(Color.white)
         .cornerRadius(20)
         .shadow(radius: 5)
+    }
+    
+    private func getColorForWorkoutSplit(_ workoutSplit: String) -> Color {
+        switch workoutSplit {
+        case "Push":
+            return Color.indigo.opacity(0.8)
+        case "Pull":
+            return Color.indigo.opacity(0.8)
+        case "Legs":
+            return Color.green.opacity(0.8)
+        default:
+            return Color.white.opacity(0.8)
+        }
     }
     
     private func addComment() {
