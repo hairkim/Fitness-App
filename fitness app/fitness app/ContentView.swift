@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct Comment: Identifiable {
+struct Comment: Codable, Identifiable {
     let id: UUID = UUID()
     let username: String
     let text: String

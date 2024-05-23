@@ -31,9 +31,9 @@ struct Post: Codable, Identifiable {
     let multiplePictures: Bool
     let workoutSplit: String
     let workoutSplitEmoji: String
-    var comments: [String]
+    var comments: [Comment]
     
-    init(id: UUID = UUID(), username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [String]) {
+    init(id: UUID = UUID(), username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment]) {
          self.id = id
          self.username = username
          self.imageName = imageName
@@ -45,24 +45,7 @@ struct Post: Codable, Identifiable {
      }
 }
 
-//struct Post: Codable {
-//    let id: UUID = UUID()
-//    let username: String
-//    let imageName: String
-//    let caption: String
-//    let multiplePictures: Bool
-//    let workoutSplit: String
-//    let workoutSplitEmoji: String
-//    var comments: [Comment]
-//    
-//    init(id: String = UUID().uuidString, userId: String, photoUrl: String, comments: [String] = [], dateCreated: Date = Date()) {
-//        self.postId = postId
-//        self.userId = userId
-//        self.photoUrl = photoUrl
-//        self.comments = comments
-//        self.dateCreated = dateCreated
-//    }
-//}
+
 
 final class UserManager {
     
