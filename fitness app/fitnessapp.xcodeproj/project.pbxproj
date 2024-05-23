@@ -27,6 +27,7 @@
 		8C1F3FDA2BD1FFED002C1465 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8C1F3FD92BD1FFED002C1465 /* FirebaseFirestore */; };
 		8C1F3FDD2BD20114002C1465 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */; };
 		8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAD9A6D2BD303F900CDC07C /* UserManager.swift */; };
+		A914E2302BFED23B001116AF /* Forum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A914E22F2BFED23B001116AF /* Forum.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 		6FD608832BB41B02002ED034 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
 		8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		8CAD9A6D2BD303F900CDC07C /* UserManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManager.swift; sourceTree = "<group>"; };
+		A914E22F2BFED23B001116AF /* Forum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Forum.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +99,7 @@
 			children = (
 				6FD608822BB419CE002ED034 /* Authentication */,
 				6F962CCF2B8969FB00C52234 /* fitness_appApp.swift */,
+				A914E22F2BFED23B001116AF /* Forum.swift */,
 				6F962CD12B8969FB00C52234 /* ContentView.swift */,
 				6F962CDD2B896A7600C52234 /* ProfileView.swift */,
 				6F962CE12B896AB900C52234 /* ImageChooser.swift */,
@@ -237,6 +240,7 @@
 				6FD608782BB3B014002ED034 /* SignupView.swift in Sources */,
 				8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */,
 				6F962CD02B8969FB00C52234 /* fitness_appApp.swift in Sources */,
+				A914E2302BFED23B001116AF /* Forum.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
