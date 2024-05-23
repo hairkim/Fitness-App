@@ -2,7 +2,7 @@
 //  Forum.swift
 //  fitnessapp
 //
-//  Created by Daniel Han on 5/22/24.
+//  Created by Ryan Kim on 5/22/24.
 //
 
 import SwiftUI
