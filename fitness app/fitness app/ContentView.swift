@@ -7,14 +7,9 @@
 
 import SwiftUI
 
-struct Comment: Codable, Identifiable {
-    let id: UUID = UUID()
-    let username: String
-    let text: String
-}
-
 
 struct ContentView: View {
+    @EnvironmentObject var userStore: UserStore
     @State var posts: [Post] = [
         Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️", comments: []),
         Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️", comments: []),
@@ -24,6 +19,16 @@ struct ContentView: View {
     @State private var showSignInView: Bool = false
     
     var body: some View {
+        Group {
+            if userStore.currentUser == nil {
+                LoginView(showSignInView: $showSignInView)
+            } else {
+                mainContentView
+            }
+        }
+    }
+    
+    var mainContentView: some View {
         ZStack {
             TabView {
                 NavigationView {
@@ -36,11 +41,20 @@ struct ContentView: View {
                             
                             Spacer()
                             
-                            NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
-                                Image(systemName: "gear")
-                                    .imageScale(.large)
-                                    .foregroundColor(Color(.darkGray))
-                                    .padding(.trailing, 16)
+                            HStack {
+                                NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
+                                    Image(systemName: "gear")
+                                        .imageScale(.large)
+                                        .foregroundColor(Color(.darkGray))
+                                        .padding(.trailing, 16)
+                                }
+                                NavigationLink(destination: ImageChooser()) {
+                                    Image(systemName: "plus")
+                                        .imageScale(.large)
+                                        .foregroundColor(Color(.darkGray))
+                                        .padding(.trailing, 16)
+                                }
+                                
                             }
                         }
                         .padding(.horizontal)

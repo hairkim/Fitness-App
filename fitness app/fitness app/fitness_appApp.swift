@@ -14,10 +14,12 @@ import FirebaseFirestore
 struct fitness_appApp: App {
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @StateObject private var userStore = UserStore()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(userStore)
         }
     }
 }

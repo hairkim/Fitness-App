@@ -25,6 +25,7 @@ final class LoginViewModel: ObservableObject {
 
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
+    @EnvironmentObject var userStore: UserStore
     @Environment(\.managedObjectContext) var managedObjectContext
     
     @Binding var showSignInView: Bool

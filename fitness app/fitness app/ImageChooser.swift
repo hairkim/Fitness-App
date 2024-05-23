@@ -8,6 +8,8 @@
 import SwiftUI
 import CoreData
 import Photos
+import Firebase
+import FirebaseStorage
 
 struct ImageChooser: View {
     @State private var inputImage: UIImage?
@@ -58,6 +60,10 @@ struct ImageChooser: View {
 
         }
     }
+    
+    
+    
+    //beginning of functions
 
     func loadImage(){
         guard let inputImage = inputImage else { return }
@@ -82,6 +88,46 @@ struct ImageChooser: View {
                     if let image = image {
                         self.inputImage = image
                         self.image = Image(uiImage: image)
+                    }
+                }
+            }
+        }
+    }
+    
+    func createPost() async {
+        guard let inputImage = inputImage else { return }
+        
+        do {
+            let imageUrl = try await uploadImageToFirebase(image: inputImage)
+            
+            let newPost = Post(username: <#T##String#>, imageName: <#T##String#>, caption: <#T##String#>, multiplePictures: <#T##Bool#>, workoutSplit: <#T##String#>, workoutSplitEmoji: <#T##String#>, comments: <#T##[Comment]#>)
+        }
+    }
+    
+    
+    func uploadImageToFirebase(image: UIImage) async throws -> URL {
+        let storageRef = Storage.storage().reference().child("images/\(UUID().uuidString).jpg")
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw NSError(domain: "ImageChooser", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to compress image"])
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            storageRef.putData(imageData, metadata: nil) { _, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                storageRef.downloadURL { url, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    
+                    if let url = url {
+                        continuation.resume(returning: url)
+                    } else {
+                        continuation.resume(throwing: NSError(domain: "ImageChooser", code: 2, userInfo: [NSLocalizedDescriptionKey: "URL is nil"]))
                     }
                 }
             }

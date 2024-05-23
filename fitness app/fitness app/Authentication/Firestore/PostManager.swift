@@ -31,6 +31,12 @@ struct Post: Codable, Identifiable {
      }
 }
 
+struct Comment: Codable, Identifiable {
+    let id: UUID = UUID()
+    let username: String
+    let text: String
+}
+
 
 final class PostManager {
     
