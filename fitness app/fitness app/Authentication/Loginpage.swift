@@ -10,6 +10,7 @@ import SwiftUI
 
 @MainActor
 final class LoginViewModel: ObservableObject {
+    @EnvironmentObject var userStore: UserStore
     @Published var email = ""
     @Published var password = ""
     
@@ -19,7 +20,15 @@ final class LoginViewModel: ObservableObject {
             return
         }
         
-        let _ = try await AuthenticationManager.shared.logInUser(email: email, password: password)
+        do {
+            let authDataResult = try await AuthenticationManager.shared.logInUser(email: email, password: password)
+            let dbUser = try await UserManager.shared.getUser(userId: authDataResult.uid)
+            userStore.setCurrentUser(user: dbUser)
+        } catch {
+            print("Failed to sign in: \(error.localizedDescription)")
+        }
+        
+        
     }
 }
 

@@ -12,6 +12,7 @@ import Firebase
 import FirebaseStorage
 
 struct ImageChooser: View {
+    @EnvironmentObject var userStore: UserStore
     @State private var inputImage: UIImage?
     @State private var image: Image?
     @State private var sourceType: UIImagePickerController.SourceType?
@@ -41,7 +42,9 @@ struct ImageChooser: View {
                     .padding(50)
                     
                     Button("Post") {
-                        //add this to db when post is created
+                        Task {
+                            await createPost()
+                        }
                     }
                 }
             }
@@ -95,12 +98,20 @@ struct ImageChooser: View {
     }
     
     func createPost() async {
-        guard let inputImage = inputImage else { return }
+        guard let inputImage = inputImage, let currentUser = userStore.currentUser else {
+            print("no image or user data available")
+            return
+        }
         
         do {
             let imageUrl = try await uploadImageToFirebase(image: inputImage)
             
-            let newPost = Post(username: <#T##String#>, imageName: <#T##String#>, caption: <#T##String#>, multiplePictures: <#T##Bool#>, workoutSplit: <#T##String#>, workoutSplitEmoji: <#T##String#>, comments: <#T##[Comment]#>)
+            let newPost = Post(username: currentUser.username, imageName: imageUrl.absoluteString, caption: "placeholder", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "💀", comments: [])
+            try await PostManager.shared.createNewPost(post: newPost)
+            
+            print("Post created successfully")
+        } catch {
+            print("Error creating post: \(error.localizedDescription)")
         }
     }
     

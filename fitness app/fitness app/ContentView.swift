@@ -21,9 +21,17 @@ struct ContentView: View {
     var body: some View {
         Group {
             if userStore.currentUser == nil {
-                LoginView(showSignInView: $showSignInView)
+                LoginView(showSignInView: $showSignInView).environmentObject(userStore)
             } else {
                 mainContentView
+            }
+        }
+        .onAppear {
+            checkAuthStatus()
+        }
+        .fullScreenCover(isPresented: $showSignInView) {
+            NavigationView {
+                LoginView(showSignInView: $showSignInView).environmentObject(userStore)
             }
         }
     }
@@ -122,6 +130,22 @@ struct ContentView: View {
     
     private func deleteComment(_ comment: Comment, at index: Int) {
         posts[index].comments.removeAll(where: { $0.id == comment.id })
+    }
+    
+    func checkAuthStatus() {
+        Task {
+            let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
+            if let authUser = authUser {
+                let dbUser = try? await UserManager.shared.getUser(userId: authUser.uid)
+                if let dbUser = dbUser {
+                    userStore.setCurrentUser(user: dbUser)
+                } else {
+                    showSignInView = true
+                }
+            } else {
+                showSignInView = true
+            }
+        }
     }
 }
 

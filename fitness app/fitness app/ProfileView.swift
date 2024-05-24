@@ -125,11 +125,11 @@ struct ProfileView: View {
 
 //struct SettingsView: View {
 //    @Binding var showSignInView: Bool
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
-=======
+//=======
 //    
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //    var body: some View {
 //        Text("Settings View")
 //            .navigationTitle("Settings")
@@ -152,11 +152,11 @@ struct ProfileView_Previews: PreviewProvider {
 //@MainActor
 //final class ProfileViewModel: ObservableObject {
 //    @Published private(set) var user: DBUser? = nil
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
-=======
+//=======
 //    
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //    func loadCurrentUser() async throws {
 //        let authDataResult = try AuthenticationManager.shared.getAuthenticatedUser()
 //        self.user = try await UserManager.shared.getUser(userId: authDataResult.uid)
@@ -166,15 +166,15 @@ struct ProfileView_Previews: PreviewProvider {
 //struct ProfileView: View {
 //    @StateObject private var viewModel = ProfileViewModel()
 //    @Binding var showSignInView: Bool
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
 //    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 //
-=======
+//=======
 //    
 //    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 //    
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //    var body: some View {
 //        NavigationView {
 //            VStack {
@@ -186,29 +186,29 @@ struct ProfileView_Previews: PreviewProvider {
 //                            .scaledToFit()
 //                            .clipShape(Circle())
 //                            .frame(width: 100, height: 100)
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
 //                        Text(user.username)
 //                            .font(.title)
 //                            .fontWeight(.bold)
 //
-=======
+//=======
 //                        
 //                        Text(user.username)
 //                            .font(.title)
 //                            .fontWeight(.bold)
 //                        
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 ////                        Text(user.bio ?? "Welcome to my profile!")
 ////                            .font(.subheadline)
 ////                            .foregroundColor(.gray)
 ////                            .multilineTextAlignment(.center)
 ////                            .padding(.horizontal)
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
-=======
+//=======
 //                        
->>>>>>> Stashed changes
+//>>>>>> Stashed changes
 //                        // Statistics Section
 //                        HStack(spacing: 40) {
 //                            VStack {
@@ -218,11 +218,11 @@ struct ProfileView_Previews: PreviewProvider {
 //                                Text("\(user.posts.count)")
 //                                    .font(.headline)
 //                            }
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
-=======
+//=======
 //                            
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //                            VStack {
 //                                Text("Followers")
 //                                    .font(.subheadline)
@@ -230,11 +230,11 @@ struct ProfileView_Previews: PreviewProvider {
 //                                Text("\(user.followers.count)")
 //                                    .font(.headline)
 //                            }
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
-=======
+//======
 //                            
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //                            VStack {
 //                                Text("Following")
 //                                    .font(.subheadline)
@@ -246,11 +246,11 @@ struct ProfileView_Previews: PreviewProvider {
 //                        .padding(.top)
 //                    }
 //                    .padding(.top)
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
-=======
+//=======
 //                    
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //                    // Posts Grid
 //                    ScrollView {
 //                        LazyVGrid(columns: columns, spacing: 16) {
@@ -292,11 +292,11 @@ struct ProfileView_Previews: PreviewProvider {
 //
 //struct PostDetailView: View {
 //    let post: Post
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
-=======
+//=======
 //    
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //    var body: some View {
 //        VStack {
 //            Image(post.imageName)
@@ -305,19 +305,19 @@ struct ProfileView_Previews: PreviewProvider {
 //                .cornerRadius(10)
 //                .shadow(radius: 5)
 //                .padding()
-<<<<<<< Updated upstream
+//<<<<<<< Updated upstream
 //
 //            Text(post.caption)
 //                .font(.headline)
 //                .padding()
 //
-=======
+//=======
 //            
 //            Text(post.caption)
 //                .font(.headline)
 //                .padding()
 //            
->>>>>>> Stashed changes
+//>>>>>>> Stashed changes
 //            Spacer()
 //        }
 //        .navigationTitle("Post Detail")
