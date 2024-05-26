@@ -46,7 +46,7 @@ struct LoginView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    Text("Not Kimothy's Gym") // Title
+                    Text("The Clutcher (Ryan)") // Title
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.black)
