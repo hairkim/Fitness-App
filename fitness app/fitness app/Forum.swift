@@ -10,28 +10,50 @@ import PhotosUI
 import AVKit
 
 // Data Models
-struct ForumPost: Identifiable {
+class ForumPost: Identifiable, ObservableObject {
     let id: UUID = UUID()
     let username: String
     let title: String
     let body: String
-    var replies: [Reply]
-    var media: [MediaItem]
-    var link: URL?
-    var likes: Int = 0
-    var likedByCurrentUser: Bool = false
-    var createdAt: Date = Date()
+    @Published var replies: [Reply]
+    let media: [MediaItem]
+    let link: URL?
+    @Published var likes: Int
+    @Published var likedByCurrentUser: Bool
+    let createdAt: Date
+
+    init(username: String, title: String, body: String, replies: [Reply] = [], media: [MediaItem] = [], link: URL? = nil, likes: Int = 0, likedByCurrentUser: Bool = false, createdAt: Date = Date()) {
+        self.username = username
+        self.title = title
+        self.body = body
+        self.replies = replies
+        self.media = media
+        self.link = link
+        self.likes = likes
+        self.likedByCurrentUser = likedByCurrentUser
+        self.createdAt = createdAt
+    }
 }
 
-struct Reply: Identifiable {
+class Reply: Identifiable, ObservableObject {
     let id: UUID = UUID()
     let username: String
     let replyText: String
-    var media: [MediaItem]
-    var likes: Int = 0
-    var likedByCurrentUser: Bool = false
-    var replies: [Reply] = []
-    var createdAt: Date = Date()
+    @Published var media: [MediaItem]
+    @Published var likes: Int
+    @Published var likedByCurrentUser: Bool
+    @Published var replies: [Reply]
+    let createdAt: Date
+
+    init(username: String, replyText: String, media: [MediaItem] = [], likes: Int = 0, likedByCurrentUser: Bool = false, replies: [Reply] = [], createdAt: Date = Date()) {
+        self.username = username
+        self.replyText = replyText
+        self.media = media
+        self.likes = likes
+        self.likedByCurrentUser = likedByCurrentUser
+        self.replies = replies
+        self.createdAt = createdAt
+    }
 }
 
 struct MediaItem: Identifiable {
@@ -57,7 +79,7 @@ enum SortOption: String, CaseIterable {
 // Main Forum View
 struct ForumView: View {
     @State private var posts: [ForumPost] = [
-        ForumPost(username: "john_doe", title: "Best Chest Exercises", body: "What are the best exercises for chest?", replies: [], media: [], link: nil)
+        ForumPost(username: "john_doe", title: "Best Chest Exercises", body: "What are the best exercises for chest?")
     ]
     @State private var isShowingQuestionForm = false
     @State private var isShowingFilters = false
@@ -77,7 +99,9 @@ struct ForumView: View {
                         }, onLikeReply: { reply in
                             likeReply(reply, in: post)
                         })) {
-                            ForumPostRow(post: post)
+                            ForumPostRow(post: post, onLike: {
+                                likePost(post)
+                            })
                         }
                         .listRowInsets(EdgeInsets())
                     }
@@ -154,32 +178,70 @@ struct ForumView: View {
 
     private func addReply(to reply: Reply, in post: ForumPost, reply newReply: Reply) {
         if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
-            if let replyIndex = posts[postIndex].replies.firstIndex(where: { $0.id == reply.id }) {
+            if let replyIndex = findReplyIndex(reply, in: &posts[postIndex].replies) {
                 posts[postIndex].replies[replyIndex].replies.append(newReply)
             }
         }
     }
 
     private func likePost(_ post: ForumPost) {
-        if let index = posts.firstIndex(where: { $0.id == post.id }), !posts[index].likedByCurrentUser {
-            posts[index].likes += 1
-            posts[index].likedByCurrentUser = true
+        if let index = posts.firstIndex(where: { $0.id == post.id }) {
+            if posts[index].likedByCurrentUser {
+                posts[index].likes -= 1
+            } else {
+                posts[index].likes += 1
+            }
+            posts[index].likedByCurrentUser.toggle()
         }
     }
 
     private func likeReply(_ reply: Reply, in post: ForumPost) {
         if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
-            if let replyIndex = posts[postIndex].replies.firstIndex(where: { $0.id == reply.id }), !posts[postIndex].replies[replyIndex].likedByCurrentUser {
-                posts[postIndex].replies[replyIndex].likes += 1
-                posts[postIndex].replies[replyIndex].likedByCurrentUser = true
+            likeNestedReply(&posts[postIndex].replies, reply)
+        }
+    }
+
+    private func likeNestedReply(_ replies: inout [Reply], _ targetReply: Reply) {
+        for index in replies.indices {
+            if replies[index].id == targetReply.id {
+                if replies[index].likedByCurrentUser {
+                    replies[index].likes -= 1
+                } else {
+                    replies[index].likes += 1
+                }
+                replies[index].likedByCurrentUser.toggle()
+                return
+            } else {
+                likeNestedReply(&replies[index].replies, targetReply)
             }
         }
+    }
+
+    private func findReplyIndex(_ reply: Reply, in replies: inout [Reply]) -> Int? {
+        for (index, item) in replies.enumerated() {
+            if item.id == reply.id {
+                return index
+            } else if let nestedIndex = findReplyIndex(reply, in: &replies[index].replies) {
+                return nestedIndex
+            }
+        }
+        return nil
+    }
+
+    private func toggleLike(_ reply: inout Reply) {
+        if reply.likedByCurrentUser {
+            reply.likes -= 1
+        } else {
+            reply.likes += 1
+        }
+        reply.likedByCurrentUser.toggle()
     }
 }
 
 // Forum Post Row View
 struct ForumPostRow: View {
-    let post: ForumPost
+    @ObservedObject var post: ForumPost
+    let onLike: () -> Void
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -190,9 +252,12 @@ struct ForumPostRow: View {
                 Spacer()
                 HStack(spacing: 20) {
                     HStack {
-                        Image(systemName: "heart.fill")
-                            .foregroundColor(.red)
+                        Image(systemName: post.likedByCurrentUser ? "heart.fill" : "heart")
+                            .foregroundColor(post.likedByCurrentUser ? .red : .gray)
                         Text("\(post.likes)")
+                            .onTapGesture {
+                                onLike()
+                            }
                     }
                     HStack {
                         Image(systemName: "bubble.right.fill")
@@ -233,12 +298,15 @@ struct ForumPostRow: View {
         }
         .padding()
         .background(Color(.systemBackground))
+        .onTapGesture(count: 2) {
+            onLike()
+        }
     }
 }
 
 // Post Detail View
 struct PostDetailView: View {
-    let post: ForumPost
+    @ObservedObject var post: ForumPost
     let onReply: (Reply) -> Void
     let onLike: () -> Void
     let onReplyToReply: (Reply, Reply) -> Void
@@ -249,7 +317,10 @@ struct PostDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
-                ForumPostRow(post: post)
+                ForumPostRow(post: post, onLike: onLike)
+                    .onTapGesture(count: 2) {
+                        onLike()
+                    }
 
                 VStack(alignment: .leading, spacing: 4) {
                     TextField("Add a reply...", text: $newReply)
@@ -271,11 +342,11 @@ struct PostDetailView: View {
                 MediaPickerButton(selectedMediaItems: $selectedMediaItems)
                     .padding(.vertical, 4)
 
-                ForEach(post.replies) { reply in
-                    ReplyView(reply: reply, onReplyToReply: { newReply in
+                ForEach($post.replies) { $reply in
+                    ReplyView(reply: $reply, onReplyToReply: { newReply in
                         onReplyToReply(reply, newReply)
-                    }, onLikeReply: {
-                        onLikeReply(reply)
+                    }, onLikeReply: { likedReply in
+                        onLikeReply(likedReply)
                     })
                 }
             }
@@ -299,9 +370,9 @@ struct PostDetailView: View {
 
 // Reply View
 struct ReplyView: View {
-    let reply: Reply
+    @Binding var reply: Reply
     let onReplyToReply: (Reply) -> Void
-    let onLikeReply: () -> Void
+    let onLikeReply: (Reply) -> Void
     @State private var showReplyField = false
     @State private var newReplyText = ""
     @State private var selectedMediaItems: [MediaItem] = []
@@ -314,10 +385,10 @@ struct ReplyView: View {
                     .foregroundColor(.green)
                 Spacer()
                 HStack(spacing: 20) {
-                    Button(action: onLikeReply) {
+                    Button(action: { onLikeReply(reply) }) {
                         HStack {
-                            Image(systemName: "heart.fill")
-                                .foregroundColor(reply.likedByCurrentUser ? .gray : .red)
+                            Image(systemName: reply.likedByCurrentUser ? "heart.fill" : "heart")
+                                .foregroundColor(reply.likedByCurrentUser ? .red : .gray)
                             Text("\(reply.likes)")
                         }
                     }
@@ -365,8 +436,8 @@ struct ReplyView: View {
                 .padding(.vertical, 4)
             }
 
-            ForEach(reply.replies) { nestedReply in
-                ReplyView(reply: nestedReply, onReplyToReply: onReplyToReply, onLikeReply: onLikeReply)
+            ForEach($reply.replies) { $nestedReply in
+                ReplyView(reply: $nestedReply, onReplyToReply: onReplyToReply, onLikeReply: onLikeReply)
                     .padding(.leading, 20)
             }
         }
