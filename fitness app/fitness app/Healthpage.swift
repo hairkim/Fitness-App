@@ -5,6 +5,7 @@
 //  Created by Ryan Kim on 5/23/24.
 //
 import SwiftUI
+
 struct HealthData: Codable {
     var height: Double
     var weight: Double
@@ -56,6 +57,7 @@ struct HealthData: Codable {
         return maintenanceCalories - 500
     }
 }
+
 class HealthDataModel: ObservableObject {
     @Published var data: HealthData
     
@@ -64,7 +66,7 @@ class HealthDataModel: ObservableObject {
            let decodedData = try? JSONDecoder().decode(HealthData.self, from: savedData) {
             self.data = decodedData
         } else {
-            self.data = HealthData(height: 170, weight: 70, age: 25, gender: "Male", activityLevel: "Sedentary", dailyCalories: [:])
+            self.data = HealthData(height: 0, weight: 0, age: 0, gender: "Male", activityLevel: "Sedentary", dailyCalories: [:])
         }
     }
     
@@ -74,6 +76,7 @@ class HealthDataModel: ObservableObject {
         }
     }
 }
+
 struct HealthView: View {
     @StateObject private var healthDataModel = HealthDataModel()
     @State private var calorieIntake: String = ""
@@ -108,21 +111,21 @@ struct HealthView: View {
                         
                         HStack {
                             Text("Height (cm):")
-                            TextField("Height", value: $healthDataModel.data.height, formatter: NumberFormatter())
+                            TextField("N/A", value: $healthDataModel.data.height, formatter: NumberFormatter())
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.decimalPad)
                         }
                         
                         HStack {
                             Text("Weight (kg):")
-                            TextField("Weight", value: $healthDataModel.data.weight, formatter: NumberFormatter())
+                            TextField("N/A", value: $healthDataModel.data.weight, formatter: NumberFormatter())
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.decimalPad)
                         }
                         
                         HStack {
                             Text("Age:")
-                            TextField("Age", value: $healthDataModel.data.age, formatter: NumberFormatter())
+                            TextField("N/A", value: $healthDataModel.data.age, formatter: NumberFormatter())
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.numberPad)
                         }
@@ -201,7 +204,7 @@ struct HealthView: View {
                         
                         HStack {
                             Text("Calories:")
-                            TextField("", text: $calorieIntake)
+                            TextField("N/A", text: $calorieIntake)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.numberPad)
                         }
@@ -248,6 +251,7 @@ struct HealthView: View {
         healthDataModel.save()
     }
 }
+
 struct HealthView_Previews: PreviewProvider {
     static var previews: some View {
         HealthView()
