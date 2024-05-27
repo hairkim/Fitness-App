@@ -5,9 +5,7 @@
 //  Created by Ryan Kim on 2/25/24.
 //
 
-
 import SwiftUI
-
 @MainActor
 final class LoginViewModel: ObservableObject {
     @EnvironmentObject var userStore: UserStore
@@ -27,11 +25,8 @@ final class LoginViewModel: ObservableObject {
         } catch {
             print("Failed to sign in: \(error.localizedDescription)")
         }
-        
-        
     }
 }
-
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
     @EnvironmentObject var userStore: UserStore
@@ -42,39 +37,43 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(gradient: Gradient(colors: [Color("BackgroundTop"), Color("BackgroundBottom")]), startPoint: .top, endPoint: .bottom)
+                LinearGradient(gradient: Gradient(colors: [Color.black, Color.gray.opacity(0.8)]), startPoint: .top, endPoint: .bottom)
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    Text("The Clutcher (Ryan)") // Title
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .padding(.bottom, 20)
+                    VStack {
+                        Text("Plates")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.bottom, 20)
+                        
+                        Image(systemName: "dumbbell.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(.white)
+                            .padding(.bottom, 10)
+                        
+                        Image("plate_or_bowl")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 120, height: 60) // Adjust the size as necessary
+                            .foregroundColor(.white)
+                            .padding(.bottom, 30)
+                    }
                     
-                    Image("gym_logo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 150, height: 150)
-                        .padding(.bottom, 50)
-                    
-                    VStack(spacing: 20) {
+                    VStack(spacing: 15) {
                         TextField("Email", text: $viewModel.email)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .padding()
-                            .foregroundColor(.black)
-                            .background(Color("TextFieldBackground"))
+    
                             .cornerRadius(10)
                         
                         SecureField("Password", text: $viewModel.password)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .padding()
-                            .foregroundColor(.black)
-                            .background(Color("TextFieldBackground"))
                             .cornerRadius(10)
                         
                         Button(action: {
-                            // Handle login button action
                             Task {
                                 do {
                                     try await viewModel.logIn()
@@ -86,30 +85,32 @@ struct LoginView: View {
                             }
                         }) {
                             Text("Login")
-                                .foregroundColor(.black)
+                                .foregroundColor(.white)
                                 .padding()
                                 .frame(maxWidth: .infinity)
-                                .background(Color("LoginButtonBackground"))
+                                .background(Color.blue)
                                 .cornerRadius(10)
                         }
                         .padding(.horizontal, 50)
                     }
-                    .padding()
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(20)
-                    .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 5)
+                   
                     
                     Spacer()
+                    
+                    Text("Dont be like Harris gay boy.")
+                        .font(.subheadline)
+                        .foregroundColor(.green)
+                        .padding(.bottom, 20)
                     
                     HStack {
                         Spacer()
                         Text("Don't have an account?")
-                            .foregroundColor(.black)
-                        NavigationLink(destination:
-                                        SignupView(showSignInView: .constant(false))) {
+                            .foregroundColor(.white)
+                        NavigationLink(destination: SignupView(showSignInView: .constant(false))) {
                             Text("Sign Up")
+                                .foregroundColor(.blue)
                                 .padding()
-                                .background(Color("LoginButtonBackground"))
+                                .background(Color.white)
                                 .cornerRadius(10)
                         }
                         .padding(.trailing, 20)
@@ -119,23 +120,24 @@ struct LoginView: View {
                 .padding()
             }
             .onTapGesture {
-                // Dismiss keyboard
                 UIApplication.shared.endEditing()
             }
         }
     }
 }
-
 extension UIApplication {
     func endEditing() {
         sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
-
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             LoginView(showSignInView: .constant(false))
+                .environmentObject(UserStore())
         }
     }
 }
+
+
+

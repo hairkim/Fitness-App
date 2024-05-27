@@ -18,6 +18,19 @@ struct HealthData: Codable {
         return weight / (heightInMeters * heightInMeters)
     }
     
+    var bmiCategory: String {
+        switch bmi {
+        case ..<18.5:
+            return "Underweight"
+        case 18.5..<24.9:
+            return "Normal weight"
+        case 25..<29.9:
+            return "Overweight"
+        default:
+            return "Obesity"
+        }
+    }
+    
     var maintenanceCalories: Double {
         let bmr: Double
         if gender == "Male" {
@@ -136,6 +149,9 @@ struct HealthView: View {
                             Text("BMI: \(healthDataModel.data.bmi, specifier: "%.2f")")
                                 .font(.title2)
                                 .fontWeight(.bold)
+                            Text("Category: \(healthDataModel.data.bmiCategory)")
+                                .font(.title2)
+                                .fontWeight(.bold)
                         }
                         .padding()
                         .background(
@@ -212,8 +228,7 @@ struct HealthView: View {
                 .padding()
             }
             .background(Color(red: 0.9, green: 0.9, blue: 0.9)
-
-.edgesIgnoringSafeArea(.all))
+                            .edgesIgnoringSafeArea(.all))
         }
     }
     
@@ -238,10 +253,5 @@ struct HealthView_Previews: PreviewProvider {
         HealthView()
     }
 }
-
-
-
-
-
 
 
