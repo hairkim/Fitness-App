@@ -6,15 +6,17 @@
 //
 
 import SwiftUI
+
 @MainActor
 final class LoginViewModel: ObservableObject {
     @EnvironmentObject var userStore: UserStore
     @Published var email = ""
     @Published var password = ""
+    @Published var errorMessage: String?
     
-    func logIn() async throws {
+    func logIn() async {
         guard !email.isEmpty, !password.isEmpty else {
-            print("No email or password found.")
+            errorMessage = "Enter email and password."
             return
         }
         
@@ -23,10 +25,11 @@ final class LoginViewModel: ObservableObject {
             let dbUser = try await UserManager.shared.getUser(userId: authDataResult.uid)
             userStore.setCurrentUser(user: dbUser)
         } catch {
-            print("Failed to sign in: \(error.localizedDescription)")
+            errorMessage = "Login failed. Try again."
         }
     }
 }
+
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
     @EnvironmentObject var userStore: UserStore
@@ -37,7 +40,7 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(gradient: Gradient(colors: [Color.black, Color.gray.opacity(0.8)]), startPoint: .top, endPoint: .bottom)
+                LinearGradient(gradient: Gradient(colors: [Color.white, Color.gray.opacity(0.5)]), startPoint: .top, endPoint: .bottom)
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
@@ -45,42 +48,48 @@ struct LoginView: View {
                         Text("Plates")
                             .font(.title)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .padding(.bottom, 20)
                         
                         Image(systemName: "dumbbell.fill")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .padding(.bottom, 10)
                         
                         Image("plate_or_bowl")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 120, height: 60) // Adjust the size as necessary
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .padding(.bottom, 30)
                     }
                     
                     VStack(spacing: 15) {
                         TextField("Email", text: $viewModel.email)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-    
+                            .padding()
+                            .background(Color.white)
+                            .foregroundColor(.black)
                             .cornerRadius(10)
                         
                         SecureField("Password", text: $viewModel.password)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding()
+                            .background(Color.white)
+                            .foregroundColor(.black)
                             .cornerRadius(10)
+                        
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .padding()
+                        }
                         
                         Button(action: {
                             Task {
-                                do {
-                                    try await viewModel.logIn()
+                                await viewModel.logIn()
+                                if viewModel.errorMessage == nil {
                                     showSignInView = false
-                                    print("login successful")
-                                } catch {
-                                    print("Login error: \(error)")
                                 }
                             }
                         }) {
@@ -93,27 +102,19 @@ struct LoginView: View {
                         }
                         .padding(.horizontal, 50)
                     }
-                   
                     
                     Spacer()
-                    
-                    Text("Dont be like Harris gay boy.")
-                        .font(.subheadline)
-                        .foregroundColor(.green)
-                        .padding(.bottom, 20)
                     
                     HStack {
                         Spacer()
                         Text("Don't have an account?")
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                         NavigationLink(destination: SignupView(showSignInView: .constant(false))) {
                             Text("Sign Up")
                                 .foregroundColor(.blue)
-                                .padding()
-                                .background(Color.white)
                                 .cornerRadius(10)
                         }
-                        .padding(.trailing, 20)
+                        .padding(.trailing, 53)
                     }
                     .padding(.bottom, 17)
                 }
@@ -125,11 +126,13 @@ struct LoginView: View {
         }
     }
 }
+
 extension UIApplication {
     func endEditing() {
         sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
+
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
@@ -138,6 +141,4 @@ struct LoginView_Previews: PreviewProvider {
         }
     }
 }
-
-
 
