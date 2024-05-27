@@ -251,13 +251,14 @@ struct ForumPostRow: View {
                     .foregroundColor(.blue)
                 Spacer()
                 HStack(spacing: 20) {
-                    HStack {
-                        Image(systemName: post.likedByCurrentUser ? "heart.fill" : "heart")
-                            .foregroundColor(post.likedByCurrentUser ? .red : .gray)
-                        Text("\(post.likes)")
-                            .onTapGesture {
-                                onLike()
-                            }
+                    Button(action: {
+                        onLike()
+                    }) {
+                        HStack {
+                            Image(systemName: post.likedByCurrentUser ? "heart.fill" : "heart")
+                                .foregroundColor(post.likedByCurrentUser ? .red : .gray)
+                            Text("\(post.likes)")
+                        }
                     }
                     HStack {
                         Image(systemName: "bubble.right.fill")
@@ -323,24 +324,33 @@ struct PostDetailView: View {
                     }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    TextField("Add a reply...", text: $newReply)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .padding(8)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
+                    HStack {
+                        MediaPickerButton(selectedMediaItems: $selectedMediaItems)
+                            .frame(width: 20, height: 20)
+                            .padding(.leading, 8)
 
-                    Button(action: addReply) {
-                        Text("Post Reply")
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.green)
+                        TextField("Add a reply...", text: $newReply)
+                            .padding(8)
+                            .background(Color(.systemGray6))
                             .cornerRadius(8)
+                            .overlay(
+                                HStack {
+                                    Spacer()
+                                    Button(action: addReply) {
+                                        Image(systemName: "arrow.up.circle.fill")
+                                            .resizable()
+                                            .frame(width: 25, height: 25)
+                                            .foregroundColor(newReply.isEmpty ? .gray : .green)
+                                    }
+                                    .disabled(newReply.isEmpty)
+                                    .padding(.trailing, 8)
+                                }
+                            )
                     }
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
                 }
                 .padding(.vertical, 4)
-
-                MediaPickerButton(selectedMediaItems: $selectedMediaItems)
-                    .padding(.vertical, 4)
 
                 ForEach($post.replies) { $reply in
                     ReplyView(reply: $reply, onReplyToReply: { newReply in
@@ -416,22 +426,31 @@ struct ReplyView: View {
 
             if showReplyField {
                 VStack(alignment: .leading, spacing: 4) {
-                    TextField("Add a reply...", text: $newReplyText)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .padding(8)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
+                    HStack {
+                        MediaPickerButton(selectedMediaItems: $selectedMediaItems)
+                            .frame(width: 20, height: 20)
+                            .padding(.leading, 8)
 
-                    MediaPickerButton(selectedMediaItems: $selectedMediaItems)
-                        .padding(.vertical, 4)
-
-                    Button(action: postReply) {
-                        Text("Post Reply")
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.blue)
+                        TextField("Add a reply...", text: $newReplyText)
+                            .padding(8)
+                            .background(Color(.systemGray6))
                             .cornerRadius(8)
+                            .overlay(
+                                HStack {
+                                    Spacer()
+                                    Button(action: postReply) {
+                                        Image(systemName: "arrow.up.circle.fill")
+                                            .resizable()
+                                            .frame(width: 25, height: 25)
+                                            .foregroundColor(newReplyText.isEmpty ? .gray : .blue)
+                                    }
+                                    .disabled(newReplyText.isEmpty)
+                                    .padding(.trailing, 8)
+                                }
+                            )
                     }
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
                 }
                 .padding(.vertical, 4)
             }
@@ -461,32 +480,26 @@ struct MediaPickerButton: View {
     @State private var selectedVideo: URL?
 
     var body: some View {
-        VStack {
-            Button(action: { isPresentingImagePicker = true }) {
-                HStack {
-                    Image(systemName: "photo")
-                    Text("Select Media")
-                }
+        Button(action: { isPresentingImagePicker = true }) {
+            Image(systemName: "photo")
+                .resizable()
+                .frame(width: 20, height: 20)
                 .foregroundColor(.blue)
-                .padding(8)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-            }
-            .sheet(isPresented: $isPresentingImagePicker) {
-                CustomImagePicker(selectedImages: $selectedImages, selectedVideo: $selectedVideo)
-                    .onDisappear {
-                        for image in selectedImages {
-                            if let url = saveImage(image) {
-                                selectedMediaItems.append(MediaItem(type: .image, url: url))
-                            }
+        }
+        .sheet(isPresented: $isPresentingImagePicker) {
+            CustomImagePicker(selectedImages: $selectedImages, selectedVideo: $selectedVideo)
+                .onDisappear {
+                    for image in selectedImages {
+                        if let url = saveImage(image) {
+                            selectedMediaItems.append(MediaItem(type: .image, url: url))
                         }
-                        if let videoURL = selectedVideo {
-                            selectedMediaItems.append(MediaItem(type: .video, url: videoURL))
-                        }
-                        selectedImages = []
-                        selectedVideo = nil
                     }
-            }
+                    if let videoURL = selectedVideo {
+                        selectedMediaItems.append(MediaItem(type: .video, url: videoURL))
+                    }
+                    selectedImages = []
+                    selectedVideo = nil
+                }
         }
     }
 
