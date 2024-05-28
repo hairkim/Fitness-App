@@ -5,8 +5,8 @@
 //  Created by Ryan Kim on 5/22/24.
 //
 import SwiftUI
-import PhotosUI
 import AVKit
+import PhotosUI
 
 // Data Models
 class ForumPost: Identifiable, ObservableObject {
@@ -89,19 +89,14 @@ struct ForumView: View {
             VStack {
                 List {
                     ForEach(sortedPosts) { post in
-                        NavigationLink(destination: PostDetailView(post: post, onReply: { reply in
-                            addReply(to: post, reply: reply)
-                        }, onLike: {
-                            likePost(post)
-                        }, onReplyToReply: { parentReply, reply in
-                            addReply(to: parentReply, in: post, reply: reply)
-                        }, onLikeReply: { reply in
-                            likeReply(reply, in: post)
-                        })) {
+                        Button(action: {
+                            // Handle navigation action here if needed
+                        }) {
                             ForumPostRow(post: post, onLike: {
                                 likePost(post)
                             })
                         }
+                        .buttonStyle(PlainButtonStyle()) // Remove the default button style and the arrow
                         .listRowInsets(EdgeInsets())
                     }
                 }
@@ -141,6 +136,7 @@ struct ForumView: View {
             }
         }
     }
+
 
     private var sortedPosts: [ForumPost] {
         switch selectedSortOption {
@@ -234,13 +230,13 @@ struct ForumPostRow: View {
     let onLike: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(post.username)
                     .font(.headline)
                     .foregroundColor(.blue)
                 Spacer()
-                HStack(spacing: 20) {
+                HStack(spacing: 15) {
                     Button(action: {
                         onLike()
                     }) {
@@ -257,20 +253,20 @@ struct ForumPostRow: View {
                     }
                 }
             }
-            .padding(.bottom, 2)
 
             Text(post.title)
                 .font(.title2)
-                .padding(.bottom, 2)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
 
             Text(post.body)
                 .font(.body)
-                .foregroundColor(.primary)
-                .padding(.bottom, 2)
+                .foregroundColor(.secondary)
 
             if let link = post.link {
                 Link("Related Link", destination: link)
-                    .padding(.bottom, 2)
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
             }
 
             ForEach(post.media) { media in
@@ -279,16 +275,18 @@ struct ForumPostRow: View {
                         .resizable()
                         .scaledToFit()
                         .frame(height: 200)
-                        .padding(.bottom, 2)
+                        .cornerRadius(10)
                 } else if media.type == .video {
                     VideoPlayer(player: AVPlayer(url: media.url))
                         .frame(height: 200)
-                        .padding(.bottom, 2)
+                        .cornerRadius(10)
                 }
             }
         }
         .padding()
         .background(Color(.systemBackground))
+        .cornerRadius(15)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
         .onTapGesture(count: 2) {
             onLike()
         }
@@ -384,7 +382,6 @@ struct PostDetailView: View {
     }
 }
 
-
 // Reply View
 struct ReplyView: View {
     @Binding var reply: Reply
@@ -414,6 +411,7 @@ struct ReplyView: View {
                             .foregroundColor(.blue)
                     }
                 }
+                .padding(.trailing, 10)
             }
 
             Text(reply.replyText)
@@ -478,7 +476,6 @@ struct ReplyView: View {
         showReplyField = false
     }
 }
-
 
 // Media Picker Button
 struct MediaPickerButton: View {
