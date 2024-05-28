@@ -89,15 +89,21 @@ struct ForumView: View {
             VStack {
                 List {
                     ForEach(sortedPosts) { post in
-                        Button(action: {
-                            // Handle navigation action here if needed
-                        }) {
+                        NavigationLink(destination: PostDetailView(post: post, onReply: { reply in
+                            addReply(to: post, reply: reply)
+                        }, onLike: {
+                            likePost(post)
+                        }, onReplyToReply: { parentReply, reply in
+                            addReply(to: parentReply, in: post, reply: reply)
+                        }, onLikeReply: { reply in
+                            likeReply(reply, in: post)
+                        })) {
                             ForumPostRow(post: post, onLike: {
                                 likePost(post)
                             })
                         }
-                        .buttonStyle(PlainButtonStyle()) // Remove the default button style and the arrow
-                        .listRowInsets(EdgeInsets())
+                        .buttonStyle(PlainButtonStyle()) // Add this line to remove the default button style and the arrow
+
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -136,7 +142,6 @@ struct ForumView: View {
             }
         }
     }
-
 
     private var sortedPosts: [ForumPost] {
         switch selectedSortOption {
