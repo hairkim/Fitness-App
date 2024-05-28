@@ -4,17 +4,22 @@
 //
 //  Created by Ryan Kim on 5/23/24.
 //
+
+
 import SwiftUI
 
 struct HealthData: Codable {
-    var height: Double
-    var weight: Double
-    var age: Int
+    var height: Double?
+    var weight: Double?
+    var age: Int?
     var gender: String
     var activityLevel: String
     var dailyCalories: [String: Int]
     
     var bmi: Double {
+        guard let height = height, let weight = weight, height > 0 else {
+            return 0.0
+        }
         let heightInMeters = height / 100
         return weight / (heightInMeters * heightInMeters)
     }
@@ -33,6 +38,10 @@ struct HealthData: Codable {
     }
     
     var maintenanceCalories: Double {
+        guard let weight = weight, let height = height, let age = age else {
+            return 0.0
+        }
+        
         let bmr: Double
         if gender == "Male" {
             bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * Double(age))
@@ -66,7 +75,7 @@ class HealthDataModel: ObservableObject {
            let decodedData = try? JSONDecoder().decode(HealthData.self, from: savedData) {
             self.data = decodedData
         } else {
-            self.data = HealthData(height: 0, weight: 0, age: 0, gender: "Male", activityLevel: "Sedentary", dailyCalories: [:])
+            self.data = HealthData(height: nil, weight: nil, age: nil, gender: "Male", activityLevel: "Sedentary", dailyCalories: [:])
         }
     }
     
@@ -111,23 +120,38 @@ struct HealthView: View {
                         
                         HStack {
                             Text("Height (cm):")
-                            TextField("N/A", value: $healthDataModel.data.height, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.decimalPad)
+                            TextField("N/A", text: Binding(
+                                get: { healthDataModel.data.height?.description ?? "N/A" },
+                                set: {
+                                    healthDataModel.data.height = Double($0)
+                                }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.decimalPad)
                         }
                         
                         HStack {
                             Text("Weight (kg):")
-                            TextField("N/A", value: $healthDataModel.data.weight, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.decimalPad)
+                            TextField("N/A", text: Binding(
+                                get: { healthDataModel.data.weight?.description ?? "N/A" },
+                                set: {
+                                    healthDataModel.data.weight = Double($0)
+                                }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.decimalPad)
                         }
                         
                         HStack {
                             Text("Age:")
-                            TextField("N/A", value: $healthDataModel.data.age, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.numberPad)
+                            TextField("N/A", text: Binding(
+                                get: { healthDataModel.data.age?.description ?? "N/A" },
+                                set: {
+                                    healthDataModel.data.age = Int($0)
+                                }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
                         }
                     }
                     
@@ -196,66 +220,72 @@ struct HealthView: View {
                     }
                     
                     Group {
-                        Text("Calorie Intake")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        DatePicker("Date", selection: $date, displayedComponents: .date)
-                        
-                        HStack {
-                            Text("Calories:")
-                            TextField("N/A", text: $calorieIntake)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.numberPad)
-                        }
-                        
-                        Button(action: addCalorieIntake) {
-                            Text("Add")
-                        }
-                        
-                        ForEach(healthDataModel.data.dailyCalories.sorted(by: >), id: \.key) { date, intake in
-                            HStack {
-                                Text(date)
-                                Spacer()
-                                Text("\(intake) kcal")
-                                Button(action: {
-                                    deleteCalorieIntake(for: date)
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Calorie Intake")
+                                .font(.title2)
+                                .fontWeight(.bold)
+
+                                
+                                DatePicker("Date", selection: $date, displayedComponents: .date)
+                                
+                                HStack {
+                                    Text("Calories:")
+                                    TextField("N/A", text: $calorieIntake)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        .keyboardType(.numberPad)
+                                }
+                                
+                                Button(action: addCalorieIntake) {
+                                    Text("Add")
+                                }
+                                
+                                ForEach(healthDataModel.data.dailyCalories.sorted(by: >), id: \.key) { date, intake in
+                                    HStack {
+                                        Text(date)
+                                        Spacer()
+                                        Text("\(intake) kcal")
+                                        Button(action: {
+                                            deleteCalorieIntake(for: date)
+                                        }) {
+                                            Image(systemName: "trash")
+                                                .foregroundColor(.red)
+                                        }
+                                    }
                                 }
                             }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.gray, lineWidth: 2)
+                            )
                         }
                     }
+                    .padding()
                 }
-                .padding()
+                .background(Color(red: 0.9, green: 0.9, blue: 0.9)
+                                .edgesIgnoringSafeArea(.all))
             }
-            .background(Color(red: 0.9, green: 0.9, blue: 0.9)
-                            .edgesIgnoringSafeArea(.all))
+        }
+        
+        func addCalorieIntake() {
+            guard let intake = Int(calorieIntake) else { return }
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            let dateString = formatter.string(from: date)
+            
+            healthDataModel.data.dailyCalories[dateString] = intake
+            calorieIntake = ""
+            healthDataModel.save()
+        }
+        
+        func deleteCalorieIntake(for date: String) {
+            healthDataModel.data.dailyCalories.removeValue(forKey: date)
+            healthDataModel.save()
         }
     }
-    
-    func addCalorieIntake() {
-        guard let intake = Int(calorieIntake) else { return }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        let dateString = formatter.string(from: date)
-        
-        healthDataModel.data.dailyCalories[dateString] = intake
-        calorieIntake = ""
-        healthDataModel.save()
-    }
-    
-    func deleteCalorieIntake(for date: String) {
-        healthDataModel.data.dailyCalories.removeValue(forKey: date)
-        healthDataModel.save()
-    }
-}
 
-struct HealthView_Previews: PreviewProvider {
-    static var previews: some View {
-        HealthView()
+    struct HealthView_Previews: PreviewProvider {
+        static var previews: some View {
+            HealthView()
+        }
     }
-}
-
-
