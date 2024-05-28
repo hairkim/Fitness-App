@@ -7,6 +7,7 @@
 import SwiftUI
 import PhotosUI
 import AVKit
+
 // Data Models
 class ForumPost: Identifiable, ObservableObject {
     let id: UUID = UUID()
@@ -19,6 +20,7 @@ class ForumPost: Identifiable, ObservableObject {
     @Published var likes: Int
     @Published var likedByCurrentUser: Bool
     let createdAt: Date
+
     init(username: String, title: String, body: String, replies: [Reply] = [], media: [MediaItem] = [], link: URL? = nil, likes: Int = 0, likedByCurrentUser: Bool = false, createdAt: Date = Date()) {
         self.username = username
         self.title = title
@@ -31,6 +33,7 @@ class ForumPost: Identifiable, ObservableObject {
         self.createdAt = createdAt
     }
 }
+
 class Reply: Identifiable, ObservableObject {
     let id: UUID = UUID()
     let username: String
@@ -40,6 +43,7 @@ class Reply: Identifiable, ObservableObject {
     @Published var likedByCurrentUser: Bool
     @Published var replies: [Reply]
     let createdAt: Date
+
     init(username: String, replyText: String, media: [MediaItem] = [], likes: Int = 0, likedByCurrentUser: Bool = false, replies: [Reply] = [], createdAt: Date = Date()) {
         self.username = username
         self.replyText = replyText
@@ -50,15 +54,18 @@ class Reply: Identifiable, ObservableObject {
         self.createdAt = createdAt
     }
 }
+
 struct MediaItem: Identifiable {
     let id: UUID = UUID()
     let type: MediaType
     let url: URL
 }
+
 enum MediaType {
     case image
     case video
 }
+
 enum SortOption: String, CaseIterable {
     case hot = "Hot"
     case topDay = "Top (Day)"
@@ -67,6 +74,7 @@ enum SortOption: String, CaseIterable {
     case topYear = "Top (Year)"
     case topAllTime = "Top (All Time)"
 }
+
 // Main Forum View
 struct ForumView: View {
     @State private var posts: [ForumPost] = [
@@ -75,6 +83,7 @@ struct ForumView: View {
     @State private var isShowingQuestionForm = false
     @State private var isShowingFilters = false
     @State private var selectedSortOption: SortOption = .hot
+
     var body: some View {
         NavigationView {
             VStack {
@@ -84,8 +93,8 @@ struct ForumView: View {
                             addReply(to: post, reply: reply)
                         }, onLike: {
                             likePost(post)
-                        }, onReplyToReply: { reply, newReply in
-                            addReply(to: reply, in: post, reply: newReply)
+                        }, onReplyToReply: { parentReply, reply in
+                            addReply(to: parentReply, in: post, reply: reply)
                         }, onLikeReply: { reply in
                             likeReply(reply, in: post)
                         })) {
@@ -97,6 +106,7 @@ struct ForumView: View {
                     }
                 }
                 .listStyle(PlainListStyle())
+
                 NavigationLink(destination: CreateQuestionView(onAddQuestion: addQuestion), isActive: $isShowingQuestionForm) {
                     EmptyView()
                 }
@@ -131,6 +141,7 @@ struct ForumView: View {
             }
         }
     }
+
     private var sortedPosts: [ForumPost] {
         switch selectedSortOption {
         case .hot:
@@ -151,23 +162,27 @@ struct ForumView: View {
             return posts.sorted(by: { $0.likes > $1.likes })
         }
     }
+
     private func addQuestion(username: String, title: String, body: String, media: [MediaItem], link: URL?) {
         let newPost = ForumPost(username: username, title: title, body: body, replies: [], media: media, link: link)
         posts.append(newPost)
         isShowingQuestionForm = false // Hide the question form after adding the post
     }
+
     private func addReply(to post: ForumPost, reply: Reply) {
         if let index = posts.firstIndex(where: { $0.id == post.id }) {
             posts[index].replies.append(reply)
         }
     }
-    private func addReply(to reply: Reply, in post: ForumPost, reply newReply: Reply) {
+
+    private func addReply(to parentReply: Reply, in post: ForumPost, reply: Reply) {
         if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
-            if let replyIndex = findReplyIndex(reply, in: &posts[postIndex].replies) {
-                posts[postIndex].replies[replyIndex].replies.append(newReply)
+            if let replyIndex = findReplyIndex(parentReply.id, in: &posts[postIndex].replies) {
+                posts[postIndex].replies[replyIndex].replies.append(reply)
             }
         }
     }
+
     private func likePost(_ post: ForumPost) {
         if let index = posts.firstIndex(where: { $0.id == post.id }) {
             if posts[index].likedByCurrentUser {
@@ -178,14 +193,16 @@ struct ForumView: View {
             posts[index].likedByCurrentUser.toggle()
         }
     }
+
     private func likeReply(_ reply: Reply, in post: ForumPost) {
         if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
-            likeNestedReply(&posts[postIndex].replies, reply)
+            updateLikeStatus(for: &posts[postIndex].replies, replyID: reply.id)
         }
     }
-    private func likeNestedReply(_ replies: inout [Reply], _ targetReply: Reply) {
+
+    private func updateLikeStatus(for replies: inout [Reply], replyID: UUID) {
         for index in replies.indices {
-            if replies[index].id == targetReply.id {
+            if replies[index].id == replyID {
                 if replies[index].likedByCurrentUser {
                     replies[index].likes -= 1
                 } else {
@@ -194,33 +211,28 @@ struct ForumView: View {
                 replies[index].likedByCurrentUser.toggle()
                 return
             } else {
-                likeNestedReply(&replies[index].replies, targetReply)
+                updateLikeStatus(for: &replies[index].replies, replyID: replyID)
             }
         }
     }
-    private func findReplyIndex(_ reply: Reply, in replies: inout [Reply]) -> Int? {
+
+    private func findReplyIndex(_ replyID: UUID, in replies: inout [Reply]) -> Int? {
         for (index, item) in replies.enumerated() {
-            if item.id == reply.id {
+            if item.id == replyID {
                 return index
-            } else if let nestedIndex = findReplyIndex(reply, in: &replies[index].replies) {
+            } else if let nestedIndex = findReplyIndex(replyID, in: &replies[index].replies) {
                 return nestedIndex
             }
         }
         return nil
     }
-    private func toggleLike(_ reply: inout Reply) {
-        if reply.likedByCurrentUser {
-            reply.likes -= 1
-        } else {
-            reply.likes += 1
-        }
-        reply.likedByCurrentUser.toggle()
-    }
 }
+
 // Forum Post Row View
 struct ForumPostRow: View {
     @ObservedObject var post: ForumPost
     let onLike: () -> Void
+
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -246,17 +258,21 @@ struct ForumPostRow: View {
                 }
             }
             .padding(.bottom, 2)
+
             Text(post.title)
                 .font(.title2)
                 .padding(.bottom, 2)
+
             Text(post.body)
                 .font(.body)
                 .foregroundColor(.primary)
                 .padding(.bottom, 2)
+
             if let link = post.link {
                 Link("Related Link", destination: link)
                     .padding(.bottom, 2)
             }
+
             ForEach(post.media) { media in
                 if media.type == .image {
                     Image(uiImage: UIImage(contentsOfFile: media.url.path) ?? UIImage())
@@ -278,6 +294,7 @@ struct ForumPostRow: View {
         }
     }
 }
+
 // Post Detail View
 struct PostDetailView: View {
     @ObservedObject var post: ForumPost
@@ -287,6 +304,8 @@ struct PostDetailView: View {
     let onLikeReply: (Reply) -> Void
     @State private var newReply = ""
     @State private var selectedMediaItems: [MediaItem] = []
+    @State private var replyingTo: Reply?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
@@ -294,39 +313,41 @@ struct PostDetailView: View {
                     .onTapGesture(count: 2) {
                         onLike()
                     }
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         MediaPickerButton(selectedMediaItems: $selectedMediaItems)
                             .frame(width: 20, height: 20)
                             .padding(.leading, 8)
+
                         TextField("Add a reply...", text: $newReply)
                             .padding(8)
                             .background(Color(.systemGray6))
                             .cornerRadius(8)
-                            .overlay(
-                                HStack {
-                                    Spacer()
-                                    Button(action: addReply) {
-                                        Image(systemName: "arrow.up.circle.fill")
-                                            .resizable()
-                                            .frame(width: 25, height: 25)
-                                            .foregroundColor(newReply.isEmpty ? .gray : .green)
-                                    }
-                                    .disabled(newReply.isEmpty)
-                                    .padding(.trailing, 8)
-                                }
-                            )
+                            .onSubmit {
+                                addReply()
+                            }
+
+                        Button(action: addReply) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .resizable()
+                                .frame(width: 25, height: 25)
+                                .foregroundColor(newReply.isEmpty ? .gray : .blue)
+                        }
+                        .disabled(newReply.isEmpty)
                     }
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
                 }
                 .padding(.vertical, 4)
+
                 ForEach($post.replies) { $reply in
-                    ReplyView(reply: $reply, onReplyToReply: { newReply in
-                        onReplyToReply(reply, newReply)
+                    ReplyView(reply: $reply, onReplyToReply: { parentReply, newReply in
+                        onReplyToReply(parentReply, newReply)
                     }, onLikeReply: { likedReply in
                         onLikeReply(likedReply)
                     })
+                    .padding(.leading, 20) // Add this line to indent replies
                 }
             }
             .padding()
@@ -338,21 +359,41 @@ struct PostDetailView: View {
                 .foregroundColor(post.likedByCurrentUser ? .gray : .red)
         })
     }
+
     private func addReply() {
-        let reply = Reply(username: "CurrentUser", replyText: newReply, media: selectedMediaItems)
-        onReply(reply)
+        guard !newReply.isEmpty else { return }
+
+        let replyText: String
+        if let replyingTo = replyingTo {
+            replyText = "@\(replyingTo.username) \(newReply)"
+        } else {
+            replyText = newReply
+        }
+
+        let reply = Reply(username: "CurrentUser", replyText: replyText, media: selectedMediaItems)
+
+        if let replyingTo = replyingTo {
+            onReplyToReply(replyingTo, reply)
+        } else {
+            onReply(reply)
+        }
+
         newReply = ""
         selectedMediaItems = []
+        replyingTo = nil
     }
 }
+
+
 // Reply View
 struct ReplyView: View {
     @Binding var reply: Reply
-    let onReplyToReply: (Reply) -> Void
+    let onReplyToReply: (Reply, Reply) -> Void
     let onLikeReply: (Reply) -> Void
     @State private var showReplyField = false
     @State private var newReplyText = ""
     @State private var selectedMediaItems: [MediaItem] = []
+
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -370,12 +411,14 @@ struct ReplyView: View {
                     }
                     Button(action: { showReplyField.toggle() }) {
                         Text("Reply")
-                            .foregroundColor(.gray)
+                            .foregroundColor(.blue)
                     }
                 }
             }
+
             Text(reply.replyText)
                 .font(.body)
+
             ForEach(reply.media) { media in
                 if media.type == .image {
                     Image(uiImage: UIImage(contentsOfFile: media.url.path) ?? UIImage())
@@ -387,56 +430,63 @@ struct ReplyView: View {
                         .frame(height: 100)
                 }
             }
+
             if showReplyField {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         MediaPickerButton(selectedMediaItems: $selectedMediaItems)
                             .frame(width: 20, height: 20)
                             .padding(.leading, 8)
+
                         TextField("Add a reply...", text: $newReplyText)
                             .padding(8)
                             .background(Color(.systemGray6))
                             .cornerRadius(8)
-                            .overlay(
-                                HStack {
-                                    Spacer()
-                                    Button(action: postReply) {
-                                        Image(systemName: "arrow.up.circle.fill")
-                                            .resizable()
-                                            .frame(width: 25, height: 25)
-                                            .foregroundColor(newReplyText.isEmpty ? .gray : .blue)
-                                    }
-                                    .disabled(newReplyText.isEmpty)
-                                    .padding(.trailing, 8)
-                                }
-                            )
+                            .onSubmit {
+                                postReply()
+                            }
+
+                        Button(action: postReply) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .resizable()
+                                .frame(width: 25, height: 25)
+                                .foregroundColor(newReplyText.isEmpty ? .gray : .blue)
+                        }
+                        .disabled(newReplyText.isEmpty)
                     }
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
                 }
                 .padding(.vertical, 4)
             }
+
             ForEach($reply.replies) { $nestedReply in
                 ReplyView(reply: $nestedReply, onReplyToReply: onReplyToReply, onLikeReply: onLikeReply)
-                    .padding(.leading, 20)
+                    .padding(.leading, 20) // Add this line to indent nested replies
             }
         }
         .padding(.vertical, 4)
     }
+
     private func postReply() {
-        let newReply = Reply(username: "CurrentUser", replyText: newReplyText, media: selectedMediaItems)
-        onReplyToReply(newReply)
+        guard !newReplyText.isEmpty else { return }
+
+        let newReply = Reply(username: "CurrentUser", replyText: "@\(reply.username) \(newReplyText)", media: selectedMediaItems)
+        onReplyToReply(reply, newReply)
         newReplyText = ""
         selectedMediaItems = []
         showReplyField = false
     }
 }
+
+
 // Media Picker Button
 struct MediaPickerButton: View {
     @Binding var selectedMediaItems: [MediaItem]
     @State private var isPresentingImagePicker = false
     @State private var selectedImages: [UIImage] = []
     @State private var selectedVideo: URL?
+
     var body: some View {
         Button(action: { isPresentingImagePicker = true }) {
             Image(systemName: "photo")
@@ -460,6 +510,7 @@ struct MediaPickerButton: View {
                 }
         }
     }
+
     private func saveImage(_ image: UIImage) -> URL? {
         guard let data = image.jpegData(compressionQuality: 1) else { return nil }
         let filename = UUID().uuidString + ".jpg"
@@ -468,18 +519,23 @@ struct MediaPickerButton: View {
         return url
     }
 }
+
 // Custom Image Picker
 struct CustomImagePicker: UIViewControllerRepresentable {
     @Binding var selectedImages: [UIImage]
     @Binding var selectedVideo: URL?
+
     func makeCoordinator() -> Coordinator {
         return Coordinator(self)
     }
+
     class Coordinator: NSObject, UINavigationControllerDelegate, PHPickerViewControllerDelegate {
         var parent: CustomImagePicker
+
         init(_ parent: CustomImagePicker) {
             self.parent = parent
         }
+
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             picker.dismiss(animated: true)
             for result in results {
@@ -503,6 +559,7 @@ struct CustomImagePicker: UIViewControllerRepresentable {
             }
         }
     }
+
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
         config.filter = .any(of: [.images, .videos])
@@ -511,17 +568,21 @@ struct CustomImagePicker: UIViewControllerRepresentable {
         picker.delegate = context.coordinator
         return picker
     }
+
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
 }
+
 // Preview Provider
 struct ForumView_Previews: PreviewProvider {
     static var previews: some View {
         ForumView()
     }
 }
+
 // Filter View
 struct FilterView: View {
     @Binding var selectedSortOption: SortOption
+
     var body: some View {
         NavigationView {
             Form {
@@ -541,8 +602,8 @@ struct FilterView: View {
             })
         }
     }
+
     private func dismiss() {
         UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: true, completion: nil)
     }
 }
-
