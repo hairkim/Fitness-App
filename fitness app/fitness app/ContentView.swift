@@ -308,6 +308,8 @@ struct CustomPostView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
+        let userStore = UserStore()
         ContentView()
+            .environmentObject(userStore)
     }
 }
