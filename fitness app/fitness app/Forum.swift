@@ -89,24 +89,38 @@ struct ForumView: View {
             VStack {
                 List {
                     ForEach(sortedPosts) { post in
-                        NavigationLink(destination: PostDetailView(post: post, onReply: { reply in
-                            addReply(to: post, reply: reply)
-                        }, onLike: {
-                            likePost(post)
-                        }, onReplyToReply: { parentReply, reply in
-                            addReply(to: parentReply, in: post, reply: reply)
-                        }, onLikeReply: { reply in
-                            likeReply(reply, in: post)
-                        })) {
+                        ZStack {
+                            NavigationLink(destination: PostDetailView(post: post, onReply: { reply in
+                                addReply(to: post, reply: reply)
+                            }, onLike: {
+                                likePost(post)
+                            }, onReplyToReply: { parentReply, reply in
+                                addReply(to: parentReply, in: post, reply: reply)
+                            }, onLikeReply: { reply in
+                                likeReply(reply, in: post)
+                            })) {
+                                EmptyView()
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .opacity(0)
+
                             ForumPostRow(post: post, onLike: {
                                 likePost(post)
+                            }, onNavigate: {
+                                // Navigate to the post detail view
+                                if let index = posts.firstIndex(where: { $0.id == post.id }) {
+                                    posts[index] = post
+                                }
                             })
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
+                            .padding(.vertical, 5)
                         }
-                        .buttonStyle(PlainButtonStyle()) // Add this line to remove the default button style and the arrow
-
                     }
                 }
                 .listStyle(PlainListStyle())
+                .padding(.horizontal, -20)
 
                 NavigationLink(destination: CreateQuestionView(onAddQuestion: addQuestion), isActive: $isShowingQuestionForm) {
                     EmptyView()
@@ -233,6 +247,7 @@ struct ForumView: View {
 struct ForumPostRow: View {
     @ObservedObject var post: ForumPost
     let onLike: () -> Void
+    let onNavigate: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -292,8 +307,14 @@ struct ForumPostRow: View {
         .background(Color(.systemBackground))
         .cornerRadius(15)
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
-        .onTapGesture(count: 2) {
-            onLike()
+        .gesture(
+            TapGesture(count: 2)
+                .onEnded {
+                    onLike()
+                }
+        )
+        .onTapGesture {
+            onNavigate()
         }
     }
 }
@@ -312,7 +333,7 @@ struct PostDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
-                ForumPostRow(post: post, onLike: onLike)
+                ForumPostRow(post: post, onLike: onLike, onNavigate: {})
                     .onTapGesture(count: 2) {
                         onLike()
                     }
@@ -574,13 +595,6 @@ struct CustomImagePicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
 }
 
-// Preview Provider
-struct ForumView_Previews: PreviewProvider {
-    static var previews: some View {
-        ForumView()
-    }
-}
-
 // Filter View
 struct FilterView: View {
     @Binding var selectedSortOption: SortOption
@@ -607,5 +621,12 @@ struct FilterView: View {
 
     private func dismiss() {
         UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: true, completion: nil)
+    }
+}
+
+// Preview Provider
+struct ForumView_Previews: PreviewProvider {
+    static var previews: some View {
+        ForumView()
     }
 }
