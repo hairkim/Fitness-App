@@ -10,11 +10,22 @@ import SwiftUI
 
 
 struct SettingsView: View {
-    
-    @StateObject private var viewModel = SettingsViewModel()
+    @EnvironmentObject var userStore: UserStore
+    @StateObject private var viewModel: SettingsViewModel
     @Binding var showSignInView: Bool
+    
+    init(showSignInView: Binding<Bool>) {
+        self._showSignInView = showSignInView
+        self._viewModel = StateObject(wrappedValue: SettingsViewModel(userStore: UserStore()))
+    }
+    
     var body: some View {
         List {
+            if let currentUser = userStore.currentUser {
+                Text(currentUser.username)
+            } else {
+                Text("No user logged in")
+            }
             Button("Log out") {
                 Task {
                     do {
@@ -55,4 +66,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView(showSignInView: .constant(false))
+        .environmentObject(UserStore())
 }

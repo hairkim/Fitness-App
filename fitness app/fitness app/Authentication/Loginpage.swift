@@ -9,10 +9,14 @@ import SwiftUI
 
 @MainActor
 final class LoginViewModel: ObservableObject {
-    @EnvironmentObject var userStore: UserStore
+    private let userStore: UserStore
     @Published var email = ""
     @Published var password = ""
     @Published var errorMessage: String?
+    
+    init(userStore: UserStore) {
+        self.userStore = userStore
+    }
     
     func logIn() async {
         guard !email.isEmpty, !password.isEmpty else {
@@ -31,11 +35,16 @@ final class LoginViewModel: ObservableObject {
 }
 
 struct LoginView: View {
-    @StateObject private var viewModel = LoginViewModel()
+    @StateObject private var viewModel: LoginViewModel
     @EnvironmentObject var userStore: UserStore
     @Environment(\.managedObjectContext) var managedObjectContext
     
     @Binding var showSignInView: Bool
+    
+    init(showSignInView: Binding<Bool>) {
+        self._showSignInView = showSignInView
+        self._viewModel = StateObject(wrappedValue: LoginViewModel(userStore: UserStore()))
+    }
     
     var body: some View {
         NavigationStack {

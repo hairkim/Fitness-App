@@ -9,8 +9,15 @@ import Foundation
 
 @MainActor
 final class SettingsViewModel: ObservableObject {
+    private let userStore: UserStore
+    
+    init(userStore: UserStore) {
+        self.userStore = userStore
+    }
+    
     func logOut() throws {
         try AuthenticationManager.shared.logOut()
+        userStore.clearCurrentUser()
     }
     
     func deleteAccount() async throws {

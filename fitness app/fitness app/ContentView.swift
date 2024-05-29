@@ -20,7 +20,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if userStore.currentUser == nil {
-                LoginView(showSignInView: $showSignInView).environmentObject(userStore)
+                LoginView(showSignInView: $showSignInView)
             } else {
                 mainContentView
             }
@@ -30,7 +30,7 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $showSignInView) {
             NavigationView {
-                LoginView(showSignInView: $showSignInView).environmentObject(userStore)
+                LoginView(showSignInView: $showSignInView)
             }
         }
     }
