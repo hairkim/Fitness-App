@@ -5,7 +5,6 @@
 //  Created by Ryan Kim on 5/23/24.
 //
 
-
 import SwiftUI
 
 struct HealthData: Codable {
@@ -92,200 +91,196 @@ struct HealthView: View {
     @State private var date = Date()
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    Text("Health Tracker")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    Image(systemName: "heart.fill")
+                        .foregroundColor(.red)
+                }
+                .padding(.bottom, 10)
+                
+                Group {
+                    Text("Personal Info")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
                     HStack {
-                        Text("Health Tracker")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        Image(systemName: "heart.fill")
-                            .foregroundColor(.red)
+                        Text("Gender:")
+                        Picker("", selection: $healthDataModel.data.gender) {
+                            Text("Male").tag("Male")
+                            Text("Female").tag("Female")
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
                     }
-                    .padding(.bottom, 10)
                     
-                    Group {
-                        Text("Personal Info")
+                    HStack {
+                        Text("Height (cm):")
+                        TextField("N/A", text: Binding(
+                            get: { healthDataModel.data.height?.description ?? "N/A" },
+                            set: {
+                                healthDataModel.data.height = Double($0)
+                            }
+                        ))
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.decimalPad)
+                    }
+                    
+                    HStack {
+                        Text("Weight (kg):")
+                        TextField("N/A", text: Binding(
+                            get: { healthDataModel.data.weight?.description ?? "N/A" },
+                            set: {
+                                healthDataModel.data.weight = Double($0)
+                            }
+                        ))
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.decimalPad)
+                    }
+                    
+                    HStack {
+                        Text("Age:")
+                        TextField("N/A", text: Binding(
+                            get: { healthDataModel.data.age?.description ?? "N/A" },
+                            set: {
+                                healthDataModel.data.age = Int($0)
+                            }
+                        ))
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.numberPad)
+                    }
+                }
+                
+                Group {
+                    Text("Activity Level")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Picker("Select Activity Level", selection: $healthDataModel.data.activityLevel) {
+                        ForEach(["Sedentary", "Lightly active", "Moderately active", "Very active", "Super active"], id: \.self) { level in
+                            Text(level).tag(level)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                }
+                
+                Group {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("BMI Calculator")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Text("BMI: \(healthDataModel.data.bmi, specifier: "%.2f")")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text("Category: \(healthDataModel.data.bmiCategory)")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray, lineWidth: 2)
+                    )
+                }
+                
+                Group {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Maintenance Calories")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Text("Calories: \(healthDataModel.data.maintenanceCalories, specifier: "%.0f") kcal/day")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray, lineWidth: 2)
+                    )
+                }
+                
+                Group {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Calorie Deficit")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Text("Deficit: \(healthDataModel.data.calorieDeficit, specifier: "%.0f") kcal/day")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray, lineWidth: 2)
+                    )
+                }
+                
+                Group {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Calorie Intake")
                             .font(.title2)
                             .fontWeight(.bold)
                         
-                        HStack {
-                            Text("Gender:")
-                            Picker("", selection: $healthDataModel.data.gender) {
-                                Text("Male").tag("Male")
-                                Text("Female").tag("Female")
-                            }
-                            .pickerStyle(SegmentedPickerStyle())
-                        }
+                        DatePicker("Date", selection: $date, displayedComponents: .date)
                         
                         HStack {
-                            Text("Height (cm):")
-                            TextField("N/A", text: Binding(
-                                get: { healthDataModel.data.height?.description ?? "N/A" },
-                                set: {
-                                    healthDataModel.data.height = Double($0)
-                                }
-                            ))
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardType(.decimalPad)
+                            Text("Calories:")
+                            TextField("N/A", text: $calorieIntake)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .keyboardType(.numberPad)
                         }
                         
-                        HStack {
-                            Text("Weight (kg):")
-                            TextField("N/A", text: Binding(
-                                get: { healthDataModel.data.weight?.description ?? "N/A" },
-                                set: {
-                                    healthDataModel.data.weight = Double($0)
-                                }
-                            ))
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardType(.decimalPad)
+                        Button(action: addCalorieIntake) {
+                            Text("Add")
                         }
                         
-                        HStack {
-                            Text("Age:")
-                            TextField("N/A", text: Binding(
-                                get: { healthDataModel.data.age?.description ?? "N/A" },
-                                set: {
-                                    healthDataModel.data.age = Int($0)
-                                }
-                            ))
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .keyboardType(.numberPad)
-                        }
-                    }
-                    
-                    Group {
-                        Text("Activity Level")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Picker("Select Activity Level", selection: $healthDataModel.data.activityLevel) {
-                            ForEach(["Sedentary", "Lightly active", "Moderately active", "Very active", "Super active"], id: \.self) { level in
-                                Text(level).tag(level)
-                            }
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                    }
-                    
-                    Group {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("BMI Calculator")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                            Text("BMI: \(healthDataModel.data.bmi, specifier: "%.2f")")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            Text("Category: \(healthDataModel.data.bmiCategory)")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray, lineWidth: 2)
-                        )
-                    }
-                    
-                    Group {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Maintenance Calories")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                            Text("Calories: \(healthDataModel.data.maintenanceCalories, specifier: "%.0f") kcal/day")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray, lineWidth: 2)
-                        )
-                    }
-                    
-                    Group {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Calorie Deficit")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                            Text("Deficit: \(healthDataModel.data.calorieDeficit, specifier: "%.0f") kcal/day")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray, lineWidth: 2)
-                        )
-                    }
-                    
-                    Group {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Calorie Intake")
-                                .font(.title2)
-                                .fontWeight(.bold)
-
-                                
-                                DatePicker("Date", selection: $date, displayedComponents: .date)
-                                
-                                HStack {
-                                    Text("Calories:")
-                                    TextField("N/A", text: $calorieIntake)
-                                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                                        .keyboardType(.numberPad)
-                                }
-                                
-                                Button(action: addCalorieIntake) {
-                                    Text("Add")
-                                }
-                                
-                                ForEach(healthDataModel.data.dailyCalories.sorted(by: >), id: \.key) { date, intake in
-                                    HStack {
-                                        Text(date)
-                                        Spacer()
-                                        Text("\(intake) kcal")
-                                        Button(action: {
-                                            deleteCalorieIntake(for: date)
-                                        }) {
-                                            Image(systemName: "trash")
-                                                .foregroundColor(.red)
-                                        }
-                                    }
+                        ForEach(healthDataModel.data.dailyCalories.sorted(by: >), id: \.key) { date, intake in
+                            HStack {
+                                Text(date)
+                                Spacer()
+                                Text("\(intake) kcal")
+                                Button(action: {
+                                    deleteCalorieIntake(for: date)
+                                }) {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
                                 }
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.gray, lineWidth: 2)
-                            )
                         }
                     }
                     .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray, lineWidth: 2)
+                    )
                 }
-                .background(Color(red: 0.9, green: 0.9, blue: 0.9)
-                                .edgesIgnoringSafeArea(.all))
             }
-        }
-        
-        func addCalorieIntake() {
-            guard let intake = Int(calorieIntake) else { return }
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            let dateString = formatter.string(from: date)
-            
-            healthDataModel.data.dailyCalories[dateString] = intake
-            calorieIntake = ""
-            healthDataModel.save()
-        }
-        
-        func deleteCalorieIntake(for date: String) {
-            healthDataModel.data.dailyCalories.removeValue(forKey: date)
-            healthDataModel.save()
+            .padding()
         }
     }
+    
+    func addCalorieIntake() {
+        guard let intake = Int(calorieIntake) else { return }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        let dateString = formatter.string(from: date)
+        
+        healthDataModel.data.dailyCalories[dateString] = intake
+        calorieIntake = ""
+        healthDataModel.save()
+    }
+    
+    func deleteCalorieIntake(for date: String) {
+        healthDataModel.data.dailyCalories.removeValue(forKey: date)
+        healthDataModel.save()
+    }
+}
 
-    struct HealthView_Previews: PreviewProvider {
-        static var previews: some View {
-            HealthView()
-        }
+struct HealthView_Previews: PreviewProvider {
+    static var previews: some View {
+        HealthView()
     }
+}
+

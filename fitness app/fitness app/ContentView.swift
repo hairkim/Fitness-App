@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
     @State var posts: [Post] = [
@@ -97,11 +96,14 @@ struct ContentView: View {
                         Text("Workouts")
                     }
                 
-                PlaceholderView(pageName: "Health")
-                    .tabItem {
-                        Image(systemName: "heart.circle.fill")
-                        Text("Health")
-                    }
+                // Health tab connected to HealthView
+                NavigationView {
+                    HealthView()
+                }
+                .tabItem {
+                    Image(systemName: "heart.circle.fill")
+                    Text("Health")
+                }
                 
                 PlaceholderView(pageName: "Nutrition")
                     .tabItem {
@@ -115,16 +117,6 @@ struct ContentView: View {
                         Text("Settings")
                     }
             }
-            
-//            .onAppear {
-//                let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
-//                self.showSignInView = authUser == nil
-//            }
-//            .fullScreenCover(isPresented: $showSignInView) {
-//                NavigationStack {
-//                    LoginView(showSignInView: $showSignInView)
-//                }
-//            }
         }
     }
     
