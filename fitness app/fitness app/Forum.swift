@@ -89,38 +89,18 @@ struct ForumView: View {
             VStack {
                 List {
                     ForEach(sortedPosts) { post in
-                        ZStack {
-                            NavigationLink(destination: PostDetailView(post: post, onReply: { reply in
-                                addReply(to: post, reply: reply)
-                            }, onLike: {
-                                likePost(post)
-                            }, onReplyToReply: { parentReply, reply in
-                                addReply(to: parentReply, in: post, reply: reply)
-                            }, onLikeReply: { reply in
-                                likeReply(reply, in: post)
-                            })) {
-                                EmptyView()
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .opacity(0)
-
-                            ForumPostRow(post: post, onLike: {
-                                likePost(post)
-                            }, onNavigate: {
-                                // Navigate to the post detail view
-                                if let index = posts.firstIndex(where: { $0.id == post.id }) {
-                                    posts[index] = post
-                                }
-                            })
-                            .background(Color.white)
-                            .cornerRadius(10)
-                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
-                            .padding(.vertical, 5)
+                        ForumPostRow(post: post, onLike: {
+                            likePost(post)
+                        }, onNavigate: {
+                            navigateToDetail(post: post)
+                        })
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            navigateToDetail(post: post)
                         }
                     }
                 }
                 .listStyle(PlainListStyle())
-                .padding(.horizontal, -20)
 
                 NavigationLink(destination: CreateQuestionView(onAddQuestion: addQuestion), isActive: $isShowingQuestionForm) {
                     EmptyView()
@@ -241,6 +221,22 @@ struct ForumView: View {
         }
         return nil
     }
+
+    private func navigateToDetail(post: ForumPost) {
+        let destination = PostDetailView(post: post, onReply: { reply in
+            addReply(to: post, reply: reply)
+        }, onLike: {
+            likePost(post)
+        }, onReplyToReply: { parentReply, reply in
+            addReply(to: parentReply, in: post, reply: reply)
+        }, onLikeReply: { reply in
+            likeReply(reply, in: post)
+        })
+
+        if let window = UIApplication.shared.windows.first {
+            window.rootViewController?.show(UIHostingController(rootView: destination), sender: nil)
+        }
+    }
 }
 
 // Forum Post Row View
@@ -307,15 +303,6 @@ struct ForumPostRow: View {
         .background(Color(.systemBackground))
         .cornerRadius(15)
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
-        .gesture(
-            TapGesture(count: 2)
-                .onEnded {
-                    onLike()
-                }
-        )
-        .onTapGesture {
-            onNavigate()
-        }
     }
 }
 
@@ -329,6 +316,7 @@ struct PostDetailView: View {
     @State private var newReply = ""
     @State private var selectedMediaItems: [MediaItem] = []
     @State private var replyingTo: Reply?
+    @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         ScrollView {
@@ -378,7 +366,12 @@ struct PostDetailView: View {
         }
         .navigationTitle("Post Details")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(trailing: Button(action: onLike) {
+        .navigationBarItems(leading: Button(action: {
+            presentationMode.wrappedValue.dismiss()
+        }) {
+            Image(systemName: "arrow.left")
+                .foregroundColor(.blue)
+        }, trailing: Button(action: onLike) {
             Image(systemName: "heart.fill")
                 .foregroundColor(post.likedByCurrentUser ? .gray : .red)
         })
@@ -449,9 +442,11 @@ struct ReplyView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(height: 100)
+                        .cornerRadius(10)
                 } else if media.type == .video {
                     VideoPlayer(player: AVPlayer(url: media.url))
                         .frame(height: 100)
+                        .cornerRadius(10)
                 }
             }
 
@@ -490,6 +485,9 @@ struct ReplyView: View {
             }
         }
         .padding(.vertical, 4)
+        .background(Color.clear) // Remove gray background
+        .cornerRadius(10) // Round corners for better aesthetics
+        .padding(.bottom, 8) // Add bottom padding for spacing between replies
     }
 
     private func postReply() {
@@ -630,3 +628,4 @@ struct ForumView_Previews: PreviewProvider {
         ForumView()
     }
 }
+
