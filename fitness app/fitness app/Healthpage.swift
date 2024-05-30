@@ -4,8 +4,8 @@
 //
 //  Created by Ryan Kim on 5/23/24.
 //
-
 import SwiftUI
+import Charts
 
 struct HealthData: Codable {
     var height: Double?
@@ -14,6 +14,7 @@ struct HealthData: Codable {
     var gender: String
     var activityLevel: String
     var dailyCalories: [String: Int]
+    var calorieHistory: [[String: Int]] = []
     
     var bmi: Double {
         guard let height = height, let weight = weight, height > 0 else {
@@ -83,14 +84,37 @@ class HealthDataModel: ObservableObject {
             UserDefaults.standard.set(encodedData, forKey: "healthData")
         }
     }
+    
+    func addToHistory() {
+        data.calorieHistory.append(data.dailyCalories)
+        data.dailyCalories = [:]
+        save()
+    }
 }
 
 struct HealthView: View {
     @StateObject private var healthDataModel = HealthDataModel()
     @State private var calorieIntake: String = ""
     @State private var date = Date()
+    @State private var selectedTab = 0
     
     var body: some View {
+        TabView(selection: $selectedTab) {
+            currentWeekView
+                .tabItem {
+                    Label("Current Week", systemImage: "chart.bar")
+                }
+                .tag(0)
+            
+            calorieHistoryView
+                .tabItem {
+                    Label("Calorie History", systemImage: "clock.arrow.circlepath")
+                }
+                .tag(1)
+        }
+    }
+    
+    var currentWeekView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
@@ -236,7 +260,39 @@ struct HealthView: View {
                             Text("Add")
                         }
                         
-                        ForEach(healthDataModel.data.dailyCalories.sorted(by: >), id: \.key) { date, intake in
+                        let sortedCalories = healthDataModel.data.dailyCalories.sorted(by: { $0.key < $1.key })
+                        let last7DaysCalories = sortedCalories.filter { dateString, _ in
+                            if let date = dateFromString(dateString) {
+                                return date >= Calendar.current.date(byAdding: .day, value: -6, to: Date())!
+                            }
+                            return false
+                        }
+                        
+                        if !last7DaysCalories.isEmpty {
+                            Chart {
+                                ForEach(last7DaysCalories, id: \.key) { date, intake in
+                                    BarMark(
+                                        x: .value("Date", date),
+                                        y: .value("Calories", intake)
+                                    )
+                                    .foregroundStyle(Color.blue)
+                                }
+                                
+                                RuleMark(
+                                    y: .value("Maintenance Calories", healthDataModel.data.maintenanceCalories)
+                                )
+                                .foregroundStyle(Color.red)
+                                .lineStyle(StrokeStyle(lineWidth: 2, dash: [5]))
+                                .annotation(position: .top, alignment: .leading) {
+                                    Text("Maintenance: \(healthDataModel.data.maintenanceCalories, specifier: "%.0f") kcal/day")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            .frame(height: 300)
+                        }
+                        
+                        ForEach(last7DaysCalories, id: \.key) { date, intake in
                             HStack {
                                 Text(date)
                                 Spacer()
@@ -261,20 +317,83 @@ struct HealthView: View {
         }
     }
     
+    var calorieHistoryView: some View {
+        List {
+            ForEach(healthDataModel.data.calorieHistory.indices, id: \.self) { weekIndex in
+                Section(header: Text("Week \(weekIndex + 1)")) {
+                    WeekGraphView(weekData: healthDataModel.data.calorieHistory[weekIndex], maintenanceCalories: healthDataModel.data.maintenanceCalories)
+                }
+            }
+        }
+    }
+    
     func addCalorieIntake() {
-        guard let intake = Int(calorieIntake) else { return }
+        guard let intake = Int(calorieIntake) else {
+            print("Invalid calorie intake")
+            return
+        }
+        
         let formatter = DateFormatter()
         formatter.dateStyle = .short
+        formatter.timeStyle = .none // Ensure only date is formatted
         let dateString = formatter.string(from: date)
         
         healthDataModel.data.dailyCalories[dateString] = intake
         calorieIntake = ""
+        
+        // Move to history if 7 days have been entered
+        if healthDataModel.data.dailyCalories.count == 7 {
+            healthDataModel.addToHistory()
+        }
+        
         healthDataModel.save()
+        // Trigger view update
+        healthDataModel.objectWillChange.send()
     }
     
     func deleteCalorieIntake(for date: String) {
         healthDataModel.data.dailyCalories.removeValue(forKey: date)
         healthDataModel.save()
+        // Trigger view update
+        healthDataModel.objectWillChange.send()
+    }
+    
+    func dateFromString(_ dateString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        return formatter.date(from: dateString)
+    }
+}
+
+struct WeekGraphView: View {
+    let weekData: [String: Int]
+    let maintenanceCalories: Double
+    
+    var body: some View {
+        let sortedWeekData = weekData.sorted(by: { $0.key < $1.key })
+        
+        Chart {
+            ForEach(sortedWeekData, id: \.key) { date, intake in
+                BarMark(
+                    x: .value("Date", date),
+                    y: .value("Calories", intake)
+                )
+                .foregroundStyle(Color.blue)
+            }
+            
+            RuleMark(
+                y: .value("Maintenance Calories", maintenanceCalories)
+            )
+            .foregroundStyle(Color.red)
+            .lineStyle(StrokeStyle(lineWidth: 2, dash: [5]))
+            .annotation(position: .top, alignment: .leading) {
+                Text("Maintenance: \(maintenanceCalories, specifier: "%.0f") kcal/day")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+        }
+        .frame(height: 300)
     }
 }
 
@@ -283,4 +402,3 @@ struct HealthView_Previews: PreviewProvider {
         HealthView()
     }
 }
-

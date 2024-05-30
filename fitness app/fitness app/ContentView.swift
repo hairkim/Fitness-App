@@ -41,7 +41,7 @@ struct ContentView: View {
                 NavigationView {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            Text("YourApp")
+                            Text("Plates")
                                 .font(.title)
                                 .foregroundColor(Color(.darkGray))
                                 .padding(.leading, 16)
