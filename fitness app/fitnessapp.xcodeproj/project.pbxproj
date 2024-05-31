@@ -107,6 +107,7 @@
 		6F962CCE2B8969FB00C52234 /* fitness app */ = {
 			isa = PBXGroup;
 			children = (
+				8CAD9A6C2BD303DD00CDC07C /* Firestore */,
 				6FD608822BB419CE002ED034 /* Authentication */,
 				6F962CCF2B8969FB00C52234 /* fitness_appApp.swift */,
 				A914E22F2BFED23B001116AF /* Forum.swift */,
@@ -138,7 +139,6 @@
 				27EA4EA12B8C0B460027F19E /* Loginpage.swift */,
 				6FD608772BB3B014002ED034 /* SignupView.swift */,
 				6FD608832BB41B02002ED034 /* AuthenticationManager.swift */,
-				8CAD9A6C2BD303DD00CDC07C /* Firestore */,
 				6F3818AD2C0000B9009109EA /* UserStore.swift */,
 			);
 			path = Authentication;
