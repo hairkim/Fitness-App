@@ -246,66 +246,70 @@ struct ForumPostRow: View {
     let onNavigate: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(post.username)
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                Spacer()
-                HStack(spacing: 15) {
-                    Button(action: {
-                        onLike()
-                    }) {
+        Button(action: onNavigate) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(post.username)
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                    Spacer()
+                    HStack(spacing: 15) {
+                        Button(action: {
+                            onLike()
+                        }) {
+                            HStack {
+                                Image(systemName: post.likedByCurrentUser ? "heart.fill" : "heart")
+                                    .foregroundColor(post.likedByCurrentUser ? .red : .gray)
+                                Text("\(post.likes)")
+                            }
+                        }
                         HStack {
-                            Image(systemName: post.likedByCurrentUser ? "heart.fill" : "heart")
-                                .foregroundColor(post.likedByCurrentUser ? .red : .gray)
-                            Text("\(post.likes)")
+                            Image(systemName: "bubble.right.fill")
+                                .foregroundColor(.gray)
+                            Text("\(post.replies.count)")
                         }
                     }
-                    HStack {
-                        Image(systemName: "bubble.right.fill")
-                            .foregroundColor(.gray)
-                        Text("\(post.replies.count)")
+                }
+
+                Text(post.title)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+
+                Text(post.body)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+
+                if let link = post.link {
+                    Link("Related Link", destination: link)
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                }
+
+                ForEach(post.media) { media in
+                    if media.type == .image {
+                        Image(uiImage: UIImage(contentsOfFile: media.url.path) ?? UIImage())
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 200)
+                            .cornerRadius(10)
+                    } else if media.type == .video {
+                        VideoPlayer(player: AVPlayer(url: media.url))
+                            .frame(height: 200)
+                            .cornerRadius(10)
                     }
                 }
             }
-
-            Text(post.title)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-
-            Text(post.body)
-                .font(.body)
-                .foregroundColor(.secondary)
-
-            if let link = post.link {
-                Link("Related Link", destination: link)
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-            }
-
-            ForEach(post.media) { media in
-                if media.type == .image {
-                    Image(uiImage: UIImage(contentsOfFile: media.url.path) ?? UIImage())
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .cornerRadius(10)
-                } else if media.type == .video {
-                    VideoPlayer(player: AVPlayer(url: media.url))
-                        .frame(height: 200)
-                        .cornerRadius(10)
-                }
-            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(15)
+            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(15)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
+        .buttonStyle(PlainButtonStyle()) // This removes the default button styling
     }
 }
 
+// Post Detail View
 // Post Detail View
 struct PostDetailView: View {
     @ObservedObject var post: ForumPost
@@ -319,62 +323,79 @@ struct PostDetailView: View {
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading) {
-                ForumPostRow(post: post, onLike: onLike, onNavigate: {})
-                    .onTapGesture(count: 2) {
-                        onLike()
+        VStack {
+            HStack {
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text("Main Forum")
+                            .font(.system(size: 18, weight: .semibold))
                     }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        MediaPickerButton(selectedMediaItems: $selectedMediaItems)
-                            .frame(width: 20, height: 20)
-                            .padding(.leading, 8)
-
-                        TextField("Add a reply...", text: $newReply)
-                            .padding(8)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
-                            .onSubmit {
-                                addReply()
-                            }
-
-                        Button(action: addReply) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .resizable()
-                                .frame(width: 25, height: 25)
-                                .foregroundColor(newReply.isEmpty ? .gray : .blue)
-                        }
-                        .disabled(newReply.isEmpty)
-                    }
-                    .background(Color(.systemGray6))
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .background(Color(.systemGray5))
                     .cornerRadius(8)
                 }
-                .padding(.vertical, 4)
-
-                ForEach($post.replies) { $reply in
-                    ReplyView(reply: $reply, onReplyToReply: { parentReply, newReply in
-                        onReplyToReply(parentReply, newReply)
-                    }, onLikeReply: { likedReply in
-                        onLikeReply(likedReply)
-                    })
-                    .padding(.leading, 20) // Add this line to indent replies
-                }
+                Spacer()
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.top, 8)
+
+            ScrollView {
+                VStack(alignment: .leading) {
+                    ForumPostRow(post: post, onLike: onLike, onNavigate: {})
+                        .onTapGesture(count: 2) {
+                            onLike()
+                        }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            MediaPickerButton(selectedMediaItems: $selectedMediaItems)
+                                .frame(width: 20, height: 20)
+                                .padding(.leading, 8)
+
+                            TextField("Add a reply...", text: $newReply)
+                                .padding(8)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                                .onSubmit {
+                                    addReply()
+                                }
+
+                            Button(action: addReply) {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .resizable()
+                                    .frame(width: 25, height: 25)
+                                    .foregroundColor(newReply.isEmpty ? .gray : .blue)
+                            }
+                            .disabled(newReply.isEmpty)
+                        }
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    }
+                    .padding(.vertical, 4)
+
+                    ForEach($post.replies) { $reply in
+                        ReplyView(reply: $reply, onReplyToReply: { parentReply, newReply in
+                            onReplyToReply(parentReply, newReply)
+                        }, onLikeReply: { likedReply in
+                            onLikeReply(likedReply)
+                        })
+                        .padding(.leading, 20) // Add this line to indent replies
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Post Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(trailing: Button(action: onLike) {
+                Image(systemName: "heart.fill")
+                    .foregroundColor(post.likedByCurrentUser ? .gray : .red)
+            })
         }
-        .navigationTitle("Post Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(leading: Button(action: {
-            presentationMode.wrappedValue.dismiss()
-        }) {
-            Image(systemName: "arrow.left")
-                .foregroundColor(.blue)
-        }, trailing: Button(action: onLike) {
-            Image(systemName: "heart.fill")
-                .foregroundColor(post.likedByCurrentUser ? .gray : .red)
-        })
     }
 
     private func addReply() {
@@ -628,4 +649,3 @@ struct ForumView_Previews: PreviewProvider {
         ForumView()
     }
 }
-
