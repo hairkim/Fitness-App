@@ -20,7 +20,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if userStore.currentUser == nil {
-                LoginView(showSignInView: $showSignInView)
+                LoginView(showSignInView: $showSignInView, userStore: userStore)
             } else {
                 mainContentView
             }
@@ -28,11 +28,11 @@ struct ContentView: View {
         .onAppear {
             checkAuthStatus()
         }
-        .fullScreenCover(isPresented: $showSignInView) {
-            NavigationView {
-                LoginView(showSignInView: $showSignInView)
-            }
-        }
+//        .fullScreenCover(isPresented: $showSignInView) {
+//            NavigationView {
+//                LoginView(showSignInView: $showSignInView)
+//            }
+//        }
     }
     
     var mainContentView: some View {
@@ -49,7 +49,7 @@ struct ContentView: View {
                             Spacer()
                             
                             HStack {
-                                NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
+                                NavigationLink(destination: SettingsView(showSignInView: $showSignInView, userStore: userStore)) {
                                     Image(systemName: "gear")
                                         .imageScale(.large)
                                         .foregroundColor(Color(.darkGray))
@@ -128,14 +128,20 @@ struct ContentView: View {
         Task {
             let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
             if let authUser = authUser {
-                let dbUser = try? await UserManager.shared.getUser(userId: authUser.uid)
-                if let dbUser = dbUser {
-                    userStore.setCurrentUser(user: dbUser)
+                if let dbUser = try? await UserManager.shared.getUser(userId: authUser.uid) {
+                    await MainActor.run {
+                        userStore.setCurrentUser(user: dbUser)
+                        showSignInView = false
+                    }
                 } else {
-                    showSignInView = true
+                    await MainActor.run {
+                        showSignInView = true
+                    }
                 }
             } else {
-                showSignInView = true
+                await MainActor.run {
+                    showSignInView = true
+                }
             }
         }
     }

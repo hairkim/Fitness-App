@@ -14,9 +14,9 @@ struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @Binding var showSignInView: Bool
     
-    init(showSignInView: Binding<Bool>) {
+    init(showSignInView: Binding<Bool>, userStore: UserStore) {
         self._showSignInView = showSignInView
-        self._viewModel = StateObject(wrappedValue: SettingsViewModel(userStore: UserStore()))
+        self._viewModel = StateObject(wrappedValue: SettingsViewModel(userStore: userStore))
     }
     
     var body: some View {
@@ -65,6 +65,6 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView(showSignInView: .constant(false))
+    SettingsView(showSignInView: .constant(false), userStore: UserStore())
         .environmentObject(UserStore())
 }

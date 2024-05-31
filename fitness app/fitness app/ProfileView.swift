@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @EnvironmentObject var userStore: UserStore
     @Binding var showSignInView: Bool
 
     // Placeholder data for posts, workouts, and forum posts
@@ -104,7 +105,7 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView(showSignInView: $showSignInView)) {
+                    NavigationLink(destination: SettingsView(showSignInView: $showSignInView, userStore: userStore)) {
                         Image(systemName: "gear")
                             .imageScale(.large)
                             .foregroundColor(.purple)

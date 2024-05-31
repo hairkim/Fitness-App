@@ -17,6 +17,7 @@ final class SettingsViewModel: ObservableObject {
     
     func logOut() throws {
         try AuthenticationManager.shared.logOut()
+        print("clearing current user")
         userStore.clearCurrentUser()
     }
     

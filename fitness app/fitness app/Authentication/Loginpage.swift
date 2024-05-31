@@ -41,9 +41,9 @@ struct LoginView: View {
     
     @Binding var showSignInView: Bool
     
-    init(showSignInView: Binding<Bool>) {
+    init(showSignInView: Binding<Bool>, userStore: UserStore) {
         self._showSignInView = showSignInView
-        self._viewModel = StateObject(wrappedValue: LoginViewModel(userStore: UserStore()))
+        self._viewModel = StateObject(wrappedValue: LoginViewModel(userStore: userStore))
     }
     
     var body: some View {
@@ -145,7 +145,7 @@ extension UIApplication {
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            LoginView(showSignInView: .constant(false))
+            LoginView(showSignInView: .constant(false), userStore: UserStore())
                 .environmentObject(UserStore())
         }
     }
