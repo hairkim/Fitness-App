@@ -28,11 +28,6 @@ struct ContentView: View {
         .onAppear {
             checkAuthStatus()
         }
-//        .fullScreenCover(isPresented: $showSignInView) {
-//            NavigationView {
-//                LoginView(showSignInView: $showSignInView)
-//            }
-//        }
     }
     
     var mainContentView: some View {

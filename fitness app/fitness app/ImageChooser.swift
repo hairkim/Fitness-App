@@ -99,51 +99,112 @@ struct ImageChooser: View {
     
     func createPost() async {
         guard let inputImage = inputImage, let currentUser = userStore.currentUser else {
-            print("no image or user data available")
+            print("No image or user data available")
             return
         }
         
         do {
             let imageUrl = try await uploadImageToFirebase(image: inputImage)
+            print("Image URL: \(imageUrl.absoluteString)")
             
-            let newPost = Post(username: currentUser.username, imageName: imageUrl.absoluteString, caption: "placeholder", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "💀", comments: [])
+            let newPost = Post(
+                username: currentUser.username,
+                imageName: imageUrl.absoluteString,
+                caption: "placeholder",
+                multiplePictures: false,
+                workoutSplit: "Push",
+                workoutSplitEmoji: "💀",
+                comments: []
+            )
+            
             try await PostManager.shared.createNewPost(post: newPost)
-            
             print("Post created successfully")
         } catch {
             print("Error creating post: \(error.localizedDescription)")
         }
     }
     
-    
     func uploadImageToFirebase(image: UIImage) async throws -> URL {
         let storageRef = Storage.storage().reference().child("images/\(UUID().uuidString).jpg")
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            throw NSError(domain: "ImageChooser", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to compress image"])
+            throw ImageUploadError.compressionFailed
         }
-        
+
         return try await withCheckedThrowingContinuation { continuation in
-            storageRef.putData(imageData, metadata: nil) { _, error in
+            storageRef.putData(imageData, metadata: nil) { metadata, error in
                 if let error = error {
+                    print("Error uploading image: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                     return
                 }
-                
+                print("Image uploaded successfully, fetching download URL...")
                 storageRef.downloadURL { url, error in
                     if let error = error {
+                        print("Error fetching download URL: \(error.localizedDescription)")
                         continuation.resume(throwing: error)
                         return
                     }
                     
-                    if let url = url {
-                        continuation.resume(returning: url)
-                    } else {
-                        continuation.resume(throwing: NSError(domain: "ImageChooser", code: 2, userInfo: [NSLocalizedDescriptionKey: "URL is nil"]))
+                    guard let url = url else {
+                        print("Download URL is nil")
+                        continuation.resume(throwing: ImageUploadError.urlNil)
+                        return
                     }
+                    
+                    print("Download URL fetched successfully: \(url.absoluteString)")
+                    continuation.resume(returning: url)
                 }
             }
         }
     }
+
+    //    func createPost() async {
+    //        guard let inputImage = inputImage, let currentUser = userStore.currentUser else {
+    //            print("no image or user data available")
+    //            return
+    //        }
+    //
+    //        do {
+    //            let imageUrl = try await uploadImageToFirebase(image: inputImage)
+    //
+    //            let newPost = Post(username: currentUser.username, imageName: imageUrl.absoluteString, caption: "placeholder", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "💀", comments: [])
+    //            try await PostManager.shared.createNewPost(post: newPost)
+    //
+    //            print("Post created successfully")
+    //        } catch {
+    //            print("Error creating post: \(error.localizedDescription)")
+    //        }
+    //    }
+    
+    
+//    func uploadImageToFirebase(image: UIImage) async throws -> URL {
+//        let storageRef = Storage.storage().reference().child("images/\(UUID().uuidString).jpg")
+//        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+//            throw NSError(domain: "ImageChooser", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to compress image"])
+//        }
+//        
+//        return try await withCheckedThrowingContinuation { continuation in
+//            storageRef.putData(imageData, metadata: nil) { _, error in
+//                if let error = error {
+//                    continuation.resume(throwing: error)
+//                    return
+//                }
+//                
+//                storageRef.downloadURL { url, error in
+//                    if let error = error {
+//                        continuation.resume(throwing: error)
+//                        return
+//                    }
+//                    
+//                    if let url = url {
+//                        continuation.resume(returning: url)
+//                    } else {
+//                        continuation.resume(throwing: NSError(domain: "ImageChooser", code: 2, userInfo: [NSLocalizedDescriptionKey: "URL is nil"]))
+//                    }
+//                }
+//            }
+//        }
+//    }
 
 }
 extension UIImagePickerController.SourceType: Identifiable {
@@ -158,6 +219,22 @@ struct ImageChooser_Previews: PreviewProvider {
 
     static var previews: some View {
         ImageChooser()
+    }
+}
+
+enum ImageUploadError: Error {
+    case compressionFailed
+    case urlNil
+}
+
+extension ImageUploadError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .compressionFailed:
+            return NSLocalizedString("Failed to compress image", comment: "")
+        case .urlNil:
+            return NSLocalizedString("URL is nil", comment: "")
+        }
     }
 }
 

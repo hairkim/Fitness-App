@@ -50,6 +50,7 @@ final class PostManager {
     }
     
     func createNewPost(post: Post) async throws {
+        print("PostManager.createNewPost called")
             try postDocument(postId: post.id).setData(from: post, merge: false, encoder: Firestore.Encoder())
         }
 }
