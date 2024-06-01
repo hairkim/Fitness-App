@@ -328,16 +328,12 @@ struct PostDetailView: View {
                 Button(action: {
                     presentationMode.wrappedValue.dismiss()
                 }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 18, weight: .semibold))
-                        Text("Main Forum")
-                            .font(.system(size: 18, weight: .semibold))
-                    }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 10)
-                    .background(Color(.systemGray5))
-                    .cornerRadius(8)
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .padding(.vertical, 8) // Adjust vertical padding
+                        .padding(.horizontal, 12) // Adjust horizontal padding
+                        .background(Color(.systemBackground))
+                        .cornerRadius(8)
                 }
                 Spacer()
             }
