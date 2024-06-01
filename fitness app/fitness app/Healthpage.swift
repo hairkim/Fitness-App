@@ -8,20 +8,32 @@ import SwiftUI
 import Charts
 
 struct HealthData: Codable {
-    var height: Double?
-    var weight: Double?
+    var heightFeet: Int?
+    var heightInches: Int?
+    var weightPounds: Double?
     var age: Int?
     var gender: String
     var activityLevel: String
     var dailyCalories: [String: Int]
     var calorieHistory: [[String: Int]] = []
     
+    var heightCm: Double? {
+        guard let heightFeet = heightFeet, let heightInches = heightInches else { return nil }
+        let totalInches = Double(heightFeet * 12 + heightInches)
+        return totalInches * 2.54
+    }
+    
+    var weightKg: Double? {
+        guard let weightPounds = weightPounds else { return nil }
+        return weightPounds * 0.453592
+    }
+    
     var bmi: Double {
-        guard let height = height, let weight = weight, height > 0 else {
+        guard let heightCm = heightCm, let weightKg = weightKg, heightCm > 0 else {
             return 0.0
         }
-        let heightInMeters = height / 100
-        return weight / (heightInMeters * heightInMeters)
+        let heightInMeters = heightCm / 100
+        return weightKg / (heightInMeters * heightInMeters)
     }
     
     var bmiCategory: String {
@@ -38,15 +50,15 @@ struct HealthData: Codable {
     }
     
     var maintenanceCalories: Double {
-        guard let weight = weight, let height = height, let age = age else {
+        guard let weightKg = weightKg, let heightCm = heightCm, let age = age else {
             return 0.0
         }
         
         let bmr: Double
         if gender == "Male" {
-            bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * Double(age))
+            bmr = 88.362 + (13.397 * weightKg) + (4.799 * heightCm) - (5.677 * Double(age))
         } else {
-            bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * Double(age))
+            bmr = 447.593 + (9.247 * weightKg) + (3.098 * heightCm) - (4.330 * Double(age))
         }
         
         let activityMultiplier: Double
@@ -75,7 +87,7 @@ class HealthDataModel: ObservableObject {
            let decodedData = try? JSONDecoder().decode(HealthData.self, from: savedData) {
             self.data = decodedData
         } else {
-            self.data = HealthData(height: nil, weight: nil, age: nil, gender: "Male", activityLevel: "Sedentary", dailyCalories: [:])
+            self.data = HealthData(heightFeet: nil, heightInches: nil, weightPounds: nil, age: nil, gender: "Male", activityLevel: "Sedentary", dailyCalories: [:])
         }
     }
     
@@ -112,6 +124,7 @@ struct HealthView: View {
                 }
                 .tag(1)
         }
+        .accentColor(.red)
     }
     
     var currentWeekView: some View {
@@ -123,141 +136,141 @@ struct HealthView: View {
                         .fontWeight(.bold)
                     Image(systemName: "heart.fill")
                         .foregroundColor(.red)
+                        .imageScale(.large)
                 }
                 .padding(.bottom, 10)
                 
-                Group {
-                    Text("Personal Info")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
-                    HStack {
-                        Text("Gender:")
-                        Picker("", selection: $healthDataModel.data.gender) {
-                            Text("Male").tag("Male")
-                            Text("Female").tag("Female")
+                Section(header: Text("Personal Info").font(.title2).fontWeight(.bold)) {
+                    VStack(spacing: 15) {
+                        HStack {
+                            Text("Gender:")
+                            Spacer()
+                            Picker("", selection: $healthDataModel.data.gender) {
+                                Text("Male").tag("Male")
+                                Text("Female").tag("Female")
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .frame(width: 150)
                         }
-                        .pickerStyle(SegmentedPickerStyle())
+                        
+                        HStack {
+                            Text("Height:")
+                            Spacer()
+                            TextField("Feet", text: Binding(
+                                get: { healthDataModel.data.heightFeet?.description ?? "" },
+                                set: { healthDataModel.data.heightFeet = Int($0) }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+                            .frame(width: 50)
+                            
+                            TextField("Inches", text: Binding(
+                                get: { healthDataModel.data.heightInches?.description ?? "" },
+                                set: { healthDataModel.data.heightInches = Int($0) }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+                            .frame(width: 50)
+                        }
+                        
+                        HStack {
+                            Text("Weight (lb):")
+                            Spacer()
+                            TextField("N/A", text: Binding(
+                                get: { healthDataModel.data.weightPounds?.description ?? "" },
+                                set: { healthDataModel.data.weightPounds = Double($0) }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.decimalPad)
+                            .frame(width: 100)
+                        }
+                        
+                        HStack {
+                            Text("Age:")
+                            Spacer()
+                            TextField("N/A", text: Binding(
+                                get: { healthDataModel.data.age?.description ?? "" },
+                                set: { healthDataModel.data.age = Int($0) }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+                            .frame(width: 50)
+                        }
                     }
-                    
-                    HStack {
-                        Text("Height (cm):")
-                        TextField("N/A", text: Binding(
-                            get: { healthDataModel.data.height?.description ?? "N/A" },
-                            set: {
-                                healthDataModel.data.height = Double($0)
-                            }
-                        ))
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.decimalPad)
-                    }
-                    
-                    HStack {
-                        Text("Weight (kg):")
-                        TextField("N/A", text: Binding(
-                            get: { healthDataModel.data.weight?.description ?? "N/A" },
-                            set: {
-                                healthDataModel.data.weight = Double($0)
-                            }
-                        ))
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.decimalPad)
-                    }
-                    
-                    HStack {
-                        Text("Age:")
-                        TextField("N/A", text: Binding(
-                            get: { healthDataModel.data.age?.description ?? "N/A" },
-                            set: {
-                                healthDataModel.data.age = Int($0)
-                            }
-                        ))
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.numberPad)
-                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    )
                 }
                 
-                Group {
-                    Text("Activity Level")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
+                Section(header: Text("Activity Level").font(.title2).fontWeight(.bold)) {
                     Picker("Select Activity Level", selection: $healthDataModel.data.activityLevel) {
                         ForEach(["Sedentary", "Lightly active", "Moderately active", "Very active", "Super active"], id: \.self) { level in
                             Text(level).tag(level)
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    )
                 }
                 
-                Group {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("BMI Calculator")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                        Text("BMI: \(healthDataModel.data.bmi, specifier: "%.2f")")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text("Category: \(healthDataModel.data.bmiCategory)")
-                            .font(.title2)
-                            .fontWeight(.bold)
+                Section(header: Text("Health Metrics").font(.title2).fontWeight(.bold)) {
+                    VStack(spacing: 10) {
+                        Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
+                            GridRow {
+                                Text("BMI:")
+                                    .fontWeight(.bold)
+                                Text("\(healthDataModel.data.bmi, specifier: "%.2f")")
+                            }
+                            GridRow {
+                                Text("Category:")
+                                    .fontWeight(.bold)
+                                Text(healthDataModel.data.bmiCategory)
+                            }
+                            GridRow {
+                                Text("Maintenance Calories:")
+                                    .fontWeight(.bold)
+                                Text("\(healthDataModel.data.maintenanceCalories, specifier: "%.0f") kcal/day")
+                            }
+                            GridRow {
+                                Text("Calorie Deficit:")
+                                    .fontWeight(.bold)
+                                Text("\(healthDataModel.data.calorieDeficit, specifier: "%.0f") kcal/day")
+                            }
+                        }
                     }
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray, lineWidth: 2)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
                     )
                 }
                 
-                Group {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Maintenance Calories")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                        Text("Calories: \(healthDataModel.data.maintenanceCalories, specifier: "%.0f") kcal/day")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray, lineWidth: 2)
-                    )
-                }
-                
-                Group {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Calorie Deficit")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                        Text("Deficit: \(healthDataModel.data.calorieDeficit, specifier: "%.0f") kcal/day")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray, lineWidth: 2)
-                    )
-                }
-                
-                Group {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Calorie Intake")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
+                Section(header: Text("Calorie Intake").font(.title2).fontWeight(.bold)) {
+                    VStack(spacing: 10) {
                         DatePicker("Date", selection: $date, displayedComponents: .date)
+                            .datePickerStyle(CompactDatePickerStyle())
                         
                         HStack {
                             Text("Calories:")
+                            Spacer()
                             TextField("N/A", text: $calorieIntake)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.numberPad)
+                                .frame(width: 100)
                         }
                         
                         Button(action: addCalorieIntake) {
                             Text("Add")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
                         }
                         
                         let sortedCalories = healthDataModel.data.dailyCalories.sorted(by: { $0.key < $1.key })
@@ -309,7 +322,7 @@ struct HealthView: View {
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray, lineWidth: 2)
+                            .stroke(Color.gray.opacity(0.5), lineWidth: 1)
                     )
                 }
             }
@@ -320,8 +333,13 @@ struct HealthView: View {
     var calorieHistoryView: some View {
         List {
             ForEach(healthDataModel.data.calorieHistory.indices, id: \.self) { weekIndex in
-                Section(header: Text("Week \(weekIndex + 1)")) {
+                Section(header: Text("Week \(weekIndex + 1)").font(.title2).fontWeight(.bold)) {
                     WeekGraphView(weekData: healthDataModel.data.calorieHistory[weekIndex], maintenanceCalories: healthDataModel.data.maintenanceCalories)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                        )
                 }
             }
         }
