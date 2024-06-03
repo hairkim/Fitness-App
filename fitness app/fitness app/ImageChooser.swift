@@ -16,6 +16,7 @@ struct ImageChooser: View {
     @State private var inputImage: UIImage?
     @State private var image: Image?
     @State private var sourceType: UIImagePickerController.SourceType?
+    @State private var showCreatePostView = false
 
     var body: some View {
         VStack{
@@ -38,16 +39,11 @@ struct ImageChooser: View {
                     }
 
                 }
-//                    Button("Post") {
-//                        Task {
-//                            //await createPost()
-//                        }
-//
-//                    }
-                NavigationLink(destination: CreatePostView(image: image, inputImage: inputImage)) {
+                Button(action: {
+                    showCreatePostView = true
+                }) {
                     Text("Post")
                 }
-                
                 .padding(20)
             }
         }
@@ -61,6 +57,9 @@ struct ImageChooser: View {
         }
         .onAppear {
             loadLastImageFromCameraRoll()
+        }
+        .fullScreenCover(isPresented: $showCreatePostView) {
+            CreatePostView(showSelf: $showCreatePostView, image: image, inputImage: inputImage)
         }
 
 

@@ -11,6 +11,7 @@ import FirebaseStorage
 
 struct CreatePostView: View {
     @EnvironmentObject var userStore: UserStore
+    @Binding var showSelf: Bool
     @State private var caption: String = ""
     @State private var selectedWorkoutSplit: String = ""
     @State private var selectedEmoji: String = ""
@@ -23,11 +24,23 @@ struct CreatePostView: View {
     
     var body: some View {
         VStack() {
-            Text("New Post")
-                .font(.title)
-                .foregroundColor(Color(.darkGray))
-                .padding(.leading, 16)
-                .padding(20)
+            HStack {
+                Button(action: {
+                    showSelf = false
+                }) {
+                    Text("Go Back")
+                        .foregroundColor(.red)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
+                }
+                .padding(.trailing)
+                Text("New Post")
+                    .font(.title)
+                    .foregroundColor(Color(.darkGray))
+                    .padding(.leading, 16)
+                    .padding(20)
+            }
             
             if let image = image {
                 image
@@ -81,6 +94,8 @@ struct CreatePostView: View {
                     .cornerRadius(10)
                     .padding([.leading, .trailing, .bottom])
             }
+            
+
         }
     }
     
@@ -149,7 +164,7 @@ struct CreatePostView: View {
 struct CreatePostView_Previews: PreviewProvider {
     
     static var previews: some View {
-        CreatePostView(image: Image(systemName: "photo"), inputImage: UIImage())
+        CreatePostView(showSelf: .constant(false), image: Image(systemName: "photo"), inputImage: UIImage())
     }
 }
 

@@ -16,6 +16,7 @@ struct ContentView: View {
     ]
     
     @State private var showSignInView: Bool = false
+    @State private var showImageChooser: Bool = false
     
     var body: some View {
         Group {
@@ -52,7 +53,9 @@ struct ContentView: View {
                                         .foregroundColor(Color(.darkGray))
                                         .padding(.trailing, 16)
                                 }
-                                NavigationLink(destination: ImageChooser()) {
+                                Button(action: {
+                                    showImageChooser = true
+                                }) {
                                     Image(systemName: "plus")
                                         .imageScale(.large)
                                         .foregroundColor(Color(.darkGray))
@@ -114,6 +117,9 @@ struct ContentView: View {
                         Text("Settings")
                     }
             }
+        }
+        .fullScreenCover(isPresented: $showImageChooser) {
+            ImageChooser()
         }
     }
     
