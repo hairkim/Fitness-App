@@ -11,6 +11,7 @@ import UIKit
 
 class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
     let parent: ImagePicker
+    
 
     init( parent: ImagePicker) {
         self.parent = parent
@@ -20,13 +21,15 @@ class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerContro
         if let image = info[.originalImage] as? UIImage {
             parent.selectedImage = image
         }
-        //parent.presentationMode.wrappedValue.dismiss()
+        parent.presentationMode.wrappedValue.dismiss()
     }
     
 }
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var selectedImage: UIImage?
+    
+    @Environment(\.presentationMode) var presentationMode
 
     var sourceType: UIImagePickerController.SourceType = .camera
 

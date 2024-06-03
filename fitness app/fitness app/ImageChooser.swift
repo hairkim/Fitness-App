@@ -18,50 +18,52 @@ struct ImageChooser: View {
     @State private var sourceType: UIImagePickerController.SourceType?
 
     var body: some View {
-        NavigationView {
+        VStack{
+            Spacer()
+            if let image = image {
+                image.resizable().scaledToFit()
+            } else {
+                Text("No image selected").foregroundColor(.gray)
+            }
+            Spacer()
             VStack{
-                Spacer()
-                if let image = image {
-                    image.resizable().scaledToFit()
-                } else {
-                    Text("No image selected").foregroundColor(.gray)
-                }
-                Spacer()
-                VStack{
-                    HStack(spacing: 30){
-                        Button("Select Image"){
-                            self.sourceType = .photoLibrary
-                        }
-                        Button(action: {
-                            self.sourceType = .camera
-                        }){
-                            Image(systemName: "camera")
-                        }
+                HStack(spacing: 30){
+                    Button("Select Image"){
+                        self.sourceType = .photoLibrary
+                    }
+                    Button(action: {
+                        self.sourceType = .camera
+                    }){
+                        Image(systemName: "camera")
+                    }
 
-                    }
-                    .padding(50)
-                    
-                    Button("Post") {
-                        Task {
-                            await createPost()
-                        }
-                    }
                 }
+//                    Button("Post") {
+//                        Task {
+//                            //await createPost()
+//                        }
+//
+//                    }
+                NavigationLink(destination: CreatePostView(image: image, inputImage: inputImage)) {
+                    Text("Post")
+                }
+                
+                .padding(20)
             }
-            .sheet(item: $sourceType, onDismiss: nil) { sourceType in
-                ImagePicker(selectedImage: $inputImage, sourceType: sourceType)
-            }
+        }
+        .sheet(item: $sourceType, onDismiss: nil) { sourceType in
+            ImagePicker(selectedImage: $inputImage, sourceType: sourceType)
+        }
 //            .onChange(of: inputImage) { oldValue, newValue in loadImage()
 //            }
-            .onChange(of: inputImage) { _, _ in
-                loadImage()
-            }
-            .onAppear {
-                loadLastImageFromCameraRoll()
-            }
-
-
+        .onChange(of: inputImage) { _, _ in
+            loadImage()
         }
+        .onAppear {
+            loadLastImageFromCameraRoll()
+        }
+
+
     }
     
     
@@ -92,67 +94,6 @@ struct ImageChooser: View {
                         self.inputImage = image
                         self.image = Image(uiImage: image)
                     }
-                }
-            }
-        }
-    }
-    
-    func createPost() async {
-        guard let inputImage = inputImage, let currentUser = userStore.currentUser else {
-            print("No image or user data available")
-            return
-        }
-        
-        do {
-            let imageUrl = try await uploadImageToFirebase(image: inputImage)
-            print("Image URL: \(imageUrl.absoluteString)")
-            
-            let newPost = Post(
-                username: currentUser.username,
-                imageName: imageUrl.absoluteString,
-                caption: "placeholder",
-                multiplePictures: false,
-                workoutSplit: "Push",
-                workoutSplitEmoji: "💀",
-                comments: []
-            )
-            
-            try await PostManager.shared.createNewPost(post: newPost)
-            print("Post created successfully")
-        } catch {
-            print("Error creating post: \(error.localizedDescription)")
-        }
-    }
-    
-    func uploadImageToFirebase(image: UIImage) async throws -> URL {
-        let storageRef = Storage.storage().reference().child("images/\(UUID().uuidString).jpg")
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            throw ImageUploadError.compressionFailed
-        }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            storageRef.putData(imageData, metadata: nil) { metadata, error in
-                if let error = error {
-                    print("Error uploading image: \(error.localizedDescription)")
-                    continuation.resume(throwing: error)
-                    return
-                }
-                print("Image uploaded successfully, fetching download URL...")
-                storageRef.downloadURL { url, error in
-                    if let error = error {
-                        print("Error fetching download URL: \(error.localizedDescription)")
-                        continuation.resume(throwing: error)
-                        return
-                    }
-                    
-                    guard let url = url else {
-                        print("Download URL is nil")
-                        continuation.resume(throwing: ImageUploadError.urlNil)
-                        return
-                    }
-                    
-                    print("Download URL fetched successfully: \(url.absoluteString)")
-                    continuation.resume(returning: url)
                 }
             }
         }
@@ -222,19 +163,4 @@ struct ImageChooser_Previews: PreviewProvider {
     }
 }
 
-enum ImageUploadError: Error {
-    case compressionFailed
-    case urlNil
-}
-
-extension ImageUploadError: LocalizedError {
-    var errorDescription: String? {
-        switch self {
-        case .compressionFailed:
-            return NSLocalizedString("Failed to compress image", comment: "")
-        case .urlNil:
-            return NSLocalizedString("URL is nil", comment: "")
-        }
-    }
-}
 

@@ -28,6 +28,8 @@ struct ContentView: View {
         .onAppear {
             checkAuthStatus()
         }
+        
+//        mainContentView
     }
     
     var mainContentView: some View {
