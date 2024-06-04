@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		273BD46D2BFFEABE00C658A8 /* Healthpage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273BD46C2BFFEABE00C658A8 /* Healthpage.swift */; };
+		2776123B2C0EBEE700863E15 /* Leaderboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2776123A2C0EBEE700863E15 /* Leaderboard.swift */; };
 		27EA4EA22B8C0B460027F19E /* Loginpage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27EA4EA12B8C0B460027F19E /* Loginpage.swift */; };
 		6F3818AA2BFFE46C009109EA /* PostManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3818A92BFFE46C009109EA /* PostManager.swift */; };
 		6F3818AC2BFFEF15009109EA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3818AB2BFFEF15009109EA /* FirebaseStorage */; };
@@ -38,6 +39,7 @@
 
 /* Begin PBXFileReference section */
 		273BD46C2BFFEABE00C658A8 /* Healthpage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Healthpage.swift; sourceTree = "<group>"; };
+		2776123A2C0EBEE700863E15 /* Leaderboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leaderboard.swift; sourceTree = "<group>"; };
 		27EA4EA12B8C0B460027F19E /* Loginpage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Loginpage.swift; sourceTree = "<group>"; };
 		6F3818A92BFFE46C009109EA /* PostManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostManager.swift; sourceTree = "<group>"; };
 		6F3818AD2C0000B9009109EA /* UserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserStore.swift; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 				6FD608772BB3B014002ED034 /* SignupView.swift */,
 				6FD608832BB41B02002ED034 /* AuthenticationManager.swift */,
 				6F3818AD2C0000B9009109EA /* UserStore.swift */,
+				2776123A2C0EBEE700863E15 /* Leaderboard.swift */,
 			);
 			path = Authentication;
 			sourceTree = "<group>";
@@ -254,6 +257,7 @@
 				27EA4EA22B8C0B460027F19E /* Loginpage.swift in Sources */,
 				6F7FDC972BB93407004170AC /* SettingsView.swift in Sources */,
 				6F3818AE2C0000B9009109EA /* UserStore.swift in Sources */,
+				2776123B2C0EBEE700863E15 /* Leaderboard.swift in Sources */,
 				8C1F3FDD2BD20114002C1465 /* SettingsViewModel.swift in Sources */,
 				273BD46D2BFFEABE00C658A8 /* Healthpage.swift in Sources */,
 				6F962CE22B896AB900C52234 /* ImageChooser.swift in Sources */,
