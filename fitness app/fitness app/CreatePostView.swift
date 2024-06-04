@@ -11,7 +11,8 @@ import FirebaseStorage
 
 struct CreatePostView: View {
     @EnvironmentObject var userStore: UserStore
-    @Binding var showSelf: Bool
+    @Environment(\.dismiss) var dismiss
+    @State var showContentView: Bool = false
     @State private var caption: String = ""
     @State private var selectedWorkoutSplit: String = ""
     @State private var selectedEmoji: String = ""
@@ -26,20 +27,17 @@ struct CreatePostView: View {
         VStack() {
             HStack {
                 Button(action: {
-                    showSelf = false
+                    dismiss()
                 }) {
-                    Text("Go Back")
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
+                    Image(systemName: "lessthan")
+                        .padding(.leading)
                 }
                 .padding(.trailing)
                 Text("New Post")
                     .font(.title)
                     .foregroundColor(Color(.darkGray))
-                    .padding(.leading, 16)
-                    .padding(20)
+                    .padding(.leading, 80)
+                Spacer()
             }
             
             if let image = image {
@@ -97,6 +95,9 @@ struct CreatePostView: View {
             
 
         }
+        .fullScreenCover(isPresented: $showContentView) {
+            ContentView()
+        }
     }
     
     func createPost() async {
@@ -121,6 +122,7 @@ struct CreatePostView: View {
             
             try await PostManager.shared.createNewPost(post: newPost)
             print("Post created successfully")
+            showContentView = true
         } catch {
             print("Error creating post: \(error.localizedDescription)")
         }
@@ -164,7 +166,7 @@ struct CreatePostView: View {
 struct CreatePostView_Previews: PreviewProvider {
     
     static var previews: some View {
-        CreatePostView(showSelf: .constant(false), image: Image(systemName: "photo"), inputImage: UIImage())
+        CreatePostView(image: Image(systemName: "photo"), inputImage: UIImage())
     }
 }
 

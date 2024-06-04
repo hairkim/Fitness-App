@@ -53,4 +53,11 @@ final class PostManager {
         print("PostManager.createNewPost called")
             try postDocument(postId: post.id).setData(from: post, merge: false, encoder: Firestore.Encoder())
         }
+    
+    func getPosts() async throws -> [Post] {
+        let snapshot = try await postCollection.getDocuments()
+        return snapshot.documents.compactMap { document -> Post? in
+            try? document.data(as: Post.self)
+        }
+    }
 }

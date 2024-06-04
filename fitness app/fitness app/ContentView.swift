@@ -9,11 +9,12 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
-    @State var posts: [Post] = [
-        Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️", comments: []),
-        Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️", comments: []),
-        Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵", comments: []),
-    ]
+//    @State var posts: [Post] = [
+//        Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️", comments: []),
+//        Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️", comments: []),
+//        Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵", comments: []),
+//    ]
+    @State var posts = [Post]()
     
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
@@ -28,6 +29,9 @@ struct ContentView: View {
         }
         .onAppear {
             checkAuthStatus()
+            Task {
+                await fetchPosts()
+            }
         }
         
 //        mainContentView
@@ -148,6 +152,16 @@ struct ContentView: View {
             }
         }
     }
+    
+    private func fetchPosts() async {
+        do {
+            self.posts = try await PostManager.shared.getPosts()
+            print("Posts fetched")
+        } catch {
+            print("Error fetching posts: \(error)")
+        }
+    }
+    
 }
 
 struct PlaceholderView: View {
@@ -196,16 +210,49 @@ struct CustomPostView: View {
             }
 
             ZStack(alignment: .topTrailing) {
-                Image(post.imageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxHeight: 400)
-                    .clipped()
-                    .cornerRadius(20)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.gray, lineWidth: 1)
-                    )
+                if let url = URL(string: post.imageName) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            //do nothing or maybe show a progress view
+                            Image(systemName: "x.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                        case .success(let image):
+//                            print("got image successfully")
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxHeight: 400)
+                                .clipped()
+                                .cornerRadius(20)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .stroke(Color.gray, lineWidth: 1)
+                                )
+                        case .failure:
+//                            print("failed to get image")
+                            Image(systemName: "photo")
+                                .resizable()
+                                .scaledToFit()
+                        @unknown default:
+                            //do nothing
+                            Image(systemName: "x.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    }
+                }
+//                Image(post.imageName)
+//                    .resizable()
+//                    .aspectRatio(contentMode: .fill)
+//                    .frame(maxHeight: 400)
+//                    .clipped()
+//                    .cornerRadius(20)
+//                    .overlay(
+//                        RoundedRectangle(cornerRadius: 20)
+//                            .stroke(Color.gray, lineWidth: 1)
+//                    )
                 
                 HStack {
                     Text(post.workoutSplit)

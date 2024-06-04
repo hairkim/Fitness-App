@@ -13,6 +13,7 @@ import FirebaseStorage
 
 struct ImageChooser: View {
     @EnvironmentObject var userStore: UserStore
+    @Environment(\.dismiss) var dismiss
     @State private var inputImage: UIImage?
     @State private var image: Image?
     @State private var sourceType: UIImagePickerController.SourceType?
@@ -20,6 +21,15 @@ struct ImageChooser: View {
 
     var body: some View {
         VStack{
+            HStack {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "lessthan")
+                        .padding(.leading)
+                }
+                Spacer()
+            }
             Spacer()
             if let image = image {
                 image.resizable().scaledToFit()
@@ -59,7 +69,7 @@ struct ImageChooser: View {
             loadLastImageFromCameraRoll()
         }
         .fullScreenCover(isPresented: $showCreatePostView) {
-            CreatePostView(showSelf: $showCreatePostView, image: image, inputImage: inputImage)
+            CreatePostView(image: image, inputImage: inputImage)
         }
 
 
