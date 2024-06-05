@@ -15,6 +15,8 @@ struct DBUser: Codable {
     let dateCreated: Date?
     let email: String?
     let photoUrl: String?
+    let followers: [String]
+    let isPublic: Bool
     
     init(auth: AuthDataResultModel, username: String) {
         self.userId = auth.uid
@@ -22,6 +24,8 @@ struct DBUser: Codable {
         self.dateCreated = Date()
         self.email = auth.email
         self.photoUrl = auth.photoUrl
+        self.followers = [String]()
+        self.isPublic = true
     }
 }
 
@@ -53,35 +57,11 @@ final class UserManager {
         return decoder
     }()
     
-//    func createNewUser(auth: AuthDataResultModel) async throws {
-//        var userData: [ String:Any] = [
-//            "user_id" : auth.uid,
-//            "date_created" : Timestamp(),
-//            "email" : auth.email,
-//        ]
-//        if let photoUrl = auth.photoUrl {
-//            userData["photo_url"] = photoUrl
-//        }
-//        
-//        try await userDocument(userId: auth.uid).setData(userData, merge: false)
-//    }
-    
     func getUser(userId: String) async throws -> DBUser {
         try await userDocument(userId: userId).getDocument(as: DBUser.self)
     }
     
-//    func getUser(userId: String) async throws -> DBUser {
-//        let document = try await userDocument(userId: userId).getDocument()
+//    func addFollower(user: DBUser, receiver: DBUser) async throws {
 //        
-//        guard let data = document.data(), let userId = data["user_id"] as? String else {
-//            throw URLError(.badServerResponse)
-//        }
-//        
-//        let dateCreated = data["date_created"] as? Date
-//        let email = data["email"] as? String
-//        let photoUrl = data["photo_url"] as? String
-//        
-//        return DBUser(userId: userId, dateCreated: dateCreated, email: email, photoUrl: photoUrl)
 //    }
-     
 }
