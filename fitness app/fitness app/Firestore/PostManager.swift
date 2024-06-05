@@ -60,4 +60,11 @@ final class PostManager {
             try? document.data(as: Post.self)
         }
     }
+    
+    func getPosts(forUser userId: String) async throws -> [Post] {
+        let snapshot = try await postCollection.whereField("userId", isEqualTo: userId).getDocuments()
+        return snapshot.documents.compactMap { document -> Post? in
+            try? document.data(as: Post.self)
+        }
+    }
 }

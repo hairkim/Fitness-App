@@ -4,13 +4,12 @@ struct ProfileView: View {
     @EnvironmentObject var userStore: UserStore
     @Binding var showSignInView: Bool
 
-    // Placeholder data for posts, workouts, and forum posts
-    let posts = Array(repeating: "post_placeholder", count: 10) // Replace with your actual placeholder image name
-    let workouts = Array(repeating: "workout_placeholder", count: 10)
-    let forumPosts = Array(repeating: "forum_post_placeholder", count: 10)
+    @State var posts = [Post]() // Using the same Post structure
+    @State var leaderboard = [LeaderboardPlaceholderEntry(username: "JohnDoe", score: 100), LeaderboardPlaceholderEntry(username: "JaneDoe", score: 200)]
+    @State var healthTracker = [HealthPlaceholderEntry(metric: "Calories", value: 1200), HealthPlaceholderEntry(metric: "Steps", value: 10000)]
 
     @State private var selectedTab = 0
-    private let tabTitles = ["Calendar", "Workouts", "Forum Posts"]
+    private let tabTitles = ["Posts", "Leaderboard", "Health Tracker"]
 
     var body: some View {
         NavigationView {
@@ -18,18 +17,44 @@ struct ProfileView: View {
                 VStack(spacing: 16) {
                     // Profile Picture and User Info
                     VStack(spacing: 8) {
-                        Image("berger") // Replace with your actual placeholder image name
-                            .resizable()
-                            .scaledToFit()
+                        if let photoUrl = userStore.currentUser?.photoUrl, let url = URL(string: photoUrl) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                case .failure:
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                @unknown default:
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                }
+                            }
                             .clipShape(Circle())
                             .frame(width: 100, height: 100)
                             .padding(.top)
+                        } else {
+                            Image(systemName: "person.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .clipShape(Circle())
+                                .frame(width: 100, height: 100)
+                                .padding(.top)
+                        }
 
-                        Text("Berger")
+                        Text(userStore.currentUser?.username ?? "Username")
                             .font(.title)
                             .fontWeight(.bold)
 
-                        Text("I like burgers.")
+                        Text(userStore.currentUser?.email ?? "Email not available")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
@@ -58,7 +83,7 @@ struct ProfileView: View {
 
                     // Tabs
                     Picker("Select Tab", selection: $selectedTab) {
-                        ForEach(0..<tabTitles.count) {
+                        ForEach(0..<tabTitles.count, id: \.self) {
                             Text(tabTitles[$0])
                         }
                     }
@@ -67,9 +92,9 @@ struct ProfileView: View {
 
                     // Content based on selected tab
                     if selectedTab == 0 {
-                        // Calendar
+                        // Posts (Calendar)
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 16) {
-                            ForEach(0..<posts.count, id: \.self) { index in
+                            ForEach(posts) { post in
                                 Rectangle()
                                     .fill(Color.gray.opacity(0.5)) // Placeholder for calendar days
                                     .frame(height: 50)
@@ -78,24 +103,31 @@ struct ProfileView: View {
                         }
                         .padding()
                     } else if selectedTab == 1 {
-                        // Workouts
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                            ForEach(0..<workouts.count, id: \.self) { index in
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.5)) // Placeholder for workout posts
-                                    .frame(height: 150)
-                                    .cornerRadius(10)
+                        // Leaderboard
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 1), spacing: 16) {
+                            ForEach(leaderboard) { entry in
+                                HStack {
+                                    Text(entry.username)
+                                    Spacer()
+                                    Text("\(entry.score)")
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.5))
+                                .cornerRadius(10)
                             }
                         }
                         .padding()
                     } else if selectedTab == 2 {
-                        // Forum Posts
+                        // Health Tracker
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                            ForEach(0..<forumPosts.count, id: \.self) { index in
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.5)) // Placeholder for forum posts
-                                    .frame(height: 150)
-                                    .cornerRadius(10)
+                            ForEach(healthTracker) { entry in
+                                VStack {
+                                    Text(entry.metric)
+                                    Text("\(entry.value)")
+                                }
+                                .padding()
+                                .background(Color.gray.opacity(0.5))
+                                .cornerRadius(10)
                             }
                         }
                         .padding()
@@ -112,12 +144,32 @@ struct ProfileView: View {
                     }
                 }
             }
+            .onAppear {
+                fetchProfileData()
+            }
+        }
+    }
+
+    private func fetchProfileData() {
+        Task {
+            do {
+                if let currentUser = userStore.currentUser {
+                    self.posts = try await PostManager.shared.getPosts(forUser: currentUser.userId)
+                    // Placeholder for now, replace with actual data fetching later
+                    // self.leaderboard = try await LeaderboardManager.shared.getEntries(forUser: currentUser.userId)
+                    // self.healthTracker = try await HealthTrackerManager.shared.getEntries(forUser: currentUser.userId)
+                }
+            } catch {
+                print("Error fetching profile data: \(error)")
+            }
         }
     }
 }
 
+// Assuming SettingsView takes `showSignInView` and `userStore` as parameters
 //struct SettingsView: View {
 //    @Binding var showSignInView: Bool
+//    @EnvironmentObject var userStore: UserStore
 //
 //    var body: some View {
 //        Text("Settings View")
@@ -129,6 +181,20 @@ struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             ProfileView(showSignInView: .constant(false))
+                .environmentObject(UserStore()) // Provide an instance of UserStore for preview
         }
     }
+}
+
+// Placeholder structs for LeaderboardEntry and HealthEntry
+struct LeaderboardPlaceholderEntry: Identifiable {
+    let id = UUID()
+    let username: String
+    let score: Int
+}
+
+struct HealthPlaceholderEntry: Identifiable {
+    let id = UUID()
+    let metric: String
+    let value: Int
 }

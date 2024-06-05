@@ -88,11 +88,13 @@ struct ContentView: View {
                     Text("Home")
                 }
                 
-                PlaceholderView(pageName: "Profile")
-                    .tabItem {
-                        Image(systemName: "person.circle.fill")
-                        Text("Profile")
-                    }
+                NavigationView {
+                    ProfileView(showSignInView: $showSignInView)
+                }
+                .tabItem {
+                    Image(systemName: "person.circle.fill")
+                    Text("Profile")
+                }
                 
                 PlaceholderView(pageName: "Workouts")
                     .tabItem {
