@@ -23,14 +23,13 @@ struct LeaderboardView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(gradient: Gradient(colors: [Color(.systemIndigo), Color(.systemPurple)]), startPoint: .topLeading, endPoint: .bottomTrailing)
+            Color(red: 245/255, green: 245/255, blue: 220/255)
                 .ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 10) {
                 Text("Leaderboard")
-                    .font(.largeTitle)
-                    .bold()
-                    .foregroundColor(.white)
+                    .font(.system(size: 34, weight: .heavy))
+                    .foregroundColor(.black)
                     .padding(.horizontal)
                     .padding(.top)
 
@@ -39,7 +38,7 @@ struct LeaderboardView: View {
                         ForEach(leaderboardData.indices, id: \.self) { index in
                             LeaderboardRowView(entry: leaderboardData[index], rank: index + 1)
                             if index < leaderboardData.count - 1 {
-                                Divider().background(Color.white)
+                                Divider().background(Color.black)
                             }
                         }
                     }
@@ -64,28 +63,26 @@ struct LeaderboardRowView: View {
     var body: some View {
         HStack {
             specialRankIcon(for: rank)
-                .font(.headline)
+                .font(.system(size: 22, weight: .bold))
                 .frame(width: 40, alignment: .center)
 
             VStack(alignment: .leading) {
                 Text(entry.name)
-                    .font(.title3)
-                    .bold()
-                    .foregroundColor(.white)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.black)
                 Text("Streak: \(entry.streak)")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(.black)
             }
 
             Spacer()
 
             Text("\(entry.streak)")
-                .font(.title2)
-                .bold()
+                .font(.system(size: 22, weight: .bold))
                 .padding(12)
                 .background(background(for: rank))
                 .clipShape(Circle())
-                .foregroundColor(.white)
+                .foregroundColor(.black)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -97,30 +94,36 @@ struct LeaderboardRowView: View {
     func specialRankIcon(for rank: Int) -> some View {
         switch rank {
         case 1:
-            return AnyView(Image(systemName: "star.fill").foregroundColor(.yellow))
+            return AnyView(Image(systemName: "star.fill")
+                .foregroundColor(.yellow)
+                .font(.system(size: 24, weight: .bold)))
         case 2:
-            return AnyView(Image(systemName: "star.fill").foregroundColor(.silver))
+            return AnyView(Image(systemName: "star.fill")
+                .foregroundColor(Color.silver)
+                .font(.system(size: 24, weight: .bold)))
         case 3:
-            return AnyView(Image(systemName: "star.fill").foregroundColor(.bronze))
+            return AnyView(Image(systemName: "star.fill")
+                .foregroundColor(Color.bronze)
+                .font(.system(size: 24, weight: .bold)))
         default:
-            return AnyView(Text("\(rank)").foregroundColor(.white))
+            return AnyView(Text("\(rank)").foregroundColor(.black))
         }
     }
 
     func background(for rank: Int) -> Color {
         switch rank {
         case 1: return .yellow
-        case 2: return .gray
-        case 3: return Color.brown
+        case 2: return Color.silver
+        case 3: return Color.bronze
         default: return .clear
         }
     }
     
     func rowBackground(for rank: Int) -> Color {
         switch rank {
-        case 1: return Color.yellow.opacity(0.2)
-        case 2: return Color.gray.opacity(0.2)
-        case 3: return Color.brown.opacity(0.2)
+        case 1: return Color.yellow.opacity(0.19)
+        case 2: return Color.silver.opacity(0.17)
+        case 3: return Color.bronze.opacity(0.17)
         default: return Color.clear
         }
     }
