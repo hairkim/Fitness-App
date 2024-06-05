@@ -145,7 +145,6 @@
 				6FD608772BB3B014002ED034 /* SignupView.swift */,
 				6FD608832BB41B02002ED034 /* AuthenticationManager.swift */,
 				6F3818AD2C0000B9009109EA /* UserStore.swift */,
-				2776123A2C0EBEE700863E15 /* Leaderboard.swift */,
 			);
 			path = Authentication;
 			sourceTree = "<group>";
@@ -164,6 +163,7 @@
 			children = (
 				8CAD9A6D2BD303F900CDC07C /* UserManager.swift */,
 				6F3818A92BFFE46C009109EA /* PostManager.swift */,
+				2776123A2C0EBEE700863E15 /* Leaderboard.swift */,
 			);
 			path = Firestore;
 			sourceTree = "<group>";
