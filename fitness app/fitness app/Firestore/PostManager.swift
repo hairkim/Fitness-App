@@ -32,9 +32,15 @@ struct Post: Codable, Identifiable {
 }
 
 struct Comment: Codable, Identifiable {
-    let id: UUID = UUID()
+    let id: UUID
     let username: String
     let text: String
+    
+    init(id: UUID = UUID(), username: String, text: String) {
+        self.id = id
+        self.username = username
+        self.text = text
+    }
 }
 
 
@@ -67,4 +73,24 @@ final class PostManager {
             try? document.data(as: Post.self)
         }
     }
+    
+    func addComment(postId: UUID, username: String, comment: String) async throws {
+        let newComment = Comment(username: username, text: comment)
+        do {
+            let postRef = postDocument(postId: postId)
+            let postDocument = try await postRef.getDocument()
+            guard var post = try? postDocument.data(as: Post.self) else {
+                throw NSError(domain: "AppErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to decode post"])
+            }
+            
+            post.comments.append(newComment)
+            
+            try postRef.setData(from: post)
+            
+            print("added comment successfully")
+        } catch {
+            print("could not add comment")
+        }
+    }
 }
+

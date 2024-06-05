@@ -323,7 +323,9 @@ struct CustomPostView: View {
             
             if isCommenting {
                 TextField("Write a comment...", text: $commentText, onCommit: {
-                    addComment()
+                    Task {
+                        await addComment(postId: post.id, username: post.username, text: commentText)
+                    }
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal, 16)
@@ -349,10 +351,14 @@ struct CustomPostView: View {
         }
     }
     
-    private func addComment() {
-        post.comments.append(Comment(username: "CurrentUser", text: commentText))
-        commentText = ""
-        isCommenting = false
+    private func addComment(postId: UUID, username: String, text: String) async  {
+        do {
+            try await PostManager.shared.addComment(postId: postId, username: username, comment: text)
+            commentText = ""
+            isCommenting = false
+        } catch {
+            print("error making comment \(error)")
+        }
     }
 }
 
