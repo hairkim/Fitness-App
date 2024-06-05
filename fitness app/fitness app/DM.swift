@@ -29,6 +29,7 @@ struct Friend: Identifiable {
     let id = UUID()
     let name: String
     let initials: String
+    let workoutStatus: String
 }
 
 // DMHomeView
@@ -37,80 +38,102 @@ struct DMHomeView: View {
     @EnvironmentObject var userStore: UserStore
     @State private var chats: [Chat] = [
         Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", messages: [
-            Message(text: "Hello!", isCurrentUser: false, senderColor: .green)
+            Message(text: "Hello!", isCurrentUser: false, senderColor: .blue)
         ]),
         Chat(name: "Jane Smith", initials: "JS", lastMessage: "How's it going?", messages: [
-            Message(text: "Hi!", isCurrentUser: false, senderColor: .red)
+            Message(text: "Hi!", isCurrentUser: false, senderColor: .green)
         ])
+    ]
+    @State private var friends: [Friend] = [
+        Friend(name: "Alice Johnson", initials: "AJ", workoutStatus: "Push Day"),
+        Friend(name: "Bob Brown", initials: "BB", workoutStatus: "Rest Day"),
+        Friend(name: "Charlie Davis", initials: "CD", workoutStatus: "Chest Day")
     ]
     @State private var showFindFriendsView = false
 
     var body: some View {
         NavigationView {
-            ZStack {
-                Color.white.edgesIgnoringSafeArea(.all)
-                VStack {
-                    HStack {
-                        Text("Gym Chat")
-                            .font(.system(size: 36, weight: .heavy, design: .rounded))
-                            .foregroundColor(Color.purple)
-                            .padding(.leading)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            showFindFriendsView.toggle()
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .imageScale(.large)
-                                .foregroundColor(Color.purple)
-                                .padding(.trailing)
+            VStack {
+                HStack {
+                    // Title on the left
+                    Text("Gym Chat")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.leading)
+                    
+                    Spacer()
+                    
+                    // Add Friend Button
+                    Button(action: {
+                        showFindFriendsView.toggle()
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .imageScale(.large)
+                            .foregroundColor(.black)
+                            .padding(.trailing)
+                    }
+                }
+                .padding(.vertical)
+                
+                // Friends' Profile Pictures with Workout Status
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 15) {
+                        ForEach(friends) { friend in
+                            VStack {
+                                Circle()
+                                    .strokeBorder(Color.black, lineWidth: 2)
+                                    .frame(width: 60, height: 60)
+                                Text(friend.name)
+                                    .font(.caption)
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: 60)
+                                    .lineLimit(1)
+                                Text(friend.workoutStatus)
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                                    .frame(maxWidth: 60)
+                                    .lineLimit(1)
+                            }
                         }
                     }
-                    .padding(.vertical)
+                    .padding(.horizontal)
+                }
+                .padding(.bottom, 10)
 
-                    ScrollView {
-                        LazyVStack {
-                            ForEach(chats) { chat in
-                                NavigationLink(destination: ChatView(chat: chat)) {
-                                    HStack {
-                                        ZStack {
-                                            Circle()
-                                                .frame(width: 50, height: 50)
-                                                .foregroundColor(.purple)
-                                            
-                                            Text(chat.initials)
-                                                .foregroundColor(.white)
-                                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                        }
+                ScrollView {
+                    LazyVStack {
+                        ForEach(chats) { chat in
+                            NavigationLink(destination: ChatView(chat: chat)) {
+                                HStack {
+                                    Circle()
+                                        .strokeBorder(Color.black, lineWidth: 2)
+                                        .frame(width: 40, height: 40)
+                                    
+                                    VStack(alignment: .leading) {
+                                        Text(chat.name)
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundColor(.black)
                                         
-                                        VStack(alignment: .leading) {
-                                            Text(chat.name)
-                                                .font(.system(size: 18, weight: .bold, design: .rounded))
-                                                .foregroundColor(.purple)
-                                            
-                                            Text(chat.lastMessage)
-                                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                                                .foregroundColor(.purple.opacity(0.7))
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "figure.walk.circle.fill")
-                                            .foregroundColor(.purple)
-                                            .padding(.trailing, 10)
+                                        Text(chat.lastMessage)
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.gray)
                                     }
-                                    .padding()
-                                    .background(Color.purple.opacity(0.1))
-                                    .cornerRadius(10)
-                                    .shadow(radius: 5)
+                                    .padding(.leading, 8)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "dumbbell.fill")
+                                        .foregroundColor(.black)
+                                        .padding(.trailing, 10)
                                 }
                                 .padding(.horizontal)
+                                .padding(.vertical, 8)
                             }
                         }
                     }
                 }
             }
+            .background(Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255).edgesIgnoringSafeArea(.all))
             .navigationTitle("")
             .sheet(isPresented: $showFindFriendsView) {
                 FindFriendsView(startNewChat: startNewChat)
@@ -139,68 +162,66 @@ struct ChatView: View {
     @State private var messageText = ""
 
     var body: some View {
-        ZStack {
-            Color.white.edgesIgnoringSafeArea(.all)
-            VStack {
-                ScrollView {
-                    VStack(spacing: 10) {
-                        ForEach(chat.messages) { message in
-                            HStack {
-                                if message.isCurrentUser {
-                                    Spacer()
-                                    Text(message.text)
-                                        .padding()
-                                        .background(Color.purple.opacity(0.8))
-                                        .foregroundColor(.white)
-                                        .cornerRadius(20, corners: [.topLeft, .bottomLeft, .topRight])
-                                        .padding(.trailing)
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                } else {
-                                    Text(message.text)
-                                        .padding()
-                                        .background(message.senderColor.opacity(0.8))
-                                        .foregroundColor(.white)
-                                        .cornerRadius(20, corners: [.topRight, .bottomRight, .topLeft])
-                                        .padding(.leading)
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                    Spacer()
-                                }
+        VStack {
+            ScrollView {
+                VStack(spacing: 10) {
+                    ForEach(chat.messages) { message in
+                        HStack {
+                            if message.isCurrentUser {
+                                Spacer()
+                                Text(message.text)
+                                    .padding()
+                                    .background(Color.black.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                                    .padding(.trailing)
+                                    .font(.system(size: 16, weight: .bold))
+                            } else {
+                                Text(message.text)
+                                    .padding()
+                                    .background(message.senderColor.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                                    .padding(.leading)
+                                    .font(.system(size: 16, weight: .bold))
+                                Spacer()
                             }
                         }
-                    }
-                    .padding()
-                }
-                
-                HStack {
-                    TextField("Type your message...", text: $messageText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                    
-                    Button(action: {
-                        sendMessage()
-                    }) {
-                        Image(systemName: "paperplane.fill")
-                            .imageScale(.large)
-                            .foregroundColor(.purple)
-                            .padding(.trailing)
                     }
                 }
                 .padding()
             }
+            
+            HStack {
+                TextField("Type your message...", text: $messageText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal)
+                    .font(.system(size: 16, weight: .medium))
+                
+                Button(action: {
+                    sendMessage()
+                }) {
+                    Image(systemName: "paperplane.fill")
+                        .imageScale(.large)
+                        .foregroundColor(.black)
+                        .padding(.trailing)
+                }
+            }
+            .padding()
         }
         .navigationTitle(chat.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Image(systemName: "bolt.heart.fill")
-                    .foregroundColor(.purple)
+                    .foregroundColor(.black)
             }
         }
+        .background(Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255).edgesIgnoringSafeArea(.all))
     }
     
     private func sendMessage() {
-        let newMessage = Message(text: messageText, isCurrentUser: true, senderColor: .purple)
+        let newMessage = Message(text: messageText, isCurrentUser: true, senderColor: .black)
         chat.messages.append(newMessage)
         messageText = ""
     }
@@ -217,66 +238,51 @@ struct ChatView_Previews: PreviewProvider {
 struct FindFriendsView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var friends: [Friend] = [
-        Friend(name: "Alice Johnson", initials: "AJ"),
-        Friend(name: "Bob Brown", initials: "BB"),
-        Friend(name: "Charlie Davis", initials: "CD")
+        Friend(name: "Alice Johnson", initials: "AJ", workoutStatus: "Push Day"),
+        Friend(name: "Bob Brown", initials: "BB", workoutStatus: "Rest Day"),
+        Friend(name: "Charlie Davis", initials: "CD", workoutStatus: "Chest Day")
     ]
     var startNewChat: (Friend) -> Void
     
     var body: some View {
         NavigationView {
-            ZStack {
-                Color.white.edgesIgnoringSafeArea(.all)
-                VStack {
-                    HStack {
-                        Text("Find Friends")
-                            .font(.system(size: 36, weight: .heavy, design: .rounded))
-                            .foregroundColor(Color.purple)
-                            .padding(.leading)
-                        
-                        Spacer()
-                    }
-                    .padding(.vertical)
+            VStack {
+                HStack {
+                    Text("Find Friends")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.leading)
                     
-                    ScrollView {
-                        LazyVStack {
-                            ForEach(friends) { friend in
-                                Button(action: {
-                                    startNewChat(friend)
-                                    presentationMode.wrappedValue.dismiss()
-                                }) {
-                                    HStack {
-                                        ZStack {
-                                            Circle()
-                                                .frame(width: 50, height: 50)
-                                                .foregroundColor(.purple)
-                                            
-                                            Text(friend.initials)
-                                                .foregroundColor(.white)
-                                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                        }
-                                        
-                                        Text(friend.name)
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                                            .foregroundColor(.purple)
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "figure.walk.circle.fill")
-                                            .foregroundColor(.purple)
-                                            .padding(.trailing, 10)
-                                    }
-                                    .padding()
-                                    .background(Color.purple.opacity(0.1))
-                                    .cornerRadius(10)
-                                    .shadow(radius: 5)
+                    Spacer()
+                }
+                .padding(.vertical)
+                
+                ScrollView {
+                    LazyVStack {
+                        ForEach(friends) { friend in
+                            Button(action: {
+                                startNewChat(friend)
+                                presentationMode.wrappedValue.dismiss()
+                            }) {
+                                HStack {
+                                    Circle()
+                                        .strokeBorder(Color.black, lineWidth: 2)
+                                        .frame(width: 40, height: 40)
+                                    
+                                    Text(friend.name)
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(.black)
+                                    
+                                    Spacer()
                                 }
                                 .padding(.horizontal)
+                                .padding(.vertical, 8)
                             }
                         }
                     }
                 }
             }
+            .background(Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255).edgesIgnoringSafeArea(.all))
             .navigationTitle("")
         }
     }
