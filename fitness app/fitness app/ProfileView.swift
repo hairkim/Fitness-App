@@ -5,7 +5,7 @@ struct ProfileView: View {
     @Binding var showSignInView: Bool
 
     @State var posts = [Post]() // Using the same Post structure
-    @State var leaderboard = [LeaderboardPlaceholderEntry(username: "JohnDoe", score: 100), LeaderboardPlaceholderEntry(username: "JaneDoe", score: 200)]
+    @State var leaderboard = [LeaderboardEntry(name: "JohnDoe", streak: 100), LeaderboardEntry(name: "JaneDoe", streak: 200)]
     @State var healthTracker = [HealthPlaceholderEntry(metric: "Calories", value: 1200), HealthPlaceholderEntry(metric: "Steps", value: 10000)]
 
     @State private var selectedTab = 0
@@ -104,19 +104,8 @@ struct ProfileView: View {
                         .padding()
                     } else if selectedTab == 1 {
                         // Leaderboard
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 1), spacing: 16) {
-                            ForEach(leaderboard) { entry in
-                                HStack {
-                                    Text(entry.username)
-                                    Spacer()
-                                    Text("\(entry.score)")
-                                }
-                                .padding()
-                                .background(Color.gray.opacity(0.5))
-                                .cornerRadius(10)
-                            }
-                        }
-                        .padding()
+                        LeaderboardView(leaderboardData: leaderboard)
+                            .padding()
                     } else if selectedTab == 2 {
                         // Health Tracker
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
@@ -186,13 +175,7 @@ struct ProfileView_Previews: PreviewProvider {
     }
 }
 
-// Placeholder structs for LeaderboardEntry and HealthEntry
-struct LeaderboardPlaceholderEntry: Identifiable {
-    let id = UUID()
-    let username: String
-    let score: Int
-}
-
+// Placeholder struct for HealthEntry
 struct HealthPlaceholderEntry: Identifiable {
     let id = UUID()
     let metric: String
