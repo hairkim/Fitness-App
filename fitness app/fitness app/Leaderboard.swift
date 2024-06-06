@@ -5,16 +5,10 @@ struct LeaderboardView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 245/255, green: 245/255, blue: 220/255)
+            Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255)
                 .ignoresSafeArea()
-
+            
             VStack(alignment: .leading, spacing: 10) {
-                Text("Leaderboard")
-                    .font(.system(size: 34, weight: .heavy))
-                    .foregroundColor(.black)
-                    .padding(.horizontal)
-                    .padding(.top)
-
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(leaderboardData.indices, id: \.self) { index in
@@ -28,7 +22,7 @@ struct LeaderboardView: View {
                 }
             }
         }
-        .navigationBarTitle("Leaderboard", displayMode: .inline)
+        .navigationBarTitle("", displayMode: .inline)
     }
 }
 
@@ -100,7 +94,7 @@ struct LeaderboardRowView: View {
         default: return .clear
         }
     }
-
+    
     func rowBackground(for rank: Int) -> Color {
         switch rank {
         case 1: return Color.yellow.opacity(0.19)
@@ -121,7 +115,14 @@ struct LeaderboardView_Previews: PreviewProvider {
         LeaderboardView(leaderboardData: [
             LeaderboardEntry(name: "Friend1", streak: 100),
             LeaderboardEntry(name: "Friend2", streak: 90),
-            LeaderboardEntry(name: "Friend3", streak: 80)
+            LeaderboardEntry(name: "Friend3", streak: 80),
+            LeaderboardEntry(name: "Friend4", streak: 70),
+            LeaderboardEntry(name: "Friend5", streak: 60),
+            LeaderboardEntry(name: "Friend6", streak: 50),
+            LeaderboardEntry(name: "Friend7", streak: 40),
+            LeaderboardEntry(name: "Friend8", streak: 30),
+            LeaderboardEntry(name: "Friend9", streak: 20),
+            LeaderboardEntry(name: "Friend10", streak: 10)
         ])
     }
 }
