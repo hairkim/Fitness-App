@@ -44,43 +44,38 @@ struct LeaderboardRowView: View {
 
             VStack(alignment: .leading) {
                 Text(entry.name)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.headline)
                     .foregroundColor(.black)
                 Text("Streak: \(entry.streak)")
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.subheadline)
                     .foregroundColor(.black)
             }
 
             Spacer()
 
             Text("\(entry.streak)")
-                .font(.system(size: 22, weight: .bold))
-                .padding(12)
+                .font(.headline)
+                .padding(8)
                 .background(background(for: rank))
                 .clipShape(Circle())
-                .foregroundColor(.black)
+                .foregroundColor(.white)
         }
         .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(rowBackground(for: rank))
         .cornerRadius(10)
-        .shadow(radius: 5)
     }
 
     func specialRankIcon(for rank: Int) -> some View {
         switch rank {
         case 1:
             return AnyView(Image(systemName: "star.fill")
-                .foregroundColor(.yellow)
-                .font(.system(size: 24, weight: .bold)))
+                .foregroundColor(.yellow))
         case 2:
             return AnyView(Image(systemName: "star.fill")
-                .foregroundColor(Color.silver)
-                .font(.system(size: 24, weight: .bold)))
+                .foregroundColor(Color.silver))
         case 3:
             return AnyView(Image(systemName: "star.fill")
-                .foregroundColor(Color.bronze)
-                .font(.system(size: 24, weight: .bold)))
+                .foregroundColor(Color.bronze))
         default:
             return AnyView(Text("\(rank)").foregroundColor(.black))
         }
@@ -91,16 +86,16 @@ struct LeaderboardRowView: View {
         case 1: return .yellow
         case 2: return Color.silver
         case 3: return Color.bronze
-        default: return .clear
+        default: return .gray
         }
     }
     
     func rowBackground(for rank: Int) -> Color {
         switch rank {
-        case 1: return Color.yellow.opacity(0.19)
-        case 2: return Color.silver.opacity(0.17)
-        case 3: return Color.bronze.opacity(0.17)
-        default: return Color.clear
+        case 1: return Color.yellow.opacity(0.3)
+        case 2: return Color.silver.opacity(0.3)
+        case 3: return Color.bronze.opacity(0.3)
+        default: return Color.white.opacity(0.1)
         }
     }
 }
@@ -113,16 +108,17 @@ extension Color {
 struct LeaderboardView_Previews: PreviewProvider {
     static var previews: some View {
         LeaderboardView(leaderboardData: [
-            LeaderboardEntry(name: "Friend1", streak: 100),
-            LeaderboardEntry(name: "Friend2", streak: 90),
+            LeaderboardEntry(name: "Ryan K", streak: 100),
+            LeaderboardEntry(name: "Josh", streak: 90),
             LeaderboardEntry(name: "Friend3", streak: 80),
             LeaderboardEntry(name: "Friend4", streak: 70),
             LeaderboardEntry(name: "Friend5", streak: 60),
             LeaderboardEntry(name: "Friend6", streak: 50),
             LeaderboardEntry(name: "Friend7", streak: 40),
             LeaderboardEntry(name: "Friend8", streak: 30),
-            LeaderboardEntry(name: "Friend9", streak: 20),
-            LeaderboardEntry(name: "Friend10", streak: 10)
+            LeaderboardEntry(name: "Harris K", streak: 20),
+            LeaderboardEntry(name: "Daniel H", streak: 10)
         ])
     }
 }
+
