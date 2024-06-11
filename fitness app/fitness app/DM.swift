@@ -15,6 +15,8 @@ struct Chat: Identifiable {
     let name: String
     let initials: String
     var lastMessage: String
+    var timestamp: String
+    var profileImage: String? // URL to the profile image
     var messages: [Message]
 }
 
@@ -35,15 +37,9 @@ struct Friend: Identifiable {
 // Custom Colors
 extension Color {
     static let gymPrimary = Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)
-    static let gymSecondary = Color(red: 255 / 255, green: 128 / 255, blue: 0 / 255)
-    static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255) // Beige color
-}
-
-// Helper function to get a unique color based on initials
-func color(for initials: String) -> Color {
-    let colors: [Color] = [.red, .blue, .green, .purple, .orange, .pink, .yellow, .cyan]
-    let index = abs(initials.hashValue) % colors.count
-    return colors[index]
+    static let gymSecondary = Color(red: 86 / 255, green: 167 / 255, blue: 124 / 255) // Muted green
+    static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
+    static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255) // Light beige
 }
 
 // DMHomeView
@@ -51,101 +47,120 @@ func color(for initials: String) -> Color {
 struct DMHomeView: View {
     @EnvironmentObject var userStore: UserStore
     @State private var chats: [Chat] = [
-        Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", messages: [
+        Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", timestamp: "5:11 PM", profileImage: nil, messages: [
             Message(text: "Hello!", isCurrentUser: false, senderColor: .blue)
         ]),
-        Chat(name: "Jane Smith", initials: "JS", lastMessage: "How's it going?", messages: [
+        Chat(name: "Jane Smith", initials: "JS", lastMessage: "How's it going?", timestamp: "4:48 PM", profileImage: nil, messages: [
             Message(text: "Hi!", isCurrentUser: false, senderColor: .green)
         ]),
-        Chat(name: "Bob Brown", initials: "BB", lastMessage: "", messages: []),
-        Chat(name: "Alice Johnson", initials: "AJ", lastMessage: "", messages: []),
-        Chat(name: "Charlie Davis", initials: "CD", lastMessage: "", messages: [])
+        Chat(name: "Bob Brown", initials: "BB", lastMessage: "Okok", timestamp: "1:39 PM", profileImage: nil, messages: []),
+        Chat(name: "Alice Johnson", initials: "AJ", lastMessage: "Attachment: 1 Image", timestamp: "1:25 PM", profileImage: nil, messages: []),
+        Chat(name: "Charlie Davis", initials: "CD", lastMessage: "Thys grinding grinding", timestamp: "Yesterday", profileImage: nil, messages: [])
     ]
     @State private var showFindFriendsView = false
+    @State private var searchText = ""
 
     var body: some View {
         NavigationView {
             ZStack {
-                // Background icon
-                GeometryReader { geometry in
-                    Image("gymIcon")
-                        .resizable()
-                        .scaledToFit()
-                        .opacity(0.05) // Make sure the opacity is low to give a faded effect
-                        .frame(width: geometry.size.width * 0.8, height: geometry.size.height * 0.4)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 4) // Position the icon
-                }
-                .edgesIgnoringSafeArea(.all)
-
+                Color.gymBackground.edgesIgnoringSafeArea(.all)
+                
                 VStack {
                     HStack {
-                        // Title on the left
                         Text("Gym Chat")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.gymPrimary)
-                            .padding(.leading)
                         
                         Spacer()
                         
-                        // Add Friend Button
                         Button(action: {
                             showFindFriendsView.toggle()
                         }) {
-                            Image(systemName: "plus.circle.fill")
+                            Image(systemName: "person.badge.plus")
                                 .imageScale(.large)
+                                .padding()
                                 .foregroundColor(.gymSecondary)
-                                .padding(.trailing)
                         }
                     }
-                    .padding(.vertical)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 20)
+
+                    HStack {
+                        TextField("Search", text: $searchText)
+                            .padding(7)
+                            .background(Color(.systemGray5))
+                            .cornerRadius(8)
+                            .padding(.horizontal, 10)
+                    }
+                    .padding(.bottom, 10)
                     
                     ScrollView {
-                        LazyVStack {
-                            ForEach(chats) { chat in
-                                NavigationLink(destination: ChatView(chat: chat)) {
-                                    HStack {
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color.gray.opacity(0.1))
-                                                .frame(width: 40, height: 40)
-                                            Text(chat.initials)
-                                                .font(.headline)
-                                                .foregroundColor(.gymPrimary)
+                        VStack(spacing: 15) { // Adjusted spacing between cards
+                            ForEach(chats.filter { searchText.isEmpty ? true : $0.name.lowercased().contains(searchText.lowercased()) }) { chat in
+                                VStack {
+                                    HStack(spacing: 12) {
+                                        if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                                            // Profile Image
+                                            Image(profileImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 55, height: 55) // Medium size
+                                                .clipShape(Circle())
+                                        } else {
+                                            // Initials Circle with Gym Icon
+                                            ZStack {
+                                                Circle()
+                                                    .fill(Color.gymAccent.opacity(0.2))
+                                                    .frame(width: 55, height: 55) // Medium size
+                                                VStack {
+                                                    Text(chat.initials)
+                                                        .font(.headline)
+                                                        .foregroundColor(.gymPrimary)
+                                                    Image(systemName: "figure.walk")
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .frame(width: 13, height: 13)
+                                                        .foregroundColor(.gymAccent)
+                                                }
+                                            }
                                         }
                                         
-                                        VStack(alignment: .leading) {
-                                            Text(chat.name)
-                                                .font(.system(size: 18, weight: .bold))
-                                                .foregroundColor(.gymPrimary)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack {
+                                                Text(chat.name)
+                                                    .font(.system(size: 17, weight: .bold)) // Medium font size
+                                                    .foregroundColor(.gymPrimary)
+                                                
+                                                Spacer()
+                                                
+                                                Text(chat.timestamp)
+                                                    .font(.system(size: 13)) // Medium font size
+                                                    .foregroundColor(.gray)
+                                            }
                                             
                                             Text(chat.lastMessage)
-                                                .font(.system(size: 14))
+                                                .font(.system(size: 15)) // Medium font size
                                                 .foregroundColor(.gray)
                                         }
-                                        .padding(.leading, 8)
                                         
                                         Spacer()
                                         
                                         Image(systemName: "dumbbell.fill")
-                                            .foregroundColor(.black)
-                                            .padding(.trailing, 10)
+                                            .foregroundColor(.gymSecondary)
                                     }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(Color.white.opacity(0.9))
-                                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
-                                    )
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
+                                    .padding(.vertical, 16) // Medium padding
+                                    .padding(.horizontal, 16) // Medium padding
                                 }
+                                .background(Color.gymBackground)
+                                .cornerRadius(12) // Medium corner radius
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
                             }
                         }
+                        .padding(.horizontal, 10)
                     }
+                    .background(Color.clear)
                 }
-                .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
-                .navigationTitle("")
+                .padding(.top, 10)
                 .sheet(isPresented: $showFindFriendsView) {
                     FindFriendsView(startNewChat: startNewChat)
                 }
@@ -154,7 +169,7 @@ struct DMHomeView: View {
     }
 
     private func startNewChat(with friend: Friend) {
-        let newChat = Chat(name: friend.name, initials: friend.initials, lastMessage: "", messages: [])
+        let newChat = Chat(name: friend.name, initials: friend.initials, lastMessage: "", timestamp: "Now", profileImage: nil, messages: [])
         chats.append(newChat)
     }
 }
@@ -223,12 +238,6 @@ struct ChatView: View {
         }
         .navigationTitle(chat.name)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Image(systemName: "bolt.heart.fill")
-                    .foregroundColor(.gymSecondary)
-            }
-        }
         .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
     }
     
@@ -241,7 +250,7 @@ struct ChatView: View {
 
 struct ChatView_Previews: PreviewProvider {
     static var previews: some View {
-        ChatView(chat: Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", messages: [Message(text: "Hello!", isCurrentUser: false, senderColor: .green)]))
+        ChatView(chat: Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", timestamp: "5:11 PM", profileImage: nil, messages: [Message(text: "Hello!", isCurrentUser: false, senderColor: .green)]))
     }
 }
 
@@ -262,7 +271,7 @@ struct FindFriendsView: View {
                 HStack {
                     Text("Find Friends")
                         .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.gymPrimary)
                         .padding(.leading)
                     
                     Spacer()
@@ -279,28 +288,28 @@ struct FindFriendsView: View {
                                 HStack {
                                     ZStack {
                                         Circle()
-                                            .fill(Color.gray.opacity(0.1))
-                                            .frame(width: 40, height: 40)
-                                        Text(friend.initials)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
+                                            .fill(Color.gymAccent.opacity(0.2))
+                                            .frame(width: 50, height: 50)
+                                        VStack {
+                                            Text(friend.initials)
+                                                .font(.headline)
+                                                .foregroundColor(.gymPrimary)
+                                            Image(systemName: "figure.walk")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 12, height: 12)
+                                                .foregroundColor(.gymAccent)
+                                        }
                                     }
                                     
                                     Text(friend.name)
                                         .font(.system(size: 18, weight: .bold))
-                                        .foregroundColor(.primary)
+                                        .foregroundColor(.gymPrimary)
                                     
                                     Spacer()
                                 }
                                 .padding(.horizontal)
                                 .padding(.vertical, 8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color.white.opacity(0.9))
-                                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
-                                )
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
                             }
                         }
                     }
@@ -315,27 +324,5 @@ struct FindFriendsView: View {
 struct FindFriendsView_Previews: PreviewProvider {
     static var previews: some View {
         FindFriendsView(startNewChat: { _ in })
-    }
-}
-
-// Extensions
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
-        )
-        return Path(path.cgPath)
-    }
-}
-
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
     }
 }
