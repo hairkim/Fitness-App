@@ -167,6 +167,8 @@ struct DMHomeView: View {
                     FindFriendsView(startNewChat: startNewChat)
                 }
             }
+            .navigationBarTitle("")
+            .navigationBarHidden(true)
         }
     }
 
@@ -187,6 +189,7 @@ struct DMHomeView_Previews: PreviewProvider {
 // ChatView
 
 struct ChatView: View {
+    @Environment(\.presentationMode) var presentationMode
     @State var chat: Chat
     @State private var messageText = ""
 
@@ -194,6 +197,15 @@ struct ChatView: View {
         VStack {
             // Header
             HStack {
+                Button(action: {
+                    // Action to go back
+                    self.presentationMode.wrappedValue.dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.gymPrimary)
+                        .padding(.leading, 10)
+                }
+                
                 if let profileImage = chat.profileImage, !profileImage.isEmpty {
                     Image(profileImage)
                         .resizable()
@@ -296,6 +308,7 @@ struct ChatView_Previews: PreviewProvider {
         ChatView(chat: Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", timestamp: "5:11 PM", profileImage: nil, messages: [Message(text: "Hello!", isCurrentUser: false, senderColor: .green)]))
     }
 }
+
 // FindFriendsView
 
 struct FindFriendsView: View {
@@ -412,53 +425,51 @@ struct FindFriendsView: View {
                 ScrollView {
                     VStack(spacing: 15) {
                         ForEach(contacts) { contact in
-                            NavigationLink(destination: ChatView(chat: Chat(name: contact.name, initials: contact.initials, lastMessage: "", timestamp: "Now", profileImage: nil, messages: []))) {
-                                HStack {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.gymAccent.opacity(0.2))
-                                            .frame(width: 50, height: 50)
-                                        VStack {
-                                            Text(contact.initials)
-                                                .font(.headline)
-                                                .foregroundColor(.gymPrimary)
-                                            Image(systemName: "figure.walk")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .frame(width: 12, height: 12)
-                                                .foregroundColor(.gymAccent)
-                                        }
-                                    }
-                                    
-                                    VStack(alignment: .leading) {
-                                        Text(contact.name)
-                                            .font(.system(size: 16, weight: .bold))
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.gymAccent.opacity(0.2))
+                                        .frame(width: 50, height: 50)
+                                    VStack {
+                                        Text(contact.initials)
+                                            .font(.headline)
                                             .foregroundColor(.gymPrimary)
-                                        Text(contact.workoutStatus)
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.gray)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Button(action: {
-                                        startNewChat(contact)
-                                    }) {
-                                        Text("Follow")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(Color.gymAccent)
-                                            .foregroundColor(.white)
-                                            .cornerRadius(8)
+                                        Image(systemName: "figure.walk")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 12, height: 12)
+                                            .foregroundColor(.gymAccent)
                                     }
                                 }
-                                .padding()
-                                .frame(height: 80) // Set height to match the other cards
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
+                                
+                                VStack(alignment: .leading) {
+                                    Text(contact.name)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.gymPrimary)
+                                    Text(contact.workoutStatus)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    startNewChat(contact)
+                                }) {
+                                    Text("Follow")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.gymAccent)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(8)
+                                }
                             }
+                            .padding()
+                            .frame(height: 80) // Set height to match the other cards
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
                         }
                     }
                     .padding(.horizontal)
