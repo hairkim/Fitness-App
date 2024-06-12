@@ -9,15 +9,11 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
-//    @State var posts: [Post] = [
-//        Post(username: "john_doe", imageName: "post1", caption: "Enjoying the day at the gym! 💪", multiplePictures: false, workoutSplit: "Push", workoutSplitEmoji: "🏋️‍♂️", comments: []),
-//        Post(username: "jane_smith", imageName: "post2", caption: "Post workout selfie! 🤳", multiplePictures: false, workoutSplit: "Pull", workoutSplitEmoji: "🏋️‍♀️", comments: []),
-//        Post(username: "user3", imageName: "post3", caption: "Back at it again! 💪", multiplePictures: true, workoutSplit: "Legs", workoutSplitEmoji: "🦵", comments: []),
-//    ]
     @State var posts = [Post]()
     
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
+    @State private var showDMHomeView: Bool = false
     
     var body: some View {
         Group {
@@ -33,8 +29,6 @@ struct ContentView: View {
                 await fetchPosts()
             }
         }
-        
-//        mainContentView
     }
     
     var mainContentView: some View {
@@ -50,22 +44,11 @@ struct ContentView: View {
                             
                             Spacer()
                             
-                            HStack {
-                                NavigationLink(destination: SettingsView(showSignInView: $showSignInView, userStore: userStore)) {
-                                    Image(systemName: "gear")
-                                        .imageScale(.large)
-                                        .foregroundColor(Color(.darkGray))
-                                        .padding(.trailing, 16)
-                                }
-                                Button(action: {
-                                    showImageChooser = true
-                                }) {
-                                    Image(systemName: "plus")
-                                        .imageScale(.large)
-                                        .foregroundColor(Color(.darkGray))
-                                        .padding(.trailing, 16)
-                                }
-                                
+                            NavigationLink(destination: DirectMessagesView()) {
+                                Image(systemName: "message.fill")
+                                    .imageScale(.large)
+                                    .foregroundColor(Color(.darkGray))
+                                    .padding(.trailing, 16)
                             }
                         }
                         .padding(.horizontal)
@@ -89,21 +72,6 @@ struct ContentView: View {
                 }
                 
                 NavigationView {
-                    ProfileView(showSignInView: $showSignInView)
-                }
-                .tabItem {
-                    Image(systemName: "person.circle.fill")
-                    Text("Profile")
-                }
-                
-                PlaceholderView(pageName: "Workouts")
-                    .tabItem {
-                        Image(systemName: "figure.walk")
-                        Text("Workouts")
-                    }
-                
-                // Health tab connected to HealthView
-                NavigationView {
                     HealthView()
                 }
                 .tabItem {
@@ -111,17 +79,49 @@ struct ContentView: View {
                     Text("Health")
                 }
                 
-                PlaceholderView(pageName: "Nutrition")
+                // Placeholder for the post button
+                Text("")
                     .tabItem {
-                        Image(systemName: "leaf.circle.fill")
-                        Text("Nutrition")
+                        Image(systemName: "")
+                        Text("")
                     }
+                    .disabled(true)
                 
-                PlaceholderView(pageName: "Settings")
-                    .tabItem {
-                        Image(systemName: "gearshape.circle.fill")
-                        Text("Settings")
+                NavigationView {
+                    NutritionView()
+                }
+                .tabItem {
+                    Image(systemName: "leaf.circle.fill")
+                    Text("Nutrition")
+                }
+                
+                NavigationView {
+                    ProfileView(showSignInView: $showSignInView)
+                }
+                .tabItem {
+                    Image(systemName: "person.circle.fill")
+                    Text("Profile")
+                }
+            }
+            
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showImageChooser = true
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .foregroundColor(Color(.darkGray))
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(radius: 10)
                     }
+                    .offset(y: -10) // Adjust the offset to position the button properly
+                    Spacer()
+                }
             }
         }
         .fullScreenCover(isPresented: $showImageChooser) {
@@ -163,7 +163,22 @@ struct ContentView: View {
             print("Error fetching posts: \(error)")
         }
     }
-    
+}
+
+struct DirectMessagesView: View {
+    var body: some View {
+        Text("Direct Messages")
+            .font(.largeTitle)
+            .foregroundColor(Color(.darkGray))
+    }
+}
+
+struct NutritionView: View {
+    var body: some View {
+        Text("Nutrition")
+            .font(.largeTitle)
+            .foregroundColor(Color(.darkGray))
+    }
 }
 
 struct PlaceholderView: View {
@@ -216,12 +231,10 @@ struct CustomPostView: View {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
-                            //do nothing or maybe show a progress view
                             Image(systemName: "x.circle.fill")
                                 .resizable()
                                 .scaledToFit()
                         case .success(let image):
-//                            print("got image successfully")
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
@@ -233,28 +246,16 @@ struct CustomPostView: View {
                                         .stroke(Color.gray, lineWidth: 1)
                                 )
                         case .failure:
-//                            print("failed to get image")
                             Image(systemName: "photo")
                                 .resizable()
                                 .scaledToFit()
                         @unknown default:
-                            //do nothing
                             Image(systemName: "x.circle.fill")
                                 .resizable()
                                 .scaledToFit()
                         }
                     }
                 }
-//                Image(post.imageName)
-//                    .resizable()
-//                    .aspectRatio(contentMode: .fill)
-//                    .frame(maxHeight: 400)
-//                    .clipped()
-//                    .cornerRadius(20)
-//                    .overlay(
-//                        RoundedRectangle(cornerRadius: 20)
-//                            .stroke(Color.gray, lineWidth: 1)
-//                    )
                 
                 HStack {
                     Text(post.workoutSplit)
