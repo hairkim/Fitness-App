@@ -221,12 +221,6 @@ struct ChatView: View {
                         .foregroundColor(.gray)
                 }
                 Spacer()
-                Image(systemName: "square.and.pencil")
-                    .foregroundColor(.gymSecondary)
-                    .padding(.trailing)
-                Image(systemName: "ellipsis")
-                    .foregroundColor(.gymSecondary)
-                    .padding(.trailing)
             }
             .padding()
             .background(Color.gymBackground)
@@ -265,14 +259,14 @@ struct ChatView: View {
             
             HStack {
                 TextField("Type your message...", text: $messageText, onCommit: {
-                    sendMessage()
+                    self.sendMessage()
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal)
                 .font(.system(size: 16, weight: .medium))
                 
                 Button(action: {
-                    sendMessage()
+                    self.sendMessage()
                 }) {
                     Image(systemName: "paperplane.fill")
                         .imageScale(.large)
@@ -291,7 +285,9 @@ struct ChatView: View {
         guard !messageText.isEmpty else { return }
         let newMessage = Message(text: messageText, isCurrentUser: true, senderColor: .gymPrimary)
         chat.messages.append(newMessage)
-        messageText = ""
+        DispatchQueue.main.async {
+            messageText = "" // Clear the text field
+        }
     }
 }
 
