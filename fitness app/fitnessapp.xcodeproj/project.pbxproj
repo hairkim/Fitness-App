@@ -33,6 +33,9 @@
 		8C1F3FDA2BD1FFED002C1465 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8C1F3FD92BD1FFED002C1465 /* FirebaseFirestore */; };
 		8C1F3FDD2BD20114002C1465 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */; };
 		8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAD9A6D2BD303F900CDC07C /* UserManager.swift */; };
+		8CE99DBE2C194E1B00AA680D /* HealthDataModelProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CE99DBD2C194E1B00AA680D /* HealthDataModelProfile.swift */; };
+		8CE99DC02C194E3C00AA680D /* LeaderboardViewProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CE99DBF2C194E3C00AA680D /* LeaderboardViewProfile.swift */; };
+		8CE99DC22C194EF600AA680D /* HealthViewProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CE99DC12C194EF600AA680D /* HealthViewProfile.swift */; };
 		A914E2302BFED23B001116AF /* Forum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A914E22F2BFED23B001116AF /* Forum.swift */; };
 		A964BAE52BFFE9C30055403A /* CreateForum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A964BAE42BFFE9C30055403A /* CreateForum.swift */; };
 		A98B0A1C2C100158004673FE /* DM.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98B0A1B2C100158004673FE /* DM.swift */; };
@@ -61,6 +64,9 @@
 		6FD608832BB41B02002ED034 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
 		8C1F3FDC2BD20114002C1465 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		8CAD9A6D2BD303F900CDC07C /* UserManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManager.swift; sourceTree = "<group>"; };
+		8CE99DBD2C194E1B00AA680D /* HealthDataModelProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataModelProfile.swift; sourceTree = "<group>"; };
+		8CE99DBF2C194E3C00AA680D /* LeaderboardViewProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardViewProfile.swift; sourceTree = "<group>"; };
+		8CE99DC12C194EF600AA680D /* HealthViewProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthViewProfile.swift; sourceTree = "<group>"; };
 		A914E22F2BFED23B001116AF /* Forum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Forum.swift; sourceTree = "<group>"; };
 		A964BAE42BFFE9C30055403A /* CreateForum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateForum.swift; sourceTree = "<group>"; };
 		A98B0A1B2C100158004673FE /* DM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DM.swift; sourceTree = "<group>"; };
@@ -118,7 +124,10 @@
 				6FD608822BB419CE002ED034 /* Authentication */,
 				6F962CCF2B8969FB00C52234 /* fitness_appApp.swift */,
 				A914E22F2BFED23B001116AF /* Forum.swift */,
+				8CE99DBD2C194E1B00AA680D /* HealthDataModelProfile.swift */,
+				8CE99DBF2C194E3C00AA680D /* LeaderboardViewProfile.swift */,
 				6F962CD12B8969FB00C52234 /* ContentView.swift */,
+				8CE99DC12C194EF600AA680D /* HealthViewProfile.swift */,
 				273BD46C2BFFEABE00C658A8 /* Healthpage.swift */,
 				6F962CDD2B896A7600C52234 /* ProfileView.swift */,
 				A964BAE42BFFE9C30055403A /* CreateForum.swift */,
@@ -261,6 +270,7 @@
 				6F7FDC972BB93407004170AC /* SettingsView.swift in Sources */,
 				6F3818AE2C0000B9009109EA /* UserStore.swift in Sources */,
 				6FB142322C10071200DCB572 /* Leaderboard.swift in Sources */,
+				8CE99DC22C194EF600AA680D /* HealthViewProfile.swift in Sources */,
 				8C1F3FDD2BD20114002C1465 /* SettingsViewModel.swift in Sources */,
 				273BD46D2BFFEABE00C658A8 /* Healthpage.swift in Sources */,
 				6F962CE22B896AB900C52234 /* ImageChooser.swift in Sources */,
@@ -270,6 +280,8 @@
 				8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */,
 				6FB142312C0C009600DCB572 /* CreatePostView.swift in Sources */,
 				6F962CD02B8969FB00C52234 /* fitness_appApp.swift in Sources */,
+				8CE99DC02C194E3C00AA680D /* LeaderboardViewProfile.swift in Sources */,
+				8CE99DBE2C194E1B00AA680D /* HealthDataModelProfile.swift in Sources */,
 				A98B0A1C2C100158004673FE /* DM.swift in Sources */,
 				A914E2302BFED23B001116AF /* Forum.swift in Sources */,
 			);
