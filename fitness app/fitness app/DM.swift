@@ -97,63 +97,65 @@ struct DMHomeView: View {
                     ScrollView {
                         VStack(spacing: 15) { // Adjusted spacing between cards
                             ForEach(chats.filter { searchText.isEmpty ? true : $0.name.lowercased().contains(searchText.lowercased()) }) { chat in
-                                VStack {
-                                    HStack(spacing: 12) {
-                                        if let profileImage = chat.profileImage, !profileImage.isEmpty {
-                                            // Profile Image
-                                            Image(profileImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 55, height: 55) // Medium size
-                                                .clipShape(Circle())
-                                        } else {
-                                            // Initials Circle with Gym Icon
-                                            ZStack {
-                                                Circle()
-                                                    .fill(Color.gymAccent.opacity(0.2))
+                                NavigationLink(destination: ChatView(chat: chat)) {
+                                    VStack {
+                                        HStack(spacing: 12) {
+                                            if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                                                // Profile Image
+                                                Image(profileImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
                                                     .frame(width: 55, height: 55) // Medium size
-                                                VStack {
-                                                    Text(chat.initials)
-                                                        .font(.headline)
-                                                        .foregroundColor(.gymPrimary)
-                                                    Image(systemName: "figure.walk")
-                                                        .resizable()
-                                                        .scaledToFit()
-                                                        .frame(width: 13, height: 13)
-                                                        .foregroundColor(.gymAccent)
+                                                    .clipShape(Circle())
+                                            } else {
+                                                // Initials Circle with Gym Icon
+                                                ZStack {
+                                                    Circle()
+                                                        .fill(Color.gymAccent.opacity(0.2))
+                                                        .frame(width: 55, height: 55) // Medium size
+                                                    VStack {
+                                                        Text(chat.initials)
+                                                            .font(.headline)
+                                                            .foregroundColor(.gymPrimary)
+                                                        Image(systemName: "figure.walk")
+                                                            .resizable()
+                                                            .scaledToFit()
+                                                            .frame(width: 13, height: 13)
+                                                            .foregroundColor(.gymAccent)
+                                                    }
                                                 }
                                             }
-                                        }
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            HStack {
-                                                Text(chat.name)
-                                                    .font(.system(size: 17, weight: .bold)) // Medium font size
-                                                    .foregroundColor(.gymPrimary)
+                                            
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                HStack {
+                                                    Text(chat.name)
+                                                        .font(.system(size: 17, weight: .bold)) // Medium font size
+                                                        .foregroundColor(.gymPrimary)
+                                                    
+                                                    Spacer()
+                                                    
+                                                    Text(chat.timestamp)
+                                                        .font(.system(size: 13)) // Medium font size
+                                                        .foregroundColor(.gray)
+                                                }
                                                 
-                                                Spacer()
-                                                
-                                                Text(chat.timestamp)
-                                                    .font(.system(size: 13)) // Medium font size
+                                                Text(chat.lastMessage)
+                                                    .font(.system(size: 15)) // Medium font size
                                                     .foregroundColor(.gray)
                                             }
                                             
-                                            Text(chat.lastMessage)
-                                                .font(.system(size: 15)) // Medium font size
-                                                .foregroundColor(.gray)
+                                            Spacer()
+                                            
+                                            Image(systemName: "dumbbell.fill")
+                                                .foregroundColor(.gymSecondary)
                                         }
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "dumbbell.fill")
-                                            .foregroundColor(.gymSecondary)
+                                        .padding(.vertical, 16) // Medium padding
+                                        .padding(.horizontal, 16) // Medium padding
                                     }
-                                    .padding(.vertical, 16) // Medium padding
-                                    .padding(.horizontal, 16) // Medium padding
+                                    .background(Color.gymBackground)
+                                    .cornerRadius(12) // Medium corner radius
+                                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
                                 }
-                                .background(Color.gymBackground)
-                                .cornerRadius(12) // Medium corner radius
-                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
                             }
                         }
                         .padding(.horizontal, 10)
@@ -190,6 +192,42 @@ struct ChatView: View {
 
     var body: some View {
         VStack {
+            // Header
+            HStack {
+                if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                    Image(profileImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 50, height: 50)
+                        .clipShape(Circle())
+                        .padding(.leading, 10)
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(Color.gymAccent.opacity(0.2))
+                            .frame(width: 50, height: 50)
+                        Text(chat.initials)
+                            .font(.headline)
+                            .foregroundColor(.gymPrimary)
+                    }
+                    .padding(.leading, 10)
+                }
+                VStack(alignment: .leading) {
+                    Text(chat.name)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.gymPrimary)
+                    Text("Active yesterday")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+            }
+            .padding()
+            .background(Color.gymBackground)
+            .cornerRadius(10)
+            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
+            .padding(.top, 10)
+            
             ScrollView {
                 VStack(spacing: 10) {
                     ForEach(chat.messages) { message in
@@ -220,13 +258,15 @@ struct ChatView: View {
             }
             
             HStack {
-                TextField("Type your message...", text: $messageText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.horizontal)
-                    .font(.system(size: 16, weight: .medium))
+                TextField("Type your message...", text: $messageText, onCommit: {
+                    self.sendMessage()
+                })
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.horizontal)
+                .font(.system(size: 16, weight: .medium))
                 
                 Button(action: {
-                    sendMessage()
+                    self.sendMessage()
                 }) {
                     Image(systemName: "paperplane.fill")
                         .imageScale(.large)
@@ -236,15 +276,18 @@ struct ChatView: View {
             }
             .padding()
         }
-        .navigationTitle(chat.name)
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
+        .navigationBarHidden(true)
         .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
     }
     
     private func sendMessage() {
+        guard !messageText.isEmpty else { return }
         let newMessage = Message(text: messageText, isCurrentUser: true, senderColor: .gymPrimary)
         chat.messages.append(newMessage)
-        messageText = ""
+        DispatchQueue.main.async {
+            messageText = "" // Clear the text field
+        }
     }
 }
 
@@ -253,7 +296,6 @@ struct ChatView_Previews: PreviewProvider {
         ChatView(chat: Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", timestamp: "5:11 PM", profileImage: nil, messages: [Message(text: "Hello!", isCurrentUser: false, senderColor: .green)]))
     }
 }
-
 // FindFriendsView
 
 struct FindFriendsView: View {
@@ -261,7 +303,15 @@ struct FindFriendsView: View {
     @State private var friends: [Friend] = [
         Friend(name: "Alice Johnson", initials: "AJ", workoutStatus: "Push Day"),
         Friend(name: "Bob Brown", initials: "BB", workoutStatus: "Rest Day"),
-        Friend(name: "Charlie Davis", initials: "CD", workoutStatus: "Chest Day")
+        Friend(name: "Charlie Davis", initials: "CD", workoutStatus: "Chest Day"),
+        Friend(name: "David Evans", initials: "DE", workoutStatus: "Leg Day"),
+        Friend(name: "Eve Foster", initials: "EF", workoutStatus: "Arm Day")
+    ]
+    @State private var contacts: [Friend] = [
+        Friend(name: "Grace Hill", initials: "GH", workoutStatus: "Rest Day"),
+        Friend(name: "Hannah Lee", initials: "HL", workoutStatus: "Yoga Day"),
+        Friend(name: "Isaac Smith", initials: "IS", workoutStatus: "Cardio Day"),
+        Friend(name: "Jackie Wong", initials: "JW", workoutStatus: "Upper Body")
     ]
     var startNewChat: (Friend) -> Void
     
@@ -275,23 +325,101 @@ struct FindFriendsView: View {
                         .padding(.leading)
                     
                     Spacer()
+                    
+                    Button(action: {
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.gymPrimary)
+                            .padding()
+                    }
                 }
-                .padding(.vertical)
+                .padding(.top)
+                .padding(.bottom, 10)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 20) {
+                        ForEach(friends) { friend in
+                            VStack {
+                                HStack {
+                                    Spacer()
+                                    Button(action: {
+                                        // Action for removing this friend card
+                                    }) {
+                                        Image(systemName: "xmark")
+                                            .foregroundColor(.gray)
+                                            .padding(5)
+                                    }
+                                }
+                                
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.gymAccent.opacity(0.2))
+                                        .frame(width: 75, height: 75)
+                                    VStack {
+                                        Text(friend.initials)
+                                            .font(.headline)
+                                            .foregroundColor(.gymPrimary)
+                                        Image(systemName: "figure.walk")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 15, height: 15)
+                                            .foregroundColor(.gymAccent)
+                                    }
+                                }
+                                
+                                Text(friend.name)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.gymPrimary)
+                                    .padding(.top, 5)
+                                
+                                Button(action: {
+                                    startNewChat(friend)
+                                    presentationMode.wrappedValue.dismiss()
+                                }) {
+                                    Text("Follow")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.gymAccent)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(8)
+                                }
+                            }
+                            .padding()
+                            .frame(width: 120, height: 200) // Fixed width and height to ensure uniform size
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .padding(.bottom)
+                
+                Divider().padding(.horizontal)
+                
+                HStack {
+                    Text("Contacts")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.gymPrimary)
+                        .padding(.leading)
+                    Spacer()
+                }
+                .padding(.top, 10)
+                .padding(.bottom, 5)
                 
                 ScrollView {
-                    LazyVStack {
-                        ForEach(friends) { friend in
-                            Button(action: {
-                                startNewChat(friend)
-                                presentationMode.wrappedValue.dismiss()
-                            }) {
+                    VStack(spacing: 15) {
+                        ForEach(contacts) { contact in
+                            NavigationLink(destination: ChatView(chat: Chat(name: contact.name, initials: contact.initials, lastMessage: "", timestamp: "Now", profileImage: nil, messages: []))) {
                                 HStack {
                                     ZStack {
                                         Circle()
                                             .fill(Color.gymAccent.opacity(0.2))
                                             .frame(width: 50, height: 50)
                                         VStack {
-                                            Text(friend.initials)
+                                            Text(contact.initials)
                                                 .font(.headline)
                                                 .foregroundColor(.gymPrimary)
                                             Image(systemName: "figure.walk")
@@ -302,22 +430,47 @@ struct FindFriendsView: View {
                                         }
                                     }
                                     
-                                    Text(friend.name)
-                                        .font(.system(size: 18, weight: .bold))
-                                        .foregroundColor(.gymPrimary)
+                                    VStack(alignment: .leading) {
+                                        Text(contact.name)
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundColor(.gymPrimary)
+                                        Text(contact.workoutStatus)
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.gray)
+                                    }
                                     
                                     Spacer()
+                                    
+                                    Button(action: {
+                                        startNewChat(contact)
+                                    }) {
+                                        Text("Follow")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(Color.gymAccent)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(8)
+                                    }
                                 }
-                                .padding(.horizontal)
-                                .padding(.vertical, 8)
+                                .padding()
+                                .frame(height: 80) // Set height to match the other cards
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
                             }
                         }
                     }
+                    .padding(.horizontal)
                 }
+                .padding(.top)
+                
+                Spacer()
             }
-            .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
+            .background(Color.gymBackground.edgesIgnoringSafeArea(.all)) // Ensure background covers the entire view
             .navigationTitle("")
         }
+        .background(Color.gymBackground.edgesIgnoringSafeArea(.all)) // Ensure background covers the entire view
     }
 }
 
