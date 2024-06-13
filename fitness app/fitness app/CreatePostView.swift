@@ -111,7 +111,7 @@ struct CreatePostView: View {
             print("Image URL: \(imageUrl.absoluteString)")
             
             let newPost = Post(
-//                userId: currentUser.userId,
+                userId: currentUser.userId, 
                 username: currentUser.username,
                 imageName: imageUrl.absoluteString,
                 caption: caption,

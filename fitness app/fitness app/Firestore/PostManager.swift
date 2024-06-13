@@ -11,7 +11,7 @@ import FirebaseFirestoreSwift
 
 struct Post: Codable, Identifiable {
     let id: UUID
-//    let userId: String
+    let userId: String
     let username: String
     let imageName: String
     let caption: String
@@ -20,9 +20,9 @@ struct Post: Codable, Identifiable {
     let workoutSplitEmoji: String
     var comments: [Comment]
     
-    init(id: UUID = UUID(), username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment]) {
+    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment]) {
          self.id = id
-//         self.userId = userId
+         self.userId = userId
          self.username = username
          self.imageName = imageName
          self.caption = caption

@@ -25,6 +25,7 @@ struct ContentView: View {
         }
         .onAppear {
             checkAuthStatus()
+            print(showSignInView)
             Task {
                 await fetchPosts()
             }
@@ -56,7 +57,7 @@ struct ContentView: View {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 16) {
                                 ForEach(posts.indices, id: \.self) { index in
-                                    CustomPostView(post: $posts[index], deleteComment: { comment in
+                                    CustomPostView(userStore: userStore, post: $posts[index], deleteComment: { comment in
                                         deleteComment(comment, at: index)
                                     })
                                 }
@@ -157,7 +158,6 @@ struct ContentView: View {
             }
         }
     }
-    
     private func fetchPosts() async {
         do {
             self.posts = try await PostManager.shared.getPosts()
@@ -197,14 +197,19 @@ struct PlaceholderView: View {
 struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
+    private let userStore: UserStore
     
     @State private var isLiked = false
     @State private var animateLike = false
     @State private var isCommenting = false
     @State private var commentText = ""
     @State private var comments: [Comment]
+    @State private var postUser: DBUser = DBUser.placeholder
     
-    init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
+    
+    
+    init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
+        self.userStore = userStore
         self._post = post
         self.deleteComment = deleteComment
         // Initialize the comments state variable with the comments from the post
@@ -218,9 +223,11 @@ struct CustomPostView: View {
                     .stroke(Color.indigo, lineWidth: 2)
                     .frame(width: 32, height: 32)
                 
-                Text(post.username)
-                    .font(.headline)
-                    .foregroundColor(Color(.darkGray))
+                NavigationLink(destination: UserProfileView(postUser: postUser)) {
+                    Text(post.username)
+                        .font(.headline)
+                        .foregroundColor(Color(.darkGray))
+                }
                 
                 if post.multiplePictures {
                     Text("📷")
@@ -236,7 +243,7 @@ struct CustomPostView: View {
                         .foregroundColor(Color(.darkGray))
                 }
             }
-            
+
             ZStack(alignment: .topTrailing) {
                 if let url = URL(string: post.imageName) {
                     AsyncImage(url: url) { phase in
@@ -286,7 +293,7 @@ struct CustomPostView: View {
                 }
                 .offset(x: -10, y: 10)
             }
-            
+
             HStack(spacing: 20) {
                 Button(action: {
                     withAnimation {
@@ -311,7 +318,7 @@ struct CustomPostView: View {
                 }
             }
             .padding(.horizontal, 16)
-            
+
             Text(post.caption)
                 .foregroundColor(.primary)
                 .padding(.horizontal, 16)
@@ -337,6 +344,7 @@ struct CustomPostView: View {
                 TextField("Write a comment...", text: $commentText, onCommit: {
                     Task {
                         await addComment(postId: post.id, username: post.username, text: commentText)
+                        
                     }
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -348,7 +356,26 @@ struct CustomPostView: View {
         .background(Color.white)
         .cornerRadius(20)
         .shadow(radius: 5)
+        .onAppear {
+            Task {
+                await loadPostUser()
+            }
+        }
     }
+    
+    private func loadPostUser() async {
+            do {
+                let fetchedUser = try await UserManager.shared.getUser(userId: post.userId)
+                DispatchQueue.main.async {
+                    self.postUser = fetchedUser
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    print("error loading post's user \(error)")
+                }
+            }
+        }
+    
     
     private func getColorForWorkoutSplit(_ workoutSplit: String) -> Color {
         switch workoutSplit {

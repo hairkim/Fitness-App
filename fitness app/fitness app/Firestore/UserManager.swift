@@ -15,7 +15,7 @@ struct DBUser: Codable {
     let dateCreated: Date?
     let email: String?
     let photoUrl: String?
-    let followers: [String]
+    var followers: [String]
     let isPublic: Bool
     
     init(auth: AuthDataResultModel, username: String) {
@@ -26,6 +26,12 @@ struct DBUser: Codable {
         self.photoUrl = auth.photoUrl
         self.followers = [String]()
         self.isPublic = true
+    }
+    
+    static var placeholder: DBUser {
+        let mockUser = MockUser(uid: "placeholder", email: "", photoURL: nil)
+        let authDataResultModel = AuthDataResultModel(mockUser: mockUser)
+        return DBUser(auth: authDataResultModel, username: "Loading...")
     }
 }
 
@@ -66,7 +72,28 @@ final class UserManager {
         try await userDocument(userId: userId).getDocument(as: DBUser.self)
     }
     
-//    func addFollower(user: DBUser, receiver: DBUser) async throws {
-//        
-//    }
+    func addFollower(sender: DBUser, receiver: DBUser) async throws {
+        guard sender.userId != receiver.userId else {
+            return
+        }
+        do {
+            let userRef = userDocument(userId: receiver.userId)
+            let userDocument = try await userRef.getDocument()
+            
+            guard var user = try? userDocument.data(as: DBUser.self) else {
+                throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
+            }
+            
+            if !user.followers.contains(sender.userId) {
+                   user.followers.append(sender.userId)
+                   try userRef.setData(from: user)
+                   print("Added as follower")
+               } else {
+                   print("User is already a follower")
+               }
+           } catch {
+               print("Error adding follower: \(error.localizedDescription)")
+               throw error
+           }
+    }
 }
