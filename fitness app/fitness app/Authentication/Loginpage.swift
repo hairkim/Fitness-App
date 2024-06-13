@@ -133,6 +133,7 @@ struct LoginView: View {
             .onTapGesture {
                 UIApplication.shared.endEditing()
             }
+            .navigationBarBackButtonHidden(true)
         }
     }
 }
@@ -151,4 +152,3 @@ struct LoginView_Previews: PreviewProvider {
         }
     }
 }
-
