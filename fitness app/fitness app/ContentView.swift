@@ -19,7 +19,7 @@ struct ContentView: View {
         Group {
             if userStore.currentUser == nil {
                 LoginView(showSignInView: $showSignInView, userStore: userStore)
-            } else {
+            } else if showSignInView == false {
                 mainContentView
             }
         }
@@ -140,15 +140,18 @@ struct ContentView: View {
                 if let dbUser = try? await UserManager.shared.getUser(userId: authUser.uid) {
                     await MainActor.run {
                         userStore.setCurrentUser(user: dbUser)
+                        print("successfully set current user")
                         showSignInView = false
                     }
                 } else {
                     await MainActor.run {
+                        print("could not get dbUser")
                         showSignInView = true
                     }
                 }
             } else {
                 await MainActor.run {
+                    print("could not get auth user")
                     showSignInView = true
                 }
             }
@@ -195,10 +198,20 @@ struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
     
+    
     @State private var isLiked = false
     @State private var animateLike = false
     @State private var isCommenting = false
     @State private var commentText = ""
+    @State private var comments: [Comment]
+    
+    init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
+        self._post = post
+        self.deleteComment = deleteComment
+        // Initialize the comments state variable with the comments from the post
+        self._comments = State(initialValue: post.wrappedValue.comments)
+    }
+    
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -305,7 +318,7 @@ struct CustomPostView: View {
                 .foregroundColor(.primary)
                 .padding(.horizontal, 16)
             
-            ForEach(post.comments) { comment in
+            ForEach(comments) { comment in
                 HStack {
                     Text("\(comment.username): \(comment.text)")
                         .padding(.horizontal, 16)
@@ -326,6 +339,7 @@ struct CustomPostView: View {
                 TextField("Write a comment...", text: $commentText, onCommit: {
                     Task {
                         await addComment(postId: post.id, username: post.username, text: commentText)
+                        
                     }
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -355,10 +369,20 @@ struct CustomPostView: View {
     private func addComment(postId: UUID, username: String, text: String) async  {
         do {
             try await PostManager.shared.addComment(postId: postId, username: username, comment: text)
+//            await fetchPostComments(postId: postId)
             commentText = ""
             isCommenting = false
         } catch {
             print("error making comment \(error)")
+        }
+    }
+    
+    private func fetchPostComments(postId: UUID) async {
+        do {
+            comments =  try await PostManager.shared.getComments(postId: postId)
+            print("comments fetched successfully")
+        } catch {
+            print("error fetching comments \(error)")
         }
     }
 }

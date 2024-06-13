@@ -99,6 +99,7 @@ struct LoginView: View {
                                 await viewModel.logIn()
                                 if viewModel.errorMessage == nil {
                                     showSignInView = false
+                                    print("user logged in")
                                 }
                             }
                         }) {

@@ -11,6 +11,7 @@ import FirebaseFirestoreSwift
 
 struct Post: Codable, Identifiable {
     let id: UUID
+//    let userId: String
     let username: String
     let imageName: String
     let caption: String
@@ -21,6 +22,7 @@ struct Post: Codable, Identifiable {
     
     init(id: UUID = UUID(), username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment]) {
          self.id = id
+//         self.userId = userId
          self.username = username
          self.imageName = imageName
          self.caption = caption
@@ -61,6 +63,7 @@ final class PostManager {
         }
     
     func getPosts() async throws -> [Post] {
+        print("getPosts called")
         let snapshot = try await postCollection.getDocuments()
         return snapshot.documents.compactMap { document -> Post? in
             try? document.data(as: Post.self)
@@ -91,6 +94,12 @@ final class PostManager {
         } catch {
             print("could not add comment")
         }
+    }
+    
+    func getComments(postId: UUID) async throws -> [Comment] {
+        let document = try await postCollection.document(postId.uuidString).getDocument()
+        let post = try document.data(as: Post.self)
+        return post.comments
     }
 }
 

@@ -29,6 +29,11 @@ struct DBUser: Codable {
     }
 }
 
+//struct UserProfile: Identifiable, Codable {
+//    let user: DBUser
+//    
+//}
+
 
 final class UserManager {
     
