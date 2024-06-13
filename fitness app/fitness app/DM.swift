@@ -45,6 +45,7 @@ extension Color {
 // DMHomeView
 
 struct DMHomeView: View {
+    @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var userStore: UserStore
     @State private var chats: [Chat] = [
         Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", timestamp: "5:11 PM", profileImage: nil, messages: [
@@ -67,6 +68,16 @@ struct DMHomeView: View {
                 
                 VStack {
                     HStack {
+                        Button(action: {
+                            self.presentationMode.wrappedValue.dismiss()
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .foregroundColor(.gymPrimary)
+                                .padding(.leading, 10)
+                        }
+                        
+                        Spacer()
+                        
                         Text("Gym Chat")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.gymPrimary)
@@ -95,24 +106,22 @@ struct DMHomeView: View {
                     .padding(.bottom, 10)
                     
                     ScrollView {
-                        VStack(spacing: 15) { // Adjusted spacing between cards
+                        VStack(spacing: 15) {
                             ForEach(chats.filter { searchText.isEmpty ? true : $0.name.lowercased().contains(searchText.lowercased()) }) { chat in
                                 NavigationLink(destination: ChatView(chat: chat)) {
                                     VStack {
                                         HStack(spacing: 12) {
                                             if let profileImage = chat.profileImage, !profileImage.isEmpty {
-                                                // Profile Image
                                                 Image(profileImage)
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fill)
-                                                    .frame(width: 55, height: 55) // Medium size
+                                                    .frame(width: 55, height: 55)
                                                     .clipShape(Circle())
                                             } else {
-                                                // Initials Circle with Gym Icon
                                                 ZStack {
                                                     Circle()
                                                         .fill(Color.gymAccent.opacity(0.2))
-                                                        .frame(width: 55, height: 55) // Medium size
+                                                        .frame(width: 55, height: 55)
                                                     VStack {
                                                         Text(chat.initials)
                                                             .font(.headline)
@@ -129,18 +138,18 @@ struct DMHomeView: View {
                                             VStack(alignment: .leading, spacing: 4) {
                                                 HStack {
                                                     Text(chat.name)
-                                                        .font(.system(size: 17, weight: .bold)) // Medium font size
+                                                        .font(.system(size: 17, weight: .bold))
                                                         .foregroundColor(.gymPrimary)
                                                     
                                                     Spacer()
                                                     
                                                     Text(chat.timestamp)
-                                                        .font(.system(size: 13)) // Medium font size
+                                                        .font(.system(size: 13))
                                                         .foregroundColor(.gray)
                                                 }
                                                 
                                                 Text(chat.lastMessage)
-                                                    .font(.system(size: 15)) // Medium font size
+                                                    .font(.system(size: 15))
                                                     .foregroundColor(.gray)
                                             }
                                             
@@ -149,11 +158,11 @@ struct DMHomeView: View {
                                             Image(systemName: "dumbbell.fill")
                                                 .foregroundColor(.gymSecondary)
                                         }
-                                        .padding(.vertical, 16) // Medium padding
-                                        .padding(.horizontal, 16) // Medium padding
+                                        .padding(.vertical, 16)
+                                        .padding(.horizontal, 16)
                                     }
                                     .background(Color.gymBackground)
-                                    .cornerRadius(12) // Medium corner radius
+                                    .cornerRadius(12)
                                     .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
                                 }
                             }
@@ -198,7 +207,6 @@ struct ChatView: View {
             // Header
             HStack {
                 Button(action: {
-                    // Action to go back
                     self.presentationMode.wrappedValue.dismiss()
                 }) {
                     Image(systemName: "chevron.left")
@@ -400,7 +408,7 @@ struct FindFriendsView: View {
                                 }
                             }
                             .padding()
-                            .frame(width: 120, height: 200) // Fixed width and height to ensure uniform size
+                            .frame(width: 120, height: 200)
                             .background(Color.white)
                             .cornerRadius(12)
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
@@ -466,7 +474,7 @@ struct FindFriendsView: View {
                                 }
                             }
                             .padding()
-                            .frame(height: 80) // Set height to match the other cards
+                            .frame(height: 80)
                             .background(Color.white)
                             .cornerRadius(12)
                             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
@@ -478,10 +486,10 @@ struct FindFriendsView: View {
                 
                 Spacer()
             }
-            .background(Color.gymBackground.edgesIgnoringSafeArea(.all)) // Ensure background covers the entire view
+            .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
             .navigationTitle("")
         }
-        .background(Color.gymBackground.edgesIgnoringSafeArea(.all)) // Ensure background covers the entire view
+        .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
     }
 }
 

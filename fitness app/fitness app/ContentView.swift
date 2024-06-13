@@ -44,7 +44,7 @@ struct ContentView: View {
                             
                             Spacer()
                             
-                            NavigationLink(destination: DirectMessagesView()) {
+                            NavigationLink(destination: DMHomeView().environmentObject(userStore)) {
                                 Image(systemName: "message.fill")
                                     .imageScale(.large)
                                     .foregroundColor(Color(.darkGray))
@@ -198,7 +198,6 @@ struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
     
-    
     @State private var isLiked = false
     @State private var animateLike = false
     @State private var isCommenting = false
@@ -212,7 +211,6 @@ struct CustomPostView: View {
         self._comments = State(initialValue: post.wrappedValue.comments)
     }
     
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -238,7 +236,7 @@ struct CustomPostView: View {
                         .foregroundColor(Color(.darkGray))
                 }
             }
-
+            
             ZStack(alignment: .topTrailing) {
                 if let url = URL(string: post.imageName) {
                     AsyncImage(url: url) { phase in
@@ -288,7 +286,7 @@ struct CustomPostView: View {
                 }
                 .offset(x: -10, y: 10)
             }
-
+            
             HStack(spacing: 20) {
                 Button(action: {
                     withAnimation {
@@ -313,7 +311,7 @@ struct CustomPostView: View {
                 }
             }
             .padding(.horizontal, 16)
-
+            
             Text(post.caption)
                 .foregroundColor(.primary)
                 .padding(.horizontal, 16)
@@ -339,7 +337,6 @@ struct CustomPostView: View {
                 TextField("Write a comment...", text: $commentText, onCommit: {
                     Task {
                         await addComment(postId: post.id, username: post.username, text: commentText)
-                        
                     }
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -366,10 +363,10 @@ struct CustomPostView: View {
         }
     }
     
-    private func addComment(postId: UUID, username: String, text: String) async  {
+    private func addComment(postId: UUID, username: String, text: String) async {
         do {
             try await PostManager.shared.addComment(postId: postId, username: username, comment: text)
-//            await fetchPostComments(postId: postId)
+            // await fetchPostComments(postId: postId)
             commentText = ""
             isCommenting = false
         } catch {
@@ -379,7 +376,7 @@ struct CustomPostView: View {
     
     private func fetchPostComments(postId: UUID) async {
         do {
-            comments =  try await PostManager.shared.getComments(postId: postId)
+            comments = try await PostManager.shared.getComments(postId: postId)
             print("comments fetched successfully")
         } catch {
             print("error fetching comments \(error)")
