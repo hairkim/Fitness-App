@@ -212,40 +212,49 @@ struct ChatView: View {
                         .foregroundColor(.gymPrimary)
                         .padding(.leading, 10)
                 }
-                
-                Spacer()
-                
-                Text(chat.name)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.gymPrimary)
-                
-                Spacer()
-                
-                if let profileImage = chat.profileImage, !profileImage.isEmpty {
-                    Image(profileImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 50, height: 50)
-                        .clipShape(Circle())
-                        .padding(.leading, 10)
-                } else {
-                    ZStack {
-                        Circle()
-                            .fill(Color.gymAccent.opacity(0.2))
+
+                HStack {
+                    if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                        Image(profileImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
                             .frame(width: 50, height: 50)
-                        Text(chat.initials)
-                            .font(.headline)
-                            .foregroundColor(.gymPrimary)
+                            .clipShape(Circle())
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gymAccent.opacity(0.2))
+                                .frame(width: 50, height: 50)
+                            Text(chat.initials)
+                                .font(.headline)
+                                .foregroundColor(.gymPrimary)
+                        }
                     }
-                    .padding(.leading, 10)
+
+                    Text(chat.name)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.gymPrimary)
+                        .padding(.leading, 8)
                 }
+                .padding(.leading, 10) // Shift the combined view to the left
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Image(systemName: "dumbbell.fill")
+                        .foregroundColor(.gymPrimary)
+                    Text("7") // Placeholder for streak number
+                        .foregroundColor(.gymPrimary)
+                        .font(.system(size: 20, weight: .bold))
+                }
+                .padding(.trailing, 10)
             }
             .padding()
             .background(Color.gymBackground)
             .cornerRadius(10)
             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
             .padding(.top, 10)
-            
+
             ScrollView {
                 VStack(spacing: 10) {
                     ForEach(chat.messages) { message in
@@ -274,7 +283,7 @@ struct ChatView: View {
                 }
                 .padding()
             }
-            
+
             HStack {
                 TextField("Type your message...", text: $messageText, onCommit: {
                     self.sendMessage()
@@ -282,7 +291,7 @@ struct ChatView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal)
                 .font(.system(size: 16, weight: .medium))
-                
+
                 Button(action: {
                     self.sendMessage()
                 }) {
@@ -298,7 +307,7 @@ struct ChatView: View {
         .navigationBarHidden(true)
         .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
     }
-    
+
     private func sendMessage() {
         guard !messageText.isEmpty else { return }
         let newMessage = Message(text: messageText, isCurrentUser: true, senderColor: .gymPrimary)
@@ -314,6 +323,8 @@ struct ChatView_Previews: PreviewProvider {
         ChatView(chat: Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", timestamp: "5:11 PM", profileImage: nil, messages: [Message(text: "Hello!", isCurrentUser: false, senderColor: .green)]))
     }
 }
+
+
 
 // FindFriendsView
 
