@@ -85,55 +85,54 @@ struct ForumView: View {
     @State private var selectedSortOption: SortOption = .hot
 
     var body: some View {
-        NavigationView {
-            VStack {
-                List {
-                    ForEach(sortedPosts) { post in
-                        ForumPostRow(post: post, onLike: {
-                            likePost(post)
-                        }, onNavigate: {
-                            navigateToDetail(post: post)
-                        })
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            navigateToDetail(post: post)
-                        }
+        VStack(spacing: 0) { // Adjust the spacing here
+            List {
+                ForEach(sortedPosts) { post in
+                    ForumPostRow(post: post, onLike: {
+                        likePost(post)
+                    }, onNavigate: {
+                        navigateToDetail(post: post)
+                    })
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        navigateToDetail(post: post)
                     }
                 }
-                .listStyle(PlainListStyle())
+            }
+            .listStyle(PlainListStyle())
+            .padding(.top, -8) // Adjust the padding here
 
-                NavigationLink(destination: CreateQuestionView(onAddQuestion: addQuestion), isActive: $isShowingQuestionForm) {
-                    EmptyView()
-                }
+            NavigationLink(destination: CreateQuestionView(onAddQuestion: addQuestion), isActive: $isShowingQuestionForm) {
+                EmptyView()
             }
-            .navigationTitle("Gym Forum")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: Button(action: {
-                isShowingFilters.toggle()
-            }) {
-                Image(systemName: "line.horizontal.3.decrease.circle")
-                    .imageScale(.large)
-            })
-            .background(Color(.systemBackground))
-            .overlay(
-                VStack {
+        }
+        .navigationTitle("Gym Forum")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarItems(trailing: Button(action: {
+            isShowingFilters.toggle()
+        }) {
+            Image(systemName: "line.horizontal.3.decrease.circle")
+                .imageScale(.large)
+        })
+        .background(Color(.systemBackground))
+        .overlay(
+            VStack {
+                Spacer()
+                HStack {
                     Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: { isShowingQuestionForm = true }) {
-                            Image(systemName: "plus.circle.fill")
-                                .resizable()
-                                .frame(width: 60, height: 60)
-                                .foregroundColor(.blue)
-                        }
-                        .padding()
-                        Spacer()
+                    Button(action: { isShowingQuestionForm = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .foregroundColor(.blue)
                     }
+                    .padding()
+                    Spacer()
                 }
-            )
-            .sheet(isPresented: $isShowingFilters) {
-                FilterView(selectedSortOption: $selectedSortOption)
             }
+        )
+        .sheet(isPresented: $isShowingFilters) {
+            FilterView(selectedSortOption: $selectedSortOption)
         }
     }
 

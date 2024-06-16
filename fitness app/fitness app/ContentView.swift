@@ -82,11 +82,11 @@ struct ContentView: View {
                     }
                     
                     NavigationView {
-                        HealthView()
+                        ForumView()
                     }
                     .tabItem {
-                        Image(systemName: "heart.circle.fill")
-                        Text("Health")
+                        Image(systemName: "leaf.circle.fill")
+                        Text("Nutrition")
                     }
                     
                     // Placeholder for the post button
@@ -98,11 +98,11 @@ struct ContentView: View {
                         .disabled(true)
                     
                     NavigationView {
-                        NutritionView()
+                        HealthView()
                     }
                     .tabItem {
-                        Image(systemName: "leaf.circle.fill")
-                        Text("Nutrition")
+                        Image(systemName: "heart.circle.fill")
+                        Text("Health")
                     }
                     
                     NavigationView {
@@ -139,6 +139,7 @@ struct ContentView: View {
             ImageChooser()
         }
     }
+
     
     private func deleteComment(_ comment: Comment, at index: Int) {
         posts[index].comments.removeAll(where: { $0.id == comment.id })
