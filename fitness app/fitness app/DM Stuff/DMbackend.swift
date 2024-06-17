@@ -12,8 +12,20 @@ import FirebaseFirestoreSwift
 struct DBChat: Codable, Identifiable {
     @DocumentID var id: String?
     let participants: [String]
-    let lastMessage: String
-    let timestamp: Timestamp
+    let name: String
+    let initials: String
+    var lastMessage: String?
+    var timestamp: Timestamp
+    var profileImage: String? // URL to the profile image
+    
+    init(participants: [String], name: String, initials: String, lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
+        self.participants = participants
+        self.name = name
+        self.initials = initials
+        self.lastMessage = lastMessage
+        self.timestamp = timestamp
+        self.profileImage = profileImage
+    }
 }
 
 struct DBMessage: Codable, Identifiable {
@@ -38,10 +50,8 @@ final class ChatManager {
         chatDocument(chatId: chatId).collection("messages")
     }
     
-    func createNewChat(participants: [String], lastMessage: String) async throws -> String {
-        let chat = DBChat(participants: participants, lastMessage: lastMessage, timestamp: Timestamp(date: Date()))
-        let document = try chatCollection.addDocument(from: chat, encoder: Firestore.Encoder())
-        return document.documentID
+    func createNewChat(chat: DBChat) async throws {
+        try chatCollection.addDocument(from: chat, encoder: Firestore.Encoder())
     }
     
     func sendMessage(chatId: String, senderId: String, text: String) async throws {
