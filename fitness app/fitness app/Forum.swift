@@ -83,11 +83,15 @@ struct ForumView: View {
     @State private var isShowingQuestionForm = false
     @State private var isShowingFilters = false
     @State private var selectedSortOption: SortOption = .hot
+    @State private var searchText: String = ""
 
     var body: some View {
         VStack(spacing: 0) { // Adjust the spacing here
+            SearchBar(text: $searchText, placeholder: "Search questions")
+                .padding(.horizontal)
+
             List {
-                ForEach(sortedPosts) { post in
+                ForEach(filteredPosts) { post in
                     ForumPostRow(post: post, onLike: {
                         likePost(post)
                     }, onNavigate: {
@@ -154,6 +158,16 @@ struct ForumView: View {
                 .sorted(by: { $0.likes > $1.likes })
         case .topAllTime:
             return posts.sorted(by: { $0.likes > $1.likes })
+        }
+    }
+
+    private var filteredPosts: [ForumPost] {
+        if searchText.isEmpty {
+            return sortedPosts
+        } else {
+            return sortedPosts.filter { post in
+                post.title.lowercased().contains(searchText.lowercased()) || post.body.lowercased().contains(searchText.lowercased())
+            }
         }
     }
 
@@ -308,7 +322,6 @@ struct ForumPostRow: View {
     }
 }
 
-// Post Detail View
 // Post Detail View
 struct PostDetailView: View {
     @ObservedObject var post: ForumPost
@@ -635,6 +648,39 @@ struct FilterView: View {
 
     private func dismiss() {
         UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: true, completion: nil)
+    }
+}
+
+// SearchBar View
+struct SearchBar: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+
+    class Coordinator: NSObject, UISearchBarDelegate {
+        @Binding var text: String
+
+        init(text: Binding<String>) {
+            _text = text
+        }
+
+        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+            text = searchText
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(text: $text)
+    }
+
+    func makeUIView(context: Context) -> UISearchBar {
+        let searchBar = UISearchBar(frame: .zero)
+        searchBar.delegate = context.coordinator
+        searchBar.placeholder = placeholder
+        return searchBar
+    }
+
+    func updateUIView(_ uiView: UISearchBar, context: Context) {
+        uiView.text = text
     }
 }
 

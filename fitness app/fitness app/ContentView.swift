@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
     @State private var showDMHomeView: Bool = false
+    @State private var selectedTab: Int = 0 // State to manage selected tab
     
     var body: some View {
         Group {
@@ -39,98 +40,124 @@ struct ContentView: View {
                     .environmentObject(userStore)
                     .transition(.move(edge: .bottom))
             } else {
-                TabView {
-                    NavigationView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Text("Plates")
-                                    .font(.title)
-                                    .foregroundColor(Color(.darkGray))
-                                    .padding(.leading, 16)
-                                
-                                Spacer()
-                                
-                                Button(action: {
+                if selectedTab != 1 {
+                    TabView(selection: $selectedTab) {
+                        NavigationView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                HStack {
+                                    Text("Plates")
+                                        .font(.title)
+                                        .foregroundColor(Color(.darkGray))
+                                        .padding(.leading, 16)
+                                    
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        withAnimation {
+                                            showDMHomeView.toggle()
+                                        }
+                                    }) {
+                                        Image(systemName: "message.fill")
+                                            .imageScale(.large)
+                                            .foregroundColor(Color(.darkGray))
+                                            .padding(.trailing, 16)
+                                    }
+                                }
+                                .padding(.horizontal)
+
+                                ScrollView {
+                                    LazyVStack(alignment: .leading, spacing: 16) {
+                                        ForEach(posts.indices, id: \.self) { index in
+                                            CustomPostView(userStore: userStore, post: $posts[index], deleteComment: { comment in
+                                                deleteComment(comment, at: index)
+                                            })
+                                        }
+                                    }
+                                    .padding()
+                                }
+                            }
+                            .navigationTitle("")
+                        }
+                        .tabItem {
+                            Image(systemName: "house.fill")
+                            Text("Home")
+                        }
+                        .tag(0) // Tag for Home tab
+                        
+                        NavigationView {
+                            ForumView()
+                                .navigationBarItems(leading: Button(action: {
                                     withAnimation {
-                                        showDMHomeView.toggle()
+                                        selectedTab = 0 // Navigate back to Home tab
                                     }
                                 }) {
-                                    Image(systemName: "message.fill")
-                                        .imageScale(.large)
-                                        .foregroundColor(Color(.darkGray))
-                                        .padding(.trailing, 16)
-                                }
-                            }
-                            .padding(.horizontal)
-
-                            ScrollView {
-                                LazyVStack(alignment: .leading, spacing: 16) {
-                                    ForEach(posts.indices, id: \.self) { index in
-                                        CustomPostView(userStore: userStore, post: $posts[index], deleteComment: { comment in
-                                            deleteComment(comment, at: index)
-                                        })
-                                    }
-                                }
-                                .padding()
-                            }
+                                    Image(systemName: "chevron.left")
+                                        .foregroundColor(.primary)
+                                })
                         }
-                        .navigationTitle("")
-                    }
-                    .tabItem {
-                        Image(systemName: "house.fill")
-                        Text("Home")
+                        .tabItem {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                            Text("Forum")
+                        }
+                        .tag(1) // Tag for Forum tab
+                        
+                        // Placeholder for the post button
+                        Text("")
+                            .tabItem {
+                                Image(systemName: "")
+                                Text("")
+                            }
+                            .disabled(true)
+                        
+                        NavigationView {
+                            HealthView()
+                        }
+                        .tabItem {
+                            Image(systemName: "heart.circle.fill")
+                            Text("Health")
+                        }
+                        .tag(2) // Tag for Health tab
+                        
+                        NavigationView {
+                            ProfileView(showSignInView: $showSignInView)
+                        }
+                        .tabItem {
+                            Image(systemName: "person.circle.fill")
+                            Text("Profile")
+                        }
+                        .tag(3) // Tag for Profile tab
                     }
                     
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                showImageChooser = true
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .foregroundColor(Color(.darkGray))
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 10)
+                            }
+                            .offset(y: -10) // Adjust the offset to position the button properly
+                            Spacer()
+                        }
+                    }
+                } else {
                     NavigationView {
                         ForumView()
-                    }
-                    .tabItem {
-                        Image(systemName: "leaf.circle.fill")
-                        Text("Nutrition")
-                    }
-                    
-                    // Placeholder for the post button
-                    Text("")
-                        .tabItem {
-                            Image(systemName: "")
-                            Text("")
-                        }
-                        .disabled(true)
-                    
-                    NavigationView {
-                        HealthView()
-                    }
-                    .tabItem {
-                        Image(systemName: "heart.circle.fill")
-                        Text("Health")
-                    }
-                    
-                    NavigationView {
-                        ProfileView(showSignInView: $showSignInView)
-                    }
-                    .tabItem {
-                        Image(systemName: "person.circle.fill")
-                        Text("Profile")
-                    }
-                }
-                
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            showImageChooser = true
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .resizable()
-                                .frame(width: 60, height: 60)
-                                .foregroundColor(Color(.darkGray))
-                                .background(Color.white)
-                                .clipShape(Circle())
-                                .shadow(radius: 10)
-                        }
-                        .offset(y: -10) // Adjust the offset to position the button properly
-                        Spacer()
+                            .navigationBarItems(leading: Button(action: {
+                                withAnimation {
+                                    selectedTab = 0 // Navigate back to Home tab
+                                }
+                            }) {
+                                Image(systemName: "chevron.left")
+                                    .foregroundColor(.primary)
+                            })
                     }
                 }
             }
@@ -139,7 +166,6 @@ struct ContentView: View {
             ImageChooser()
         }
     }
-
     
     private func deleteComment(_ comment: Comment, at index: Int) {
         posts[index].comments.removeAll(where: { $0.id == comment.id })
@@ -169,6 +195,7 @@ struct ContentView: View {
             }
         }
     }
+    
     private func fetchPosts() async {
         do {
             self.posts = try await PostManager.shared.getPosts()
@@ -187,13 +214,6 @@ struct DirectMessagesView: View {
     }
 }
 
-struct NutritionView: View {
-    var body: some View {
-        Text("Nutrition")
-            .font(.largeTitle)
-            .foregroundColor(Color(.darkGray))
-    }
-}
 
 struct PlaceholderView: View {
     let pageName: String
@@ -216,8 +236,6 @@ struct CustomPostView: View {
     @State private var commentText = ""
     @State private var comments: [Comment]
     @State private var postUser: DBUser = DBUser.placeholder
-    
-    
     
     init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
         self.userStore = userStore
@@ -404,7 +422,6 @@ struct CustomPostView: View {
     private func addComment(postId: UUID, username: String, text: String) async {
         do {
             try await PostManager.shared.addComment(postId: postId, username: username, comment: text)
-            // await fetchPostComments(postId: postId)
             commentText = ""
             isCommenting = false
         } catch {
