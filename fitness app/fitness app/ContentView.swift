@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var showImageChooser: Bool = false
     @State private var showDMHomeView: Bool = false
     @State private var selectedTab: Int = 0 // State to manage selected tab
+    @State private var selectedUser: DBUser? = nil // State to manage selected user
     
     var body: some View {
         Group {
@@ -34,136 +35,158 @@ struct ContentView: View {
     }
     
     var mainContentView: some View {
-        ZStack {
-            if showDMHomeView {
-                DMHomeView(showDMHomeView: $showDMHomeView)
-                    .environmentObject(userStore)
-                    .transition(.move(edge: .bottom))
-            } else {
-                if selectedTab != 1 {
-                    TabView(selection: $selectedTab) {
-                        NavigationView {
-                            VStack(alignment: .leading, spacing: 16) {
-                                HStack {
-                                    Text("Plates")
-                                        .font(.title)
-                                        .foregroundColor(Color(.darkGray))
-                                        .padding(.leading, 16)
-                                    
-                                    Spacer()
-                                    
-                                    Button(action: {
-                                        withAnimation {
-                                            showDMHomeView.toggle()
-                                        }
-                                    }) {
-                                        Image(systemName: "message.fill")
-                                            .imageScale(.large)
-                                            .foregroundColor(Color(.darkGray))
-                                            .padding(.trailing, 16)
-                                    }
-                                }
-                                .padding(.horizontal)
-
-                                ScrollView {
-                                    LazyVStack(alignment: .leading, spacing: 16) {
-                                        ForEach(posts.indices, id: \.self) { index in
-                                            CustomPostView(userStore: userStore, post: $posts[index], deleteComment: { comment in
-                                                deleteComment(comment, at: index)
-                                            })
-                                        }
-                                    }
-                                    .padding()
-                                }
-                            }
-                            .navigationTitle("")
-                        }
-                        .tabItem {
-                            Image(systemName: "house.fill")
-                            Text("Home")
-                        }
-                        .tag(0) // Tag for Home tab
-                        
-                        NavigationView {
-                            ForumView()
-                                .navigationBarItems(leading: Button(action: {
-                                    withAnimation {
-                                        selectedTab = 0 // Navigate back to Home tab
-                                    }
-                                }) {
-                                    Image(systemName: "chevron.left")
-                                        .foregroundColor(.primary)
-                                })
-                        }
-                        .tabItem {
-                            Image(systemName: "bubble.left.and.bubble.right")
-                            Text("Forum")
-                        }
-                        .tag(1) // Tag for Forum tab
-                        
-                        // Placeholder for the post button
-                        Text("")
-                            .tabItem {
-                                Image(systemName: "")
-                                Text("")
-                            }
-                            .disabled(true)
-                        
-                        NavigationView {
-                            HealthView()
-                        }
-                        .tabItem {
-                            Image(systemName: "heart.circle.fill")
-                            Text("Health")
-                        }
-                        .tag(2) // Tag for Health tab
-                        
-                        NavigationView {
-                            ProfileView(showSignInView: $showSignInView)
-                        }
-                        .tabItem {
-                            Image(systemName: "person.circle.fill")
-                            Text("Profile")
-                        }
-                        .tag(3) // Tag for Profile tab
-                    }
-                    
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                showImageChooser = true
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .resizable()
-                                    .frame(width: 60, height: 60)
-                                    .foregroundColor(Color(.darkGray))
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 10)
-                            }
-                            .offset(y: -10) // Adjust the offset to position the button properly
-                            Spacer()
-                        }
-                    }
+        NavigationView {
+            ZStack {
+                if showDMHomeView {
+                    DMHomeView(showDMHomeView: $showDMHomeView)
+                        .environmentObject(userStore)
+                        .transition(.move(edge: .bottom))
                 } else {
-                    NavigationView {
-                        ForumView()
-                            .navigationBarItems(leading: Button(action: {
-                                withAnimation {
-                                    selectedTab = 0 // Navigate back to Home tab
+                    if selectedTab != 1 {
+                        TabView(selection: $selectedTab) {
+                            homeView
+                                .tabItem {
+                                    Image(systemName: "house.fill")
+                                    Text("Home")
                                 }
-                            }) {
-                                Image(systemName: "chevron.left")
-                                    .foregroundColor(.primary)
-                            })
+                                .tag(0) // Tag for Home tab
+                            
+                            forumView
+                                .tabItem {
+                                    Image(systemName: "bubble.left.and.bubble.right")
+                                    Text("Forum")
+                                }
+                                .tag(1) // Tag for Forum tab
+                            
+                            // Placeholder for the post button
+                            Text("")
+                                .tabItem {
+                                    Image(systemName: "")
+                                    Text("")
+                                }
+                                .disabled(true)
+                            
+                            healthView
+                                .tabItem {
+                                    Image(systemName: "heart.circle.fill")
+                                    Text("Health")
+                                }
+                                .tag(2) // Tag for Health tab
+                            
+                            profileView
+                                .tabItem {
+                                    Image(systemName: "person.circle.fill")
+                                    Text("Profile")
+                                }
+                                .tag(3) // Tag for Profile tab
+                        }
+                        
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    showImageChooser = true
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .resizable()
+                                        .frame(width: 60, height: 60)
+                                        .foregroundColor(Color(.darkGray))
+                                        .background(Color.white)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 10)
+                                }
+                                .offset(y: -10) // Adjust the offset to position the button properly
+                                Spacer()
+                            }
+                        }
+                    } else {
+                        forumView
                     }
                 }
             }
+            .fullScreenCover(isPresented: $showImageChooser) {
+                ImageChooser()
+            }
+            .background(
+                NavigationLink(
+                    destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder),
+                    isActive: .constant(selectedUser != nil),
+                    label: { EmptyView() }
+                )
+            )
         }
-        .fullScreenCover(isPresented: $showImageChooser) {
-            ImageChooser()
+    }
+    
+    var homeView: some View {
+        NavigationView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Plates")
+                        .font(.title)
+                        .foregroundColor(Color(.darkGray))
+                        .padding(.leading, 16)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        withAnimation {
+                            showDMHomeView.toggle()
+                        }
+                    }) {
+                        Image(systemName: "message.fill")
+                            .imageScale(.large)
+                            .foregroundColor(Color(.darkGray))
+                            .padding(.trailing, 16)
+                    }
+                    
+                    NavigationLink(destination: SearchView(selectedUser: $selectedUser)) {
+                        Image(systemName: "magnifyingglass")
+                            .imageScale(.large)
+                            .foregroundColor(Color(.darkGray))
+                    }
+                    .padding(.trailing, 16)
+                }
+                .padding(.horizontal)
+                
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        ForEach(posts.indices, id: \.self) { index in
+                            CustomPostView(userStore: userStore, post: $posts[index], deleteComment: { comment in
+                                deleteComment(comment, at: index)
+                            })
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("")
+        }
+    }
+    
+    var forumView: some View {
+        NavigationView {
+            ForumView()
+                .navigationBarItems(leading: Button(action: {
+                    withAnimation {
+                        selectedTab = 0 // Navigate back to Home tab
+                    }
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.primary)
+                })
+        }
+    }
+    
+    var healthView: some View {
+        NavigationView {
+            HealthView()
+        }
+    }
+    
+    var profileView: some View {
+        NavigationView {
+            ProfileView(showSignInView: $showSignInView)
         }
     }
     
@@ -213,7 +236,6 @@ struct DirectMessagesView: View {
             .foregroundColor(Color(.darkGray))
     }
 }
-
 
 struct PlaceholderView: View {
     let pageName: String

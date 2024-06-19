@@ -9,7 +9,8 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-struct DBUser: Codable {
+struct DBUser: Codable, Identifiable, Equatable {
+    var id: String { userId }
     let userId: String
     let username: String
     let dateCreated: Date?
@@ -33,7 +34,14 @@ struct DBUser: Codable {
         let authDataResultModel = AuthDataResultModel(mockUser: mockUser)
         return DBUser(auth: authDataResultModel, username: "Loading...")
     }
+
+    // Implement Equatable
+    static func ==(lhs: DBUser, rhs: DBUser) -> Bool {
+        return lhs.userId == rhs.userId
+    }
 }
+
+
 
 //struct UserProfile: Identifiable, Codable {
 //    let user: DBUser
@@ -56,20 +64,13 @@ final class UserManager {
         try userDocument(userId: user.userId).setData(from: user, merge: false, encoder: Firestore.Encoder())
     }
     
-    private let encoder: Firestore.Encoder = {
-        let encoder = Firestore.Encoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        return encoder
-    }()
-    
-    private let decoder: Firestore.Decoder = {
-        let decoder = Firestore.Decoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return decoder
-    }()
-    
     func getUser(userId: String) async throws -> DBUser {
         try await userDocument(userId: userId).getDocument(as: DBUser.self)
+    }
+    
+    func getAllUsers() async throws -> [DBUser] {
+        let snapshot = try await userCollection.getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: DBUser.self) }
     }
     
     func addFollower(sender: DBUser, receiver: DBUser) async throws {
@@ -85,15 +86,15 @@ final class UserManager {
             }
             
             if !user.followers.contains(sender.userId) {
-                   user.followers.append(sender.userId)
-                   try userRef.setData(from: user)
-                   print("Added as follower")
-               } else {
-                   print("User is already a follower")
-               }
-           } catch {
-               print("Error adding follower: \(error.localizedDescription)")
-               throw error
-           }
+                user.followers.append(sender.userId)
+                try userRef.setData(from: user)
+                print("Added as follower")
+            } else {
+                print("User is already a follower")
+            }
+        } catch {
+            print("Error adding follower: \(error.localizedDescription)")
+            throw error
+        }
     }
 }
