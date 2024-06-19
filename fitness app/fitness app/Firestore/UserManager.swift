@@ -97,4 +97,64 @@ final class UserManager {
             throw error
         }
     }
+    
+    
+    func fetchFollowers(for userId: String, completion: @escaping ([String]?) -> Void) {
+            userDocument(userId: userId).getDocument { (document, error) in
+                if let document = document, document.exists {
+                    let data = document.data()
+                    let followerIds = data?["followers"] as? [String]
+                    completion(followerIds)
+                } else {
+                    completion(nil)
+                }
+            }
+        }
+        
+        func searchFollowers(for userId: String, searchTerm: String, completion: @escaping ([DBUser]?) -> Void) {
+            fetchFollowers(for: userId) { followerIds in
+                guard let followerIds = followerIds else {
+                    completion(nil)
+                    return
+                }
+                
+                self.userCollection.whereField("username", isGreaterThanOrEqualTo: searchTerm).whereField("username", isLessThanOrEqualTo: searchTerm + "\u{f8ff}").getDocuments { (querySnapshot, error) in
+                    if let error = error {
+                        print("Error searching users: \(error)")
+                        completion(nil)
+                    } else {
+                        Task {
+                            var users: [DBUser] = []
+                            await withTaskGroup(of: DBUser?.self) { group in
+                                for document in querySnapshot!.documents {
+                                    let data = document.data()
+                                    if let id = data["id"] as? String, followerIds.contains(id) {
+                                        let username = data["username"] as? String ?? ""
+                                        let profilePictureUrl = data["photoUrl"] as? String ?? ""
+                                        
+                                        group.addTask {
+                                            do {
+                                                let userAuthDataModel = try await AuthenticationManager.shared.getUser(id: id)
+                                                let user = DBUser(auth: userAuthDataModel, username: username)
+                                                return user
+                                            } catch {
+                                                print("Error fetching user details: \(error)")
+                                                return nil
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                for await user in group {
+                                    if let user = user {
+                                        users.append(user)
+                                    }
+                                }
+                            }
+                            completion(users)
+                        }
+                    }
+                }
+            }
+        }
 }

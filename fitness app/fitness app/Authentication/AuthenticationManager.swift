@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseAuth
+import FirebaseFirestore
 
 struct AuthDataResultModel {
     let uid: String
@@ -22,16 +23,16 @@ struct AuthDataResultModel {
     init(mockUser: MockUser) {
         self.uid = mockUser.uid
         self.email = mockUser.email!
-        self.photoUrl = mockUser.photoURL?.absoluteString
+        self.photoUrl = mockUser.photoURL
     }
 }
 
 struct MockUser {
     var uid: String
     var email: String?
-    var photoURL: URL?
+    var photoURL: String?
 
-    init(uid: String, email: String?, photoURL: URL?) {
+    init(uid: String, email: String?, photoURL: String?) {
         self.uid = uid
         self.email = email
         self.photoURL = photoURL
@@ -41,6 +42,7 @@ struct MockUser {
 final class AuthenticationManager {
     
     static let shared = AuthenticationManager()
+    private let db = Firestore.firestore()
     private init() { }
     
     func createMockUser(mockUser: MockUser) -> AuthDataResultModel {
@@ -60,6 +62,19 @@ final class AuthenticationManager {
         
         return AuthDataResultModel(user: user)
     }
+    
+    func getUser(id: String) async throws -> AuthDataResultModel {
+            let document = try await db.collection("users").document(id).getDocument()
+            guard let data = document.data() else {
+                throw URLError(.badServerResponse)
+            }
+            
+            let email = data["email"] as? String ?? ""
+            let photoUrl = data["photoUrl"] as? String ?? ""
+            let mockUser = MockUser(uid: id, email: email, photoURL: photoUrl)
+            
+            return AuthDataResultModel(mockUser: mockUser)
+        }
     
     func logInUser(email: String, password: String) async throws -> AuthDataResultModel {
         let authDataResult = try await Auth.auth().signIn(withEmail: email, password: password)
