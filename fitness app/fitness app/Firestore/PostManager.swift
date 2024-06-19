@@ -19,19 +19,22 @@ struct Post: Codable, Identifiable {
     let workoutSplit: String
     let workoutSplitEmoji: String
     var comments: [Comment]
+    let date: Date // Add this property
     
-    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment]) {
-         self.id = id
-         self.userId = userId
-         self.username = username
-         self.imageName = imageName
-         self.caption = caption
-         self.multiplePictures = multiplePictures
-         self.workoutSplit = workoutSplit
-         self.workoutSplitEmoji = workoutSplitEmoji
-         self.comments = comments
-     }
+    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date()) {
+        self.id = id
+        self.userId = userId
+        self.username = username
+        self.imageName = imageName
+        self.caption = caption
+        self.multiplePictures = multiplePictures
+        self.workoutSplit = workoutSplit
+        self.workoutSplitEmoji = workoutSplitEmoji
+        self.comments = comments
+        self.date = date
+    }
 }
+
 
 struct Comment: Codable, Identifiable {
     let id: UUID

@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  FitnessApp
-//
-//  Created by Harris Kim on 10/30/23.
-//
-
 import SwiftUI
 
 struct ContentView: View {

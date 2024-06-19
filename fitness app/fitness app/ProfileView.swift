@@ -1,117 +1,123 @@
 import SwiftUI
-import Charts
 
 struct ProfileView: View {
     @EnvironmentObject var userStore: UserStore
     @Binding var showSignInView: Bool
 
-    @State var posts = [Post]() // Using the same Post structure
-    @State var leaderboard = [LeaderboardEntryProfile(name: "JohnDoe", streak: 100), LeaderboardEntryProfile(name: "JaneDoe", streak: 200)]
-    @State var healthTracker = [HealthPlaceholderEntryProfile(metric: "Calories", value: 1200), HealthPlaceholderEntryProfile(metric: "Steps", value: 10000)]
-
-    @State private var selectedTab = 0
-    private let tabTitles = ["Posts", "Leaderboard", "Health Tracker"]
+    @State private var posts = [Post]() // Replace with your Post structure
+    @State private var leaderboard = [
+        LeaderboardEntry(username: "JohnDoe", streak: 30),
+        LeaderboardEntry(username: "JaneDoe", streak: 25),
+        LeaderboardEntry(username: "JimBeam", streak: 20)
+    ]
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 16) {
-                // Profile Picture and User Info
-                VStack(spacing: 8) {
-                    if let photoUrl = userStore.currentUser?.photoUrl, let url = URL(string: photoUrl) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFit()
-                            case .failure:
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                            @unknown default:
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
+            ScrollView { // Added ScrollView
+                VStack(spacing: 20) {
+                    // Profile Header
+                    VStack(alignment: .center, spacing: 10) {
+                        if let photoUrl = userStore.currentUser?.photoUrl, let url = URL(string: photoUrl) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                case .failure:
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                @unknown default:
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                }
                             }
-                        }
-                        .clipShape(Circle())
-                        .frame(width: 100, height: 100)
-                        .padding(.top)
-                    } else {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .scaledToFit()
                             .clipShape(Circle())
                             .frame(width: 100, height: 100)
                             .padding(.top)
-                    }
-
-                    Text(userStore.currentUser?.username ?? "Username")
-                        .font(.title)
-                        .fontWeight(.bold)
-
-                    Text(userStore.currentUser?.email ?? "Email not available")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-
-                    // Statistics Section
-                    HStack(spacing: 40) {
-                        VStack {
-                            Text("Streaks")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                            Text("4 weeks")
-                                .font(.headline)
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .clipShape(Circle())
+                                .frame(width: 100, height: 100)
+                                .padding(.top)
                         }
 
-                        VStack {
-                            Text("Friends")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                            Text("210")
-                                .font(.headline)
+                        Text(userStore.currentUser?.username ?? "Username")
+                            .font(.title)
+                            .fontWeight(.bold)
+
+                        Text(userStore.currentUser?.email ?? "Email not available")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        // Statistics Section with Placeholders
+                        HStack(spacing: 40) {
+                            VStack {
+                                Text("Streak")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Text("4 weeks") // Placeholder value
+                                    .font(.headline)
+                            }
+
+                            VStack {
+                                Text("Friends")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Text("210") // Placeholder value
+                                    .font(.headline)
+                            }
                         }
                     }
-                }
-                .padding(.top)
+                    .padding(.top)
 
-                // Tabs
-                Picker("Select Tab", selection: $selectedTab) {
-                    ForEach(0..<tabTitles.count, id: \.self) {
-                        Text(tabTitles[$0])
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.horizontal)
+                    // Calendar Layout for Gym Posts
+                    VStack(alignment: .leading) {
+                        Text("Gym Posts")
+                            .font(.headline)
+                            .padding(.leading)
 
-                // Content based on selected tab
-                if selectedTab == 0 {
-                    // Posts (Calendar)
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 16) {
-                        ForEach(posts) { post in
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.5)) // Placeholder for calendar days
-                                .frame(height: 50)
-                                .cornerRadius(10)
-                        }
+                        CalendarView(posts: posts)
                     }
                     .padding()
-                } else if selectedTab == 1 {
-                    // Leaderboard
-                    LeaderboardViewProfile(leaderboardData: leaderboard)
-                        .padding()
-                } else if selectedTab == 2 {
-                    // Health Tracker
-                    HealthViewProfile(healthDataModel: HealthDataModelProfile())
+
+                    // Leaderboard Section
+                    LeaderboardView(leaderboardData: leaderboard)
+                    .padding()
+
+                    // Diet and Calories Section
+                    VStack(alignment: .leading) {
+                        Text("Diet & Calories")
+                            .font(.headline)
+                            .padding(.leading)
+
+                        DietCaloriesView()
+                    }
+                    .padding()
+
+                    // Health Tracker Section
+                    VStack(alignment: .leading) {
+                        Text("Health Tracker")
+                            .font(.headline)
+                            .padding(.leading)
+
+                        HealthTrackerView()
+                    }
+                    .padding()
                 }
+                .padding(.horizontal) // Add horizontal padding to match the design
+                .edgesIgnoringSafeArea(.top) // Extend the view to the top edge
             }
-            .navigationTitle("Profile")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView(showSignInView: $showSignInView, userStore: userStore)) {
@@ -132,9 +138,6 @@ struct ProfileView: View {
             do {
                 if let currentUser = userStore.currentUser {
                     self.posts = try await PostManager.shared.getPosts(forUser: currentUser.userId)
-                    // Placeholder for now, replace with actual data fetching later
-                    // self.leaderboard = try await LeaderboardManager.shared.getEntries(forUser: currentUser.userId)
-                    // self.healthTracker = try await HealthTrackerManager.shared.getEntries(forUser: currentUser.userId)
                 }
             } catch {
                 print("Error fetching profile data: \(error)")
@@ -143,13 +146,183 @@ struct ProfileView: View {
     }
 }
 
-// Placeholder struct for HealthEntryProfile
-struct HealthPlaceholderEntryProfile: Identifiable {
-    let id = UUID()
-    let metric: String
-    let value: Int
+struct CalendarView: View {
+    let posts: [Post]
+    
+    // Generate a list of dates for the current month
+    private var dates: [Date] {
+        var dates: [Date] = []
+        let calendar = Calendar.current
+        let range = calendar.range(of: .day, in: .month, for: Date())!
+        for day in range {
+            if let date = calendar.date(bySetting: .day, value: day, of: Date()) {
+                dates.append(date)
+            }
+        }
+        return dates
+    }
+    
+    private func postForDate(_ date: Date) -> Post? {
+        return posts.first { Calendar.current.isDate($0.date, inSameDayAs: date) }
+    }
+    
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 16) {
+            ForEach(dates, id: \.self) { date in
+                if let post = postForDate(date) {
+                    AsyncImage(url: URL(string: post.imageName)) { phase in
+                        switch phase {
+                        case .empty:
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.5))
+                                .frame(height: 50)
+                                .cornerRadius(10)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 50)
+                                .cornerRadius(10)
+                        case .failure:
+                            Rectangle()
+                                .fill(Color.red.opacity(0.5))
+                                .frame(height: 50)
+                                .cornerRadius(10)
+                        @unknown default:
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.5))
+                                .frame(height: 50)
+                                .cornerRadius(10)
+                        }
+                    }
+                } else {
+                    Text("\(Calendar.current.component(.day, from: date))")
+                        .frame(height: 50)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.gray.opacity(0.5))
+                        .cornerRadius(10)
+                }
+            }
+        }
+        .padding()
+    }
 }
 
+struct LeaderboardEntry: Identifiable {
+    let id = UUID()
+    let username: String
+    let streak: Int
+}
+
+struct LeaderboardView: View {
+    let leaderboardData: [LeaderboardEntry]
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("Leaderboard")
+                .font(.headline)
+                .padding(.leading)
+
+            ForEach(leaderboardData) { entry in
+                HStack {
+                    Text(entry.username)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text("\(entry.streak) days")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                .padding(.vertical, 5)
+                .padding(.horizontal)
+                Divider()
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
+    }
+}
+
+struct DietCaloriesView: View {
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text("Calories")
+                    .font(.headline)
+                Spacer()
+                Text("1,690 Remaining")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+            }
+            .padding(.bottom, 5)
+            
+            Divider()
+            
+            HStack {
+                Text("Food")
+                    .font(.headline)
+                Spacer()
+                Text("0")
+                    .font(.subheadline)
+            }
+            .padding(.bottom, 5)
+            
+            HStack {
+                Text("Exercise")
+                    .font(.headline)
+                Spacer()
+                Text("0")
+                    .font(.subheadline)
+            }
+            .padding(.bottom, 5)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
+    }
+}
+
+struct HealthTrackerView: View {
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text("Steps")
+                    .font(.headline)
+                Spacer()
+                Text("3,848 / 10,000")
+                    .font(.subheadline)
+            }
+            .padding(.bottom, 5)
+            
+            Divider()
+            
+            HStack {
+                Text("Weight")
+                    .font(.headline)
+                Spacer()
+                Text("210 lbs")
+                    .font(.subheadline)
+            }
+            .padding(.bottom, 5)
+            
+            Divider()
+            
+            HStack {
+                Text("Exercise")
+                    .font(.headline)
+                Spacer()
+                Text("0 cal")
+                    .font(.subheadline)
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
+    }
+}
+
+// Preview
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
