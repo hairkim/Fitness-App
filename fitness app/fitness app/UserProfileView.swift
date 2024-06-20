@@ -7,115 +7,176 @@
 
 import SwiftUI
 
+@MainActor
+class ChatViewModel: ObservableObject {
+    @Published var chat: DBChat?
+    @Published var errorMessage: String?
+    
+    func checkAndCreateChat(user1: DBUser, user2: DBUser) async {
+        do {
+            if let existingChat = try await ChatManager.shared.getChatBetweenUsers(user1Id: user1.userId, user2Id: user2.userId) {
+                chat = existingChat
+            } else {
+                print("No chat exists between the users, creating a new one.")
+                var initial = ""
+                if let firstCharacter = user2.username.first {
+                    initial = String(firstCharacter).uppercased()
+                } else {
+                    print("couldnt find initial")
+                    initial = ""
+                }
+                let newChat = DBChat(
+                    participants: [user1.userId, user2.userId], name: user2.username, initials: initial, lastMessage: nil, profileImage: nil
+                )
+                print("New chat created successfully with ID: (newChat.id!)")
+                chat = newChat
+            }
+        } catch {
+            errorMessage = "Failed to create or fetch chat: \(error.localizedDescription)"
+        }
+    }
+}
+
 struct UserProfileView: View {
     @EnvironmentObject var userStore: UserStore
     
     let postUser: DBUser
     @State var posts = [Post]() // Using the same Post structure
+    
+    @StateObject private var chatViewModel = ChatViewModel()
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Profile Picture and User Info
-            VStack(spacing: 8) {
-                if let photoUrl = postUser.photoUrl, let url = URL(string: photoUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFit()
-                        case .failure:
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                        @unknown default:
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .scaledToFit()
+        NavigationStack {
+            VStack(spacing: 16) {
+                // Profile Picture and User Info
+                VStack(spacing: 8) {
+                    if let photoUrl = postUser.photoUrl, let url = URL(string: photoUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                            case .failure:
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            @unknown default:
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            }
                         }
-                    }
-                    .clipShape(Circle())
-                    .frame(width: 100, height: 100)
-                    .padding(.top)
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .scaledToFit()
                         .clipShape(Circle())
                         .frame(width: 100, height: 100)
                         .padding(.top)
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .clipShape(Circle())
+                            .frame(width: 100, height: 100)
+                            .padding(.top)
+                    }
+
+                    Text(postUser.username)
+                        .font(.title)
+                        .fontWeight(.bold)
+
+                    Text(postUser.email ?? "Email not available")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
+                .padding(.top)
+                
+                HStack {
+                    // Follow Button
+                    Button(action: {
+                        Task {
+                            await addFollower()
+                        }
+                    }) {
+                        Text("Follow")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                    }
+                    
+                    if let chat = chatViewModel.chat {
+                        NavigationLink(destination: ChatView(chat: chat)) {
+                            Text("Message")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                    } else {
+                        Button(action: {
+                            Task {
+                                await chatViewModel.checkAndCreateChat(user1: userStore.currentUser!, user2: postUser)
+                            }
+                        }) {
+                            Text("Message")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                    }
 
-                Text(postUser.username)
-                    .font(.title)
-                    .fontWeight(.bold)
-
-                Text(postUser.email ?? "Email not available")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            .padding(.top)
-
-            // Follow Button
-            Button(action: {
-                Task {
-                    await addFollower()
                 }
-            }) {
-                Text("Follow")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
-            }
-
-            // Posts (Grid Layout)
-            ScrollView {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                    ForEach(posts) { post in
-                        if let url = URL(string: post.imageName) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .empty:
-                                    Color.gray.opacity(0.5)
-                                        .frame(height: 150)
-                                        .cornerRadius(10)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(height: 150)
-                                        .clipped()
-                                        .cornerRadius(10)
-                                case .failure:
-                                    Color.gray.opacity(0.5)
-                                        .frame(height: 150)
-                                        .cornerRadius(10)
-                                @unknown default:
-                                    Color.gray.opacity(0.5)
-                                        .frame(height: 150)
-                                        .cornerRadius(10)
+            
+                // Posts (Grid Layout)
+                ScrollView {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
+                        ForEach(posts) { post in
+                            if let url = URL(string: post.imageName) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        Color.gray.opacity(0.5)
+                                            .frame(height: 150)
+                                            .cornerRadius(10)
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(height: 150)
+                                            .clipped()
+                                            .cornerRadius(10)
+                                    case .failure:
+                                        Color.gray.opacity(0.5)
+                                            .frame(height: 150)
+                                            .cornerRadius(10)
+                                    @unknown default:
+                                        Color.gray.opacity(0.5)
+                                            .frame(height: 150)
+                                            .cornerRadius(10)
+                                    }
                                 }
                             }
                         }
                     }
+                    .padding()
                 }
-                .padding()
-            }
 
-            Spacer()
-        }
-        .navigationTitle("Profile")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            fetchProfileData()
+                Spacer()
+            }
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                fetchProfileData()
+            }
         }
     }
 
@@ -141,6 +202,8 @@ struct UserProfileView: View {
             }
         }
     }
+    
+    
 }
 
 struct UserProfileView_Previews: PreviewProvider {

@@ -24,15 +24,22 @@ struct DBChat: Codable, Identifiable {
         self.initials = initials
         self.lastMessage = lastMessage
         self.timestamp = timestamp
-        self.profileImage = profileImage
-    }
+        self.profileImage = profileImage    }
 }
 
 struct DBMessage: Codable, Identifiable {
     @DocumentID var id: String?
+    let chatId: String
     let senderId: String
     let text: String
     let timestamp: Timestamp
+    
+    init(chatId: String, senderId: String, text: String, timestamp: Timestamp = Timestamp()) {
+        self.chatId = chatId
+        self.senderId = senderId
+        self.text = text
+        self.timestamp = timestamp
+    }
 }
 
 final class ChatManager {
@@ -54,13 +61,12 @@ final class ChatManager {
         try chatCollection.addDocument(from: chat, encoder: Firestore.Encoder())
     }
     
-    func sendMessage(chatId: String, senderId: String, text: String) async throws {
-        let message = DBMessage(senderId: senderId, text: text, timestamp: Timestamp(date: Date()))
-        try messagesCollection(chatId: chatId).addDocument(from: message, encoder: Firestore.Encoder())
+    func sendMessage(message: DBMessage) async throws {
+        try messagesCollection(chatId: message.chatId).addDocument(from: message, encoder: Firestore.Encoder())
         
         // Update last message in chat document
-        try await chatDocument(chatId: chatId).updateData([
-            "lastMessage": text,
+        try await chatDocument(chatId: message.chatId).updateData([
+            "lastMessage": message.text,
             "timestamp": Timestamp(date: Date())
         ])
     }
@@ -74,4 +80,20 @@ final class ChatManager {
         let snapshot = try await messagesCollection(chatId: chatId).order(by: "timestamp").getDocuments()
         return try snapshot.documents.compactMap { try $0.data(as: DBMessage.self) }
     }
+    
+    func getChatBetweenUsers(user1Id: String, user2Id: String) async throws -> DBChat? {
+        let snapshot = try await chatCollection
+            .whereField("participants", arrayContains: user1Id)
+            .getDocuments()
+
+        for document in snapshot.documents {
+            if let chat = try? document.data(as: DBChat.self),
+               chat.participants.contains(user2Id) {
+                return chat
+            }
+        }
+
+        return nil // No chat found between the users
+    }
+
 }

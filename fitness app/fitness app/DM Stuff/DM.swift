@@ -186,33 +186,6 @@ struct DMHomeView: View {
         .navigationViewStyle(StackNavigationViewStyle())
     }
 
-    private func startNewChat(reciever: DBUser) async {
-        guard let currentUser = userStore.currentUser else {
-            print("no current user found")
-            return
-        }
-        do {
-            let participants = [currentUser.username, reciever.username]
-            var initial = ""
-            if let firstCharacter = reciever.username.first {
-                initial = String(firstCharacter).uppercased()
-            } else {
-                print("could not find reciever's initial")
-                initial = ""
-            }
-            let newChat = DBChat(
-                participants: participants,
-                name: reciever.username,
-                initials: initial,
-                lastMessage: nil,
-                profileImage: nil
-            )
-            
-            try await ChatManager.shared.createNewChat(chat: newChat)
-        } catch {
-            print("Error creating new chat: \(error.localizedDescription)")
-        }
-    }
     
     private func fetchChats() async {
         guard let currentUser = userStore.currentUser else {
