@@ -39,14 +39,14 @@ struct ProfileView: View {
                                 }
                             }
                             .clipShape(Circle())
-                            .frame(width: 100, height: 100)
+                            .frame(width: 120, height: 120) // Slightly larger profile picture
                             .padding(.top)
                         } else {
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()
                                 .scaledToFit()
                                 .clipShape(Circle())
-                                .frame(width: 100, height: 100)
+                                .frame(width: 120, height: 120) // Slightly larger profile picture
                                 .padding(.top)
                         }
 
@@ -175,31 +175,32 @@ struct CalendarView: View {
                         case .empty:
                             Rectangle()
                                 .fill(Color.gray.opacity(0.5))
-                                .frame(height: 50)
+                                .frame(width: 40, height: 50)
                                 .cornerRadius(10)
                         case .success(let image):
                             image
                                 .resizable()
-                                .scaledToFill()
-                                .frame(height: 50)
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 40, height: 50)
+                                .clipped()
                                 .cornerRadius(10)
                         case .failure:
                             Rectangle()
                                 .fill(Color.red.opacity(0.5))
-                                .frame(height: 50)
+                                .frame(width: 40, height: 50)
                                 .cornerRadius(10)
                         @unknown default:
                             Rectangle()
                                 .fill(Color.gray.opacity(0.5))
-                                .frame(height: 50)
+                                .frame(width: 40, height: 50)
                                 .cornerRadius(10)
                         }
                     }
                 } else {
                     Text("\(Calendar.current.component(.day, from: date))")
-                        .frame(height: 50)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.5))
+                        .font(.system(size: 14, weight: .medium)) // Adjust font size
+                        .frame(width: 40, height: 50)
+                        .background(Color.gray.opacity(0.2)) // Slightly lighter background color
                         .cornerRadius(10)
                 }
             }
