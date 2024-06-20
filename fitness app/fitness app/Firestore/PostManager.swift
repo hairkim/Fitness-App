@@ -19,9 +19,8 @@ struct Post: Codable, Identifiable {
     let workoutSplit: String
     let workoutSplitEmoji: String
     var comments: [Comment]
-    let date: Date // Add this property
     
-    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date()) {
+    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment]) {
         self.id = id
         self.userId = userId
         self.username = username
@@ -31,10 +30,8 @@ struct Post: Codable, Identifiable {
         self.workoutSplit = workoutSplit
         self.workoutSplitEmoji = workoutSplitEmoji
         self.comments = comments
-        self.date = date
     }
 }
-
 
 struct Comment: Codable, Identifiable {
     let id: UUID
@@ -47,7 +44,6 @@ struct Comment: Codable, Identifiable {
         self.text = text
     }
 }
-
 
 final class PostManager {
     
@@ -62,8 +58,8 @@ final class PostManager {
     
     func createNewPost(post: Post) async throws {
         print("PostManager.createNewPost called")
-            try postDocument(postId: post.id).setData(from: post, merge: false, encoder: Firestore.Encoder())
-        }
+        try postDocument(postId: post.id).setData(from: post, merge: false, encoder: Firestore.Encoder())
+    }
     
     func getPosts() async throws -> [Post] {
         print("getPosts called")
@@ -105,4 +101,3 @@ final class PostManager {
         return post.comments
     }
 }
-
