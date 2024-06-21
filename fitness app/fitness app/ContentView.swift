@@ -541,111 +541,134 @@ struct CustomPostView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Circle()
-                    .stroke(Color.indigo, lineWidth: 2)
-                    .frame(width: 32, height: 32)
-                
-                NavigationLink(destination: UserProfileView(postUser: postUser)) {
-                    Text(post.username)
-                        .font(.headline)
-                        .foregroundColor(Color(.darkGray))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .stroke(Color.indigo, lineWidth: 2)
+                        .frame(width: 32, height: 32)
+                    
+                    NavigationLink(destination: UserProfileView(postUser: postUser)) {
+                        Text(post.username)
+                            .font(.headline)
+                            .foregroundColor(Color(.darkGray))
+                    }
+                    
+                    if post.multiplePictures {
+                        Text("📷")
+                            .font(.headline)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        print("More options button tapped")
+                    }) {
+                        Image(systemName: "ellipsis")
+                            .foregroundColor(Color(.darkGray))
+                    }
                 }
-                
-                if post.multiplePictures {
-                    Text("📷")
-                        .font(.headline)
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    print("More options button tapped")
-                }) {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(Color(.darkGray))
-                }
-            }
 
-            ZStack(alignment: .topTrailing) {
-                if let url = URL(string: post.imageName) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            Image(systemName: "x.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(maxHeight: 400)
-                                .clipped()
-                                .cornerRadius(20)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .stroke(Color.gray, lineWidth: 1)
-                                )
-                        case .failure:
-                            Image(systemName: "photo")
-                                .resizable()
-                                .scaledToFit()
-                        @unknown default:
-                            Image(systemName: "x.circle.fill")
-                                .resizable()
-                                .scaledToFit()
+                ZStack(alignment: .topTrailing) {
+                    if let url = URL(string: post.imageName) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                Image(systemName: "x.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(maxHeight: 400)
+                                    .clipped()
+                                    .cornerRadius(20)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(Color.gray, lineWidth: 1)
+                                    )
+                            case .failure:
+                                Image(systemName: "photo")
+                                    .resizable()
+                                    .scaledToFit()
+                            @unknown default:
+                                Image(systemName: "x.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            }
                         }
                     }
+                    
+                    HStack {
+                        Text(post.workoutSplit)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(6)
+                            .background(getColorForWorkoutSplit(post.workoutSplit))
+                            .cornerRadius(10)
+                        
+                        Text(post.workoutSplitEmoji)
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .padding(6)
+                            .background(getColorForWorkoutSplit(post.workoutSplit))
+                            .cornerRadius(10)
+                    }
+                    .offset(x: -10, y: 10)
                 }
+
+                Text(post.caption)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, -15) // Reduce bottom padding
                 
                 HStack {
-                    Text(post.workoutSplit)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(6)
-                        .background(getColorForWorkoutSplit(post.workoutSplit))
-                        .cornerRadius(10)
+                    HStack(spacing: 20) {
+                        Button(action: {
+                            withAnimation {
+                                self.isLiked.toggle()
+                            }
+                        }) {
+                            Image(systemName: "dumbbell")
+                                .resizable()
+                                .frame(width: 25, height: 25)
+                                .foregroundColor(isLiked ? .green : Color(.darkGray))
+                        }
+                        
+                        Button(action: {
+                            withAnimation {
+                                self.isCommenting.toggle()
+                            }
+                        }) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .resizable()
+                                .frame(width: 25, height: 25)
+                                .foregroundColor(Color(.darkGray))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .background(Circle().fill(Color.white).shadow(radius: 10))
+                    }
                     
-                    Text(post.workoutSplitEmoji)
+                    Spacer()
+                    
+                    Text(formatTimestamp(post.date))
                         .font(.caption)
-                        .foregroundColor(.white)
-                        .padding(6)
-                        .background(getColorForWorkoutSplit(post.workoutSplit))
-                        .cornerRadius(10)
+                        .foregroundColor(.gray)
                 }
-                .offset(x: -10, y: 10)
-            }
-
-            HStack(spacing: 20) {
-                Button(action: {
-                    withAnimation {
-                        self.isLiked.toggle()
-                    }
-                }) {
-                    Image(systemName: "dumbbell")
-                        .resizable()
-                        .frame(width: 25, height: 25)
-                        .foregroundColor(isLiked ? .green : Color(.darkGray))
-                }
-                
-                Button(action: {
-                    withAnimation {
-                        self.isCommenting.toggle()
-                    }
-                }) {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                        .resizable()
-                        .frame(width: 25, height: 25)
-                        .foregroundColor(Color(.darkGray))
-                }
-            }
-            .padding(.horizontal, 16)
-
-            Text(post.caption)
-                .foregroundColor(.primary)
                 .padding(.horizontal, 16)
-            
+                .padding(.bottom, 4) // Adjusted padding for better spacing
+            }
+            .padding(8)
+            .background(Color.white)
+            .cornerRadius(20)
+            .shadow(radius: 5)
+            .onAppear {
+                Task {
+                    await loadPostUser()
+                }
+            }
+
             if comments.count > 1 {
                 Button(action: {
                     withAnimation {
@@ -656,6 +679,7 @@ struct CustomPostView: View {
                         .font(.caption)
                         .foregroundColor(.blue)
                         .padding(.horizontal, 16)
+                        .padding(.top, 8)
                 }
             }
 
@@ -716,15 +740,6 @@ struct CustomPostView: View {
                 .padding(.vertical, 8)
             }
         }
-        .padding(8)
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(radius: 5)
-        .onAppear {
-            Task {
-                await loadPostUser()
-            }
-        }
     }
     
     private func loadPostUser() async {
@@ -766,13 +781,22 @@ struct CustomPostView: View {
     
     private func fetchPostComments(postId: UUID) async {
         do {
-            comments = try await PostManager.shared.getComments(postId: postId)
+            comments = try await PostManager.shared.getComments(postId: post.id)
             print("comments fetched successfully")
         } catch {
             print("error fetching comments \(error)")
         }
     }
+
+    private func formatTimestamp(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .short
+        dateFormatter.timeStyle = .short
+        return dateFormatter.string(from: date)
+    }
 }
+
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
