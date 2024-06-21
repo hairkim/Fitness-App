@@ -57,18 +57,28 @@ final class ChatManager {
         chatDocument(chatId: chatId).collection("messages")
     }
     
+    private func messagesDocument(chatId: String, messageId: String) -> DocumentReference {
+        messagesCollection(chatId: chatId).document(messageId)
+    }
+    
     func createNewChat(chat: DBChat) async throws {
-        try chatCollection.addDocument(from: chat, encoder: Firestore.Encoder())
+        let chatId = chatCollection.document().documentID
+        var chatWithId = chat
+        chatWithId.id = chatId
+        try chatDocument(chatId: chatId).setData(from: chatWithId, merge: false, encoder: Firestore.Encoder())
     }
     
     func sendMessage(message: DBMessage) async throws {
-        try messagesCollection(chatId: message.chatId).addDocument(from: message, encoder: Firestore.Encoder())
-        
-        // Update last message in chat document
-        try await chatDocument(chatId: message.chatId).updateData([
-            "lastMessage": message.text,
-            "timestamp": Timestamp(date: Date())
-        ])
+        let messageId = messagesCollection(chatId: message.chatId).document().documentID
+       var messageWithId = message
+       messageWithId.id = messageId
+       try messagesDocument(chatId: message.chatId, messageId: messageId).setData(from: messageWithId, encoder: Firestore.Encoder())
+       
+       // Update last message in chat document
+       try await chatDocument(chatId: message.chatId).updateData([
+           "lastMessage": message.text,
+           "timestamp": Timestamp(date: Date())
+       ])
     }
     
     func getChats(for userId: String) async throws -> [DBChat] {

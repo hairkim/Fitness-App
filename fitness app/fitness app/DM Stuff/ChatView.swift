@@ -102,7 +102,7 @@ struct ChatView: View {
             HStack {
                 TextField("Type your message...", text: $messageText, onCommit: {
                     Task {
-                        await self.sendMessage()
+                        await sendMessage()
                     }
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -111,7 +111,7 @@ struct ChatView: View {
 
                 Button(action: {
                     Task {
-                        await self.sendMessage()
+                        await sendMessage()
                     }
                 }) {
                     Image(systemName: "paperplane.fill")
@@ -139,10 +139,12 @@ struct ChatView: View {
             return
         }
         do {
-            let newMessage = DBMessage(chatId: chat.id!, senderId: currentUser.userId, text: messageText)
-            
-            try await ChatManager.shared.sendMessage(message: newMessage)
-            await fetchMessages()
+            if let chatId = chat.id {
+                let newMessage = DBMessage(chatId: chatId, senderId: currentUser.userId, text: messageText)
+                
+                try await ChatManager.shared.sendMessage(message: newMessage)
+                await fetchMessages()
+            }
         } catch {
             print("error sending message: \(error)")
         }
@@ -150,7 +152,12 @@ struct ChatView: View {
     
     private func fetchMessages() async {
         do {
-            self.messages = try await ChatManager.shared.getMessages(for: chat.id!)
+            if let id = chat.id {
+                self.messages = try await ChatManager.shared.getMessages(for: id)
+            } else {
+                print("no chat id found")
+                return
+            }
             print("messages fetched")
         } catch {
             print("Error fetching messages: \(error)")

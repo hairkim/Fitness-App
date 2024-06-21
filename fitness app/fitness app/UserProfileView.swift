@@ -28,7 +28,10 @@ class ChatViewModel: ObservableObject {
                 let newChat = DBChat(
                     participants: [user1.userId, user2.userId], name: user2.username, initials: initial, lastMessage: nil, profileImage: nil
                 )
-                print("New chat created successfully with ID: (newChat.id!)")
+                try await ChatManager.shared.createNewChat(chat: newChat)
+                if let chatId = newChat.id {
+                    print("New chat created successfully with ID: \(chatId)")
+                }
                 chat = newChat
             }
         } catch {
@@ -44,6 +47,8 @@ struct UserProfileView: View {
     @State var posts = [Post]() // Using the same Post structure
     
     @StateObject private var chatViewModel = ChatViewModel()
+    
+    @State private var showChatView = false
 
     var body: some View {
         NavigationStack {
@@ -110,28 +115,34 @@ struct UserProfileView: View {
                             .cornerRadius(10)
                     }
                     
-                    if let chat = chatViewModel.chat {
-                        NavigationLink(destination: ChatView(chat: chat)) {
-                            Text("Message")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(10)
-                        }
-                    } else {
-                        Button(action: {
-                            Task {
-                                await chatViewModel.checkAndCreateChat(user1: userStore.currentUser!, user2: postUser)
+//                    if let chat = chatViewModel.chat {
+//                        NavigationLink(destination: ChatView(chat: chat)) {
+//                            Text("Message")
+//                                .font(.headline)
+//                                .foregroundColor(.white)
+//                                .padding()
+//                                .background(Color.blue)
+//                                .cornerRadius(10)
+//                        }
+//                    } else {
+//                        
+//                    }
+                    Button(action: {
+                        Task {
+                            if let currentUser = userStore.currentUser {
+                                await chatViewModel.checkAndCreateChat(user1: currentUser, user2: postUser)
+                                showChatView = true
+                            } else {
+                                print("could not find current user")
                             }
-                        }) {
-                            Text("Message")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(10)
                         }
+                    }) {
+                        Text("Message")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(10)
                     }
 
                 }
@@ -176,6 +187,11 @@ struct UserProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 fetchProfileData()
+            }
+            .fullScreenCover(isPresented: $showChatView) {
+                if let chat = chatViewModel.chat {
+                    ChatView(chat: chat)
+                }
             }
         }
     }
