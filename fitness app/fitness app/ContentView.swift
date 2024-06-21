@@ -159,6 +159,7 @@ struct ContentView: View {
                     .padding()
                 }
             }
+            .background(Color.white)
             .navigationTitle("")
         }
     }
@@ -225,8 +226,10 @@ struct ContentView: View {
     
     private func fetchPosts() async {
         do {
-            self.posts = try await PostManager.shared.getPosts()
-            print("Posts fetched")
+            var fetchedPosts = try await PostManager.shared.getPosts()
+            fetchedPosts.sort { $0.date > $1.date } // Sort posts by date in descending order
+            self.posts = fetchedPosts
+            print("Posts fetched and sorted")
         } catch {
             print("Error fetching posts: \(error)")
         }
@@ -770,7 +773,7 @@ struct CustomPostView: View {
     
     private func addComment(postId: UUID, username: String, text: String) async {
         do {
-            try await PostManager.shared.addComment(postId: postId, username: username, comment: text)
+            try await PostManager.shared.addComment(postId: post.id, username: username, comment: text)
             commentText = ""
             isCommenting = false
             await fetchPostComments(postId: post.id)
@@ -795,8 +798,6 @@ struct CustomPostView: View {
         return dateFormatter.string(from: date)
     }
 }
-
-
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
