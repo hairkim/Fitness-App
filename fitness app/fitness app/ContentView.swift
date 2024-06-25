@@ -620,12 +620,8 @@ struct CustomPostView: View {
                     }
                     .offset(x: -10, y: 10)
                 }
-
-                Text(post.caption)
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, -15) // Reduce bottom padding
                 
+                // Move caption text below like and comment buttons
                 HStack {
                     HStack(spacing: 20) {
                         Button(action: {
@@ -661,6 +657,83 @@ struct CustomPostView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 4) // Adjusted padding for better spacing
+
+                Text(post.caption)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4) // Adjusted padding for better spacing
+                
+                // Comment section
+                if comments.count > 1 {
+                    Button(action: {
+                        withAnimation {
+                            showComments.toggle()
+                        }
+                    }) {
+                        Text(showComments ? "Hide comments" : "View comments")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 4)
+                    }
+                }
+                
+                if showComments {
+                    ForEach(comments) { comment in
+                        HStack {
+                            Text("\(comment.username): \(comment.text)")
+                                .padding(.horizontal, 16)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                deleteComment(comment)
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .padding(.trailing, 16)
+                        }
+                    }
+                } else if comments.count == 1, let firstComment = comments.first {
+                    HStack {
+                        Text("\(firstComment.username): \(firstComment.text)")
+                            .padding(.horizontal, 16)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            deleteComment(firstComment)
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .padding(.trailing, 16)
+                    }
+                }
+                
+                if isCommenting {
+                    HStack {
+                        TextField("Write a comment...", text: $commentText, onCommit: {
+                            Task {
+                                await addComment(postId: post.id, username: post.username, text: commentText)
+                            }
+                        })
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Button(action: {
+                            Task {
+                                await addComment(postId: post.id, username: post.username, text: commentText)
+                            }
+                        }) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .foregroundColor(.blue)
+                                .imageScale(.large)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
             }
             .padding(8)
             .background(Color.white)
@@ -670,77 +743,6 @@ struct CustomPostView: View {
                 Task {
                     await loadPostUser()
                 }
-            }
-
-            if comments.count > 1 {
-                Button(action: {
-                    withAnimation {
-                        showComments.toggle()
-                    }
-                }) {
-                    Text(showComments ? "Hide comments" : "View comments")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                }
-            }
-
-            if showComments {
-                ForEach(comments) { comment in
-                    HStack {
-                        Text("\(comment.username): \(comment.text)")
-                            .padding(.horizontal, 16)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            deleteComment(comment)
-                        }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                        }
-                        .padding(.trailing, 16)
-                    }
-                }
-            } else if comments.count == 1, let firstComment = comments.first {
-                HStack {
-                    Text("\(firstComment.username): \(firstComment.text)")
-                        .padding(.horizontal, 16)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        deleteComment(firstComment)
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .padding(.trailing, 16)
-                }
-            }
-            
-            if isCommenting {
-                HStack {
-                    TextField("Write a comment...", text: $commentText, onCommit: {
-                        Task {
-                            await addComment(postId: post.id, username: post.username, text: commentText)
-                        }
-                    })
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    Button(action: {
-                        Task {
-                            await addComment(postId: post.id, username: post.username, text: commentText)
-                        }
-                    }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .foregroundColor(.blue)
-                            .imageScale(.large)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
         }
     }
@@ -798,6 +800,7 @@ struct CustomPostView: View {
         return dateFormatter.string(from: date)
     }
 }
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
