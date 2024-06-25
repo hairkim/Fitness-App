@@ -8,31 +8,6 @@
 import SwiftUI
 import Foundation
 
-// Models
-
-struct Chat: Identifiable {
-    let id = UUID()
-    let name: String
-    let initials: String
-    var lastMessage: String
-    var timestamp: String
-    var profileImage: String? // URL to the profile image
-    var messages: [Message]
-}
-
-struct Message: Identifiable {
-    let id = UUID()
-    let text: String
-    let isCurrentUser: Bool
-    let senderColor: Color
-}
-
-struct Friend: Identifiable {
-    let id = UUID()
-    let name: String
-    let initials: String
-    let workoutStatus: String
-}
 
 // Custom Colors
 extension Color {
@@ -47,17 +22,6 @@ extension Color {
 struct DMHomeView: View {
     @EnvironmentObject var userStore: UserStore
     @Binding var showDMHomeView: Bool
-//    @State private var chats: [Chat] = [
-//        Chat(name: "John Doe", initials: "JD", lastMessage: "Hey there!", timestamp: "5:11 PM", profileImage: nil, messages: [
-//            Message(text: "Hello!", isCurrentUser: false, senderColor: .blue)
-//        ]),
-//        Chat(name: "Jane Smith", initials: "JS", lastMessage: "How's it going?", timestamp: "4:48 PM", profileImage: nil, messages: [
-//            Message(text: "Hi!", isCurrentUser: false, senderColor: .green)
-//        ]),
-//        Chat(name: "Bob Brown", initials: "BB", lastMessage: "Okok", timestamp: "1:39 PM", profileImage: nil, messages: []),
-//        Chat(name: "Alice Johnson", initials: "AJ", lastMessage: "Attachment: 1 Image", timestamp: "1:25 PM", profileImage: nil, messages: []),
-//        Chat(name: "Charlie Davis", initials: "CD", lastMessage: "Thys grinding grinding", timestamp: "Yesterday", profileImage: nil, messages: [])
-//    ]
     @State private var chats = [DBChat]()
     @State private var showFindFriendsView = false
     @State private var searchText = ""
@@ -105,69 +69,64 @@ struct DMHomeView: View {
                 }
                 .padding(.bottom, 10)
                 
-                ScrollView {
-                    VStack(spacing: 15) {
-                        ForEach(chats.filter { searchText.isEmpty ? true : $0.name.lowercased().contains(searchText.lowercased()) }) { chat in
-//                            NavigationLink(destination: ChatView(chat: chat)) {
-                                VStack {
-                                    HStack(spacing: 12) {
-                                        if let profileImage = chat.profileImage, !profileImage.isEmpty {
-                                            Image(profileImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
+                List {
+                    ForEach(chats.filter { searchText.isEmpty ? true : $0.name.lowercased().contains(searchText.lowercased()) }) { chat in
+                        NavigationLink(destination: ChatView(chat: chat)) {
+                            VStack {
+                                HStack(spacing: 12) {
+                                    if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                                        Image(profileImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 55, height: 55)
+                                            .clipShape(Circle())
+                                    } else {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.gymAccent.opacity(0.2))
                                                 .frame(width: 55, height: 55)
-                                                .clipShape(Circle())
-                                        } else {
-                                            ZStack {
-                                                Circle()
-                                                    .fill(Color.gymAccent.opacity(0.2))
-                                                    .frame(width: 55, height: 55)
-                                                VStack {
-                                                    Text(chat.initials)
-                                                        .font(.headline)
-                                                        .foregroundColor(.gymPrimary)
-                                                    Image(systemName: "figure.walk")
-                                                        .resizable()
-                                                        .scaledToFit()
-                                                        .frame(width: 13, height: 13)
-                                                        .foregroundColor(.gymAccent)
-                                                }
+                                            VStack {
+                                                Text(chat.name.prefix(1)) // Assuming initials are the first character of the name
+                                                    .font(.headline)
+                                                    .foregroundColor(.gymPrimary)
+                                                Image(systemName: "figure.walk")
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(width: 13, height: 13)
+                                                    .foregroundColor(.gymAccent)
                                             }
                                         }
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            HStack {
-                                                Text(chat.name)
-                                                    .font(.system(size: 17, weight: .bold))
-                                                    .foregroundColor(.gymPrimary)
-                                                
-                                                Spacer()
-                                                
-//                                                Text(chat.timestamp)
-//                                                    .font(.system(size: 13))
-//                                                    .foregroundColor(.gray)
-                                            }
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Text(chat.name)
+                                                .font(.system(size: 17, weight: .bold))
+                                                .foregroundColor(.gymPrimary)
                                             
-                                            Text(chat.lastMessage ?? "")
-                                                .font(.system(size: 15))
+                                            Spacer()
+                                            
+                                            // Assuming `timestamp` is a `Timestamp` object, you need to format it for display
+                                            Text(chat.timestamp.dateValue(), style: .time)
+                                                .font(.system(size: 13))
                                                 .foregroundColor(.gray)
                                         }
                                         
-                                        Spacer()
-                                        
-                                        Image(systemName: "dumbbell.fill")
-                                            .foregroundColor(.gymSecondary)
+                                        Text(chat.lastMessage ?? "")
+                                            .font(.system(size: 15))
+                                            .foregroundColor(.gray)
                                     }
-                                    .padding(.vertical, 16)
-                                    .padding(.horizontal, 16)
-//                                }
-//                                .background(Color.gymBackground)
-//                                .cornerRadius(12)
-//                                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "dumbbell.fill")
+                                        .foregroundColor(.gymSecondary)
+                                }
+                                .padding(.vertical, 16)
+                                .padding(.horizontal, 16)
                             }
                         }
                     }
-                    .padding(.horizontal, 10)
                 }
                 .background(Color.clear)
             }
@@ -175,15 +134,15 @@ struct DMHomeView: View {
 //            .sheet(isPresented: $showFindFriendsView) {
 //                FindFriendsView(startNewChat: startNewChat)
 //            }
-            .onAppear {
-                Task {
-                    await fetchChats()
-                }
-            }
             .navigationBarTitle("")
             .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .onAppear {
+            Task {
+                await fetchChats()
+            }
+        }
     }
 
     
@@ -209,4 +168,3 @@ struct DMHomeView_Previews: PreviewProvider {
             .environmentObject(userStore)
     }
 }
-

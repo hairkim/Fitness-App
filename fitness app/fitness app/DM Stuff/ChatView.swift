@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 // ChatView
 
@@ -15,6 +16,7 @@ struct ChatView: View {
     @State var chat: DBChat
     @State private var messageText = ""
     @State var messages = [DBMessage]()
+    @State private var messagesListener: ListenerRegistration?
     
     var body: some View {
         VStack {
@@ -40,7 +42,8 @@ struct ChatView: View {
                             Circle()
                                 .fill(Color.gymAccent.opacity(0.2))
                                 .frame(width: 50, height: 50)
-                            Text(chat.initials)
+                            let initial = userStore.currentUser?.username.initial() ?? ""
+                            Text(initial)
                                 .font(.headline)
                                 .foregroundColor(.gymPrimary)
                         }
@@ -126,9 +129,10 @@ struct ChatView: View {
         .navigationBarHidden(true)
         .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
         .onAppear {
-            Task {
-                await fetchMessages()
-            }
+            addMessagesListener()
+        }
+        .onDisappear {
+            removeMessagesListener()
         }
     }
 
@@ -164,6 +168,36 @@ struct ChatView: View {
         }
     }
     
+    private func addMessagesListener() {
+        guard let chatId = chat.id else { return }
+        print("Setting up listener for chat ID: (chatId)")
+        messagesListener = ChatManager.shared.addMessagesListener(chatId: chatId) { messages, error in
+            if let error = error {
+                print("Error listening for messages: (error)")
+                return
+            }
+            guard let messages = messages else {
+                print("No messages in collection")
+                return
+            }
+            self.messages = messages
+            print("Messages updated: (self.messages)")
+        }
+    }
+
+    private func removeMessagesListener() {
+        messagesListener?.remove()
+        messagesListener = nil
+        print("successfully removed listener")
+    }
+    
+}
+
+extension String {
+    func initial() -> String {
+        guard let firstCharacter = self.first else { return "" }
+        return String(firstCharacter).uppercased()
+    }
 }
 
 struct ChatView_Previews: PreviewProvider {
@@ -171,7 +205,6 @@ struct ChatView_Previews: PreviewProvider {
         let newChat = DBChat(
             participants: [],
             name: "mock user",
-            initials: "M",
             lastMessage: nil,
             profileImage: nil
         )

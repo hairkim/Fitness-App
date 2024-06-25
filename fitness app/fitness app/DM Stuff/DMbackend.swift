@@ -13,15 +13,13 @@ struct DBChat: Codable, Identifiable {
     @DocumentID var id: String?
     let participants: [String]
     let name: String
-    let initials: String
     var lastMessage: String?
     var timestamp: Timestamp
     var profileImage: String? // URL to the profile image
     
-    init(participants: [String], name: String, initials: String, lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
+    init(participants: [String], name: String, lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
         self.participants = participants
         self.name = name
-        self.initials = initials
         self.lastMessage = lastMessage
         self.timestamp = timestamp
         self.profileImage = profileImage    }
@@ -104,6 +102,23 @@ final class ChatManager {
         }
 
         return nil // No chat found between the users
+    }
+    
+    func addMessagesListener(chatId: String, completion: @escaping ([DBMessage]?, Error?) -> Void) -> ListenerRegistration {
+        return messagesCollection(chatId: chatId)
+            .order(by: "timestamp")
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    completion(nil, error)
+                    return
+                }
+                guard let documents = snapshot?.documents else {
+                    completion(nil, nil)
+                    return
+                }
+                let messages = documents.compactMap { try? $0.data(as: DBMessage.self) }
+                completion(messages, nil)
+            }
     }
 
 }

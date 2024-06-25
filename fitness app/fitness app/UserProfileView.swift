@@ -18,15 +18,8 @@ class ChatViewModel: ObservableObject {
                 chat = existingChat
             } else {
                 print("No chat exists between the users, creating a new one.")
-                var initial = ""
-                if let firstCharacter = user2.username.first {
-                    initial = String(firstCharacter).uppercased()
-                } else {
-                    print("couldnt find initial")
-                    initial = ""
-                }
                 let newChat = DBChat(
-                    participants: [user1.userId, user2.userId], name: user2.username, initials: initial, lastMessage: nil, profileImage: nil
+                    participants: [user1.userId, user2.userId], name: user2.username, lastMessage: nil, profileImage: nil
                 )
                 try await ChatManager.shared.createNewChat(chat: newChat)
                 if let chatId = newChat.id {
