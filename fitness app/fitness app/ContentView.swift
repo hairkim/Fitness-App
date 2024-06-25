@@ -23,7 +23,6 @@ struct ContentView: View {
         }
         .onAppear {
             checkAuthStatus()
-            print(showSignInView)
             Task {
                 await fetchPosts()
             }
@@ -201,23 +200,21 @@ struct ContentView: View {
                 if let dbUser = try? await UserManager.shared.getUser(userId: authUser.uid) {
                     await MainActor.run {
                         userStore.setCurrentUser(user: dbUser)
-                        print("successfully set current user")
                         showSignInView = false
                         
                         // Check if the user has already confirmed rotation
-                        if !UserDefaults.standard.bool(forKey: "hasConfirmedRotation") {
+                        let rotationConfirmedKey = "hasConfirmedRotation-\(authUser.uid)"
+                        if !UserDefaults.standard.bool(forKey: rotationConfirmedKey) {
                             showRotationPage = true
                         }
                     }
                 } else {
                     await MainActor.run {
-                        print("could not get dbUser")
                         showSignInView = true
                     }
                 }
             } else {
                 await MainActor.run {
-                    print("could not get auth user")
                     showSignInView = true
                 }
             }
@@ -229,7 +226,6 @@ struct ContentView: View {
             var fetchedPosts = try await PostManager.shared.getPosts()
             fetchedPosts.sort { $0.date > $1.date } // Sort posts by date in descending order
             self.posts = fetchedPosts
-            print("Posts fetched and sorted")
         } catch {
             print("Error fetching posts: \(error)")
         }
@@ -495,7 +491,9 @@ struct RotationFinalConfirmationView: View {
             
             Button(action: {
                 storeSelectedDates()
-                UserDefaults.standard.set(true, forKey: "hasConfirmedRotation")
+                if let currentUserId = userStore.currentUser?.id {
+                    UserDefaults.standard.set(true, forKey: "hasConfirmedRotation-\(currentUserId)")
+                }
                 showRotationPage = false
             }) {
                 Text("Confirm")
@@ -519,7 +517,9 @@ struct RotationFinalConfirmationView: View {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let selectedDatesStrings = selectedDates.map { dateFormatter.string(from: $0) }
-        UserDefaults.standard.set(selectedDatesStrings, forKey: "selectedWorkoutDates")
+        if let currentUserId = userStore.currentUser?.id {
+            UserDefaults.standard.set(selectedDatesStrings, forKey: "selectedWorkoutDates-\(currentUserId)")
+        }
     }
 }
 
@@ -801,7 +801,6 @@ struct CustomPostView: View {
     private func fetchPostComments(postId: UUID) async {
         do {
             comments = try await PostManager.shared.getComments(postId: post.id)
-            print("comments fetched successfully")
         } catch {
             print("error fetching comments \(error)")
         }
