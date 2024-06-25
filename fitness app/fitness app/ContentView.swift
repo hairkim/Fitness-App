@@ -660,6 +660,10 @@ struct CustomPostView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         .background(Circle().fill(Color.white).shadow(radius: 10))
+                        
+                        Text("\(comments.count)") // Display comments count
+                            .font(.caption)
+                            .foregroundColor(.gray)
                     }
                     
                     Spacer()
