@@ -57,6 +57,7 @@ final class PostManager {
     private init() { }
 
     private let postCollection = Firestore.firestore().collection("posts")
+    private let userCollection = Firestore.firestore().collection("users")
 
     private func postDocument(postId: UUID) -> DocumentReference {
         postCollection.document(postId.uuidString)
@@ -74,6 +75,34 @@ final class PostManager {
             try? document.data(as: Post.self)
         }
     }
+    
+    func getRandomPosts(excludingUser userId: String, limit: Int) async throws -> [Post] {
+            let userRef = userCollection.document(userId)
+            let userDocument = try await userRef.getDocument()
+            guard let followings = userDocument.data()?["followers"] as? [String] else {
+                throw NSError(domain: "AppErrorDomain", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "Unable to retrieve followings"
+                ])
+            }
+
+            let allExcludedIds = followings + [userId]
+            var fetchedPosts: [Post] = []
+
+            let snapshot = try await postCollection.order(by: FieldPath.documentID()).getDocuments()
+
+            for document in snapshot.documents {
+                if let post = try? document.data(as: Post.self), !allExcludedIds.contains(post.userId) {
+                    fetchedPosts.append(post)
+                }
+            }
+
+            // Sort posts based on their popularity (e.g., number of likes)
+            fetchedPosts.sort { $0.likes > $1.likes }
+
+            // Select a random subset of posts, with a bias towards more popular posts
+            let weightedPosts = fetchedPosts.flatMap { Array(repeating: $0, count: $0.likes + 1) }
+            return Array(weightedPosts.prefix(limit))
+        }
 
     func getPosts(forUser userId: String) async throws -> [Post] {
         let snapshot = try await postCollection.whereField("userId", isEqualTo: userId).getDocuments()
