@@ -534,6 +534,7 @@ struct CustomPostView: View {
     @State private var commentText = ""
     @State private var comments: [Comment]
     @State private var postUser: DBUser = DBUser.placeholder
+    @State private var likesCount: Int = 0 // State to store likes count
     
     init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
         self.userStore = userStore
@@ -627,6 +628,14 @@ struct CustomPostView: View {
                         Button(action: {
                             withAnimation {
                                 self.isLiked.toggle()
+                                Task {
+                                    if isLiked {
+                                        try await PostManager.shared.incrementLikes(postId: post.id)
+                                    } else {
+                                        try await PostManager.shared.decrementLikes(postId: post.id)
+                                    }
+                                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
+                                }
                             }
                         }) {
                             Image(systemName: "dumbbell")
@@ -634,6 +643,10 @@ struct CustomPostView: View {
                                 .frame(width: 25, height: 25)
                                 .foregroundColor(isLiked ? .green : Color(.darkGray))
                         }
+                        
+                        Text("\(likesCount)") // Display likes count
+                            .font(.caption)
+                            .foregroundColor(.gray)
                         
                         Button(action: {
                             withAnimation {
@@ -742,6 +755,7 @@ struct CustomPostView: View {
             .onAppear {
                 Task {
                     await loadPostUser()
+                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
                 }
             }
         }

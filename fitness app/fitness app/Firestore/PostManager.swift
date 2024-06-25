@@ -19,9 +19,10 @@ struct Post: Codable, Identifiable {
     let workoutSplit: String
     let workoutSplitEmoji: String
     var comments: [Comment]
-    let date: Date // Add this property
-    
-    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date()) {
+    let date: Date
+    var likes: Int // Add this property
+
+    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date(), likes: Int = 0) {
         self.id = id
         self.userId = userId
         self.username = username
@@ -32,8 +33,10 @@ struct Post: Codable, Identifiable {
         self.workoutSplitEmoji = workoutSplitEmoji
         self.comments = comments
         self.date = date
+        self.likes = likes
     }
 }
+
 
 
 struct Comment: Codable, Identifiable {
@@ -49,21 +52,21 @@ struct Comment: Codable, Identifiable {
 }
 
 final class PostManager {
-    
+
     static let shared = PostManager()
     private init() { }
-    
+
     private let postCollection = Firestore.firestore().collection("posts")
-    
+
     private func postDocument(postId: UUID) -> DocumentReference {
         postCollection.document(postId.uuidString)
     }
-    
+
     func createNewPost(post: Post) async throws {
         print("PostManager.createNewPost called")
         try postDocument(postId: post.id).setData(from: post, merge: false, encoder: Firestore.Encoder())
     }
-    
+
     func getPosts() async throws -> [Post] {
         print("getPosts called")
         let snapshot = try await postCollection.getDocuments()
@@ -71,14 +74,14 @@ final class PostManager {
             try? document.data(as: Post.self)
         }
     }
-    
+
     func getPosts(forUser userId: String) async throws -> [Post] {
         let snapshot = try await postCollection.whereField("userId", isEqualTo: userId).getDocuments()
         return snapshot.documents.compactMap { document -> Post? in
             try? document.data(as: Post.self)
         }
     }
-    
+
     func addComment(postId: UUID, username: String, comment: String) async throws {
         let newComment = Comment(username: username, text: comment)
         do {
@@ -87,20 +90,81 @@ final class PostManager {
             guard var post = try? postDocument.data(as: Post.self) else {
                 throw NSError(domain: "AppErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to decode post"])
             }
-            
+
             post.comments.append(newComment)
-            
+
             try postRef.setData(from: post)
-            
+
             print("added comment successfully")
         } catch {
             print("could not add comment")
         }
     }
-    
+
     func getComments(postId: UUID) async throws -> [Comment] {
         let document = try await postCollection.document(postId.uuidString).getDocument()
         let post = try document.data(as: Post.self)
         return post.comments
+    }
+
+    // New methods for likes
+    func incrementLikes(postId: UUID) async throws {
+        let postRef = postDocument(postId: postId)
+        try await Firestore.firestore().runTransaction { (transaction, errorPointer) -> Any? in
+            let postDocument: DocumentSnapshot
+            do {
+                postDocument = try transaction.getDocument(postRef)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+
+            guard let oldLikes = postDocument.data()?["likes"] as? Int else {
+                let error = NSError(domain: "AppErrorDomain", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "Unable to retrieve likes from snapshot \(postDocument)"
+                ])
+                errorPointer?.pointee = error
+                return nil
+            }
+
+            transaction.updateData(["likes": oldLikes + 1], forDocument: postRef)
+            return nil
+        }
+    }
+
+    func decrementLikes(postId: UUID) async throws {
+        let postRef = postDocument(postId: postId)
+        try await Firestore.firestore().runTransaction { (transaction, errorPointer) -> Any? in
+            let postDocument: DocumentSnapshot
+            do {
+                postDocument = try transaction.getDocument(postRef)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+
+            guard let oldLikes = postDocument.data()?["likes"] as? Int else {
+                let error = NSError(domain: "AppErrorDomain", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "Unable to retrieve likes from snapshot \(postDocument)"
+                ])
+                errorPointer?.pointee = error
+                return nil
+            }
+
+            transaction.updateData(["likes": oldLikes - 1], forDocument: postRef)
+            return nil
+        }
+    }
+
+    func getLikes(postId: UUID) async throws -> Int {
+        let postRef = postDocument(postId: postId)
+        let postDocument = try await postRef.getDocument()
+        if let likes = postDocument.data()?["likes"] as? Int {
+            return likes
+        } else {
+            throw NSError(domain: "AppErrorDomain", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Unable to retrieve likes from snapshot \(postDocument)"
+            ])
+        }
     }
 }
