@@ -41,18 +41,21 @@ struct Comment: Codable, Identifiable {
     let id: UUID
     let username: String
     let text: String
+    let date: Date
     var replies: [Comment]
     var showReplies: Bool = false // To toggle replies visibility
     var isReplying: Bool = false // To toggle reply input visibility
     var replyText: String = "" // To hold the reply text input
 
-    init(id: UUID = UUID(), username: String, text: String, replies: [Comment] = []) {
+    init(id: UUID = UUID(), username: String, text: String, date: Date = Date(), replies: [Comment] = []) {
         self.id = id
         self.username = username
         self.text = text
+        self.date = date
         self.replies = replies
     }
 }
+
 
 final class PostManager {
 

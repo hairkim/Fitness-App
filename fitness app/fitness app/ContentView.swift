@@ -9,9 +9,9 @@ struct ContentView: View {
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
     @State private var showDMHomeView: Bool = false
-    @State private var selectedTab: Int = 0 // State to manage selected tab
-    @State private var selectedUser: DBUser? = nil // State to manage selected user
-    @State private var showRotationPage: Bool = false // State to manage the rotation page presentation
+    @State private var selectedTab: Int = 0
+    @State private var selectedUser: DBUser? = nil
+    @State private var showRotationPage: Bool = false
     
     var body: some View {
         Group {
@@ -47,16 +47,15 @@ struct ContentView: View {
                                     Image(systemName: "house.fill")
                                     Text("Home")
                                 }
-                                .tag(0) // Tag for Home tab
+                                .tag(0)
                             
                             forumView
                                 .tabItem {
                                     Image(systemName: "bubble.left.and.bubble.right")
                                     Text("Forum")
                                 }
-                                .tag(1) // Tag for Forum tab
+                                .tag(1)
                             
-                            // Placeholder for the post button
                             Text("")
                                 .tabItem {
                                     Image(systemName: "")
@@ -69,14 +68,14 @@ struct ContentView: View {
                                     Image(systemName: "heart.circle.fill")
                                     Text("Health")
                                 }
-                                .tag(2) // Tag for Health tab
+                                .tag(2)
                             
                             profileView
                                 .tabItem {
                                     Image(systemName: "person.circle.fill")
                                     Text("Profile")
                                 }
-                                .tag(3) // Tag for Profile tab
+                                .tag(3)
                         }
                         
                         VStack {
@@ -94,7 +93,7 @@ struct ContentView: View {
                                         .clipShape(Circle())
                                         .shadow(radius: 10)
                                 }
-                                .offset(y: -10) // Adjust the offset to position the button properly
+                                .offset(y: -10)
                                 Spacer()
                             }
                         }
@@ -168,7 +167,7 @@ struct ContentView: View {
             ForumView()
                 .navigationBarItems(leading: Button(action: {
                     withAnimation {
-                        selectedTab = 0 // Navigate back to Home tab
+                        selectedTab = 0
                     }
                 }) {
                     Image(systemName: "chevron.left")
@@ -202,7 +201,6 @@ struct ContentView: View {
                         userStore.setCurrentUser(user: dbUser)
                         showSignInView = false
                         
-                        // Check if the user has already confirmed rotation
                         let rotationConfirmedKey = "hasConfirmedRotation-\(authUser.uid)"
                         if !UserDefaults.standard.bool(forKey: rotationConfirmedKey) {
                             showRotationPage = true
@@ -224,13 +222,439 @@ struct ContentView: View {
     private func fetchPosts() async {
         do {
             var fetchedPosts = try await PostManager.shared.getPosts()
-            fetchedPosts.sort { $0.date > $1.date } // Sort posts by date in descending order
+            fetchedPosts.sort { $0.date > $1.date }
             self.posts = fetchedPosts
         } catch {
             print("Error fetching posts: \(error)")
         }
     }
 }
+
+struct CustomPostView: View {
+    @Binding var post: Post
+    let deleteComment: (Comment) -> Void
+    private let userStore: UserStore
+    
+    @State private var isLiked = false
+    @State private var showCommentSheet = false
+    
+    @State private var comments: [Comment]
+    @State private var postUser: DBUser = DBUser.placeholder
+    @State private var likesCount: Int = 0
+    
+    init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
+        self.userStore = userStore
+        self._post = post
+        self.deleteComment = deleteComment
+        self._comments = State(initialValue: post.wrappedValue.comments)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .stroke(Color.indigo, lineWidth: 2)
+                        .frame(width: 32, height: 32)
+                    
+                    NavigationLink(destination: UserProfileView(postUser: postUser)) {
+                        Text(post.username)
+                            .font(.headline)
+                            .foregroundColor(Color(.darkGray))
+                    }
+                    
+                    if post.multiplePictures {
+                        Text("📷")
+                            .font(.headline)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        print("More options button tapped")
+                    }) {
+                        Image(systemName: "ellipsis")
+                            .foregroundColor(Color(.darkGray))
+                    }
+                }
+                
+                ZStack(alignment: .topTrailing) {
+                    if let url = URL(string: post.imageName) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                Image(systemName: "x.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(maxHeight: 400)
+                                    .clipped()
+                                    .cornerRadius(20)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(Color.gray, lineWidth: 1)
+                                    )
+                            case .failure:
+                                Image(systemName: "photo")
+                                    .resizable()
+                                    .scaledToFit()
+                            @unknown default:
+                                Image(systemName: "x.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            }
+                        }
+                    }
+                    
+                    HStack {
+                        Text(post.workoutSplit)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(6)
+                            .background(getColorForWorkoutSplit(post.workoutSplit))
+                            .cornerRadius(10)
+                        
+                        Text(post.workoutSplitEmoji)
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .padding(6)
+                            .background(getColorForWorkoutSplit(post.workoutSplit))
+                            .cornerRadius(10)
+                    }
+                    .offset(x: -10, y: 10)
+                }
+                
+                HStack {
+                    HStack(spacing: 20) {
+                        Button(action: {
+                            withAnimation {
+                                self.isLiked.toggle()
+                                Task {
+                                    if isLiked {
+                                        try await PostManager.shared.incrementLikes(postId: post.id)
+                                    } else {
+                                        try await PostManager.shared.decrementLikes(postId: post.id)
+                                    }
+                                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
+                                }
+                            }
+                        }) {
+                            Image(systemName: "dumbbell")
+                                .resizable()
+                                .frame(width: 25, height: 25)
+                                .foregroundColor(isLiked ? .green : Color(.darkGray))
+                        }
+                        
+                        Text("\(likesCount)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Button(action: {
+                            withAnimation {
+                                showCommentSheet.toggle()
+                            }
+                        }) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .resizable()
+                                .frame(width: 25, height: 25)
+                                .foregroundColor(Color(.darkGray))
+                        }
+                        
+                        Text("\(comments.count + comments.flatMap { $0.replies }.count)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    Text(formatTimestamp(post.date))
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+                
+                Text(post.caption)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                
+                if comments.count > 0 {
+                    Button(action: {
+                        withAnimation {
+                            showCommentSheet.toggle()
+                        }
+                    }) {
+                        Text("View comments")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 4)
+                    }
+                }
+            }
+            .padding(8)
+            .background(Color.white)
+            .cornerRadius(20)
+            .shadow(radius: 5)
+            .onAppear {
+                Task {
+                    await loadPostUser()
+                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
+                }
+            }
+        }
+        .sheet(isPresented: $showCommentSheet) {
+            CommentsSheetView(comments: $comments, postId: post.id, postUser: postUser, deleteComment: deleteComment, showCommentSheet: $showCommentSheet)
+        }
+    }
+    
+    private func loadPostUser() async {
+        do {
+            let fetchedUser = try await UserManager.shared.getUser(userId: post.userId)
+            DispatchQueue.main.async {
+                self.postUser = fetchedUser
+            }
+        } catch {
+            DispatchQueue.main.async {
+                print("error loading post's user \(error)")
+            }
+        }
+    }
+    
+    private func getColorForWorkoutSplit(_ workoutSplit: String) -> Color {
+        switch workoutSplit {
+        case "Push":
+            return Color.indigo.opacity(0.8)
+        case "Pull":
+            return Color.indigo.opacity(0.8)
+        case "Legs":
+            return Color.green.opacity(0.8)
+        default:
+            return Color.white.opacity(0.8)
+        }
+    }
+    
+    private func formatTimestamp(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .short
+        dateFormatter.timeStyle = .short
+        return dateFormatter.string(from: date)
+    }
+}
+
+import SwiftUI
+
+struct CommentView: View {
+    @Binding var comment: Comment
+    let postId: UUID
+    let postUser: DBUser
+    let deleteComment: (Comment) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(comment.username): \(comment.text)")
+                        .foregroundColor(.primary)
+                    Text(timeAgoSinceDate(comment.date))
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Button(action: {
+                    deleteComment(comment)
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+            }
+            .padding(.vertical, 8)
+            
+            HStack {
+                Button(action: {
+                    withAnimation {
+                        comment.isReplying.toggle()
+                    }
+                }) {
+                    Text(comment.isReplying ? "Cancel" : "Reply")
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            
+            if comment.replies.count > 0 {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        withAnimation {
+                            comment.showReplies.toggle()
+                        }
+                    }) {
+                        Text(comment.showReplies ? "Hide replies" : "View replies")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                    Spacer()
+                }
+                .padding(.top, 4)
+            }
+            
+            if comment.showReplies {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(comment.replies.indices, id: \.self) { index in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(comment.replies[index].username): \(comment.replies[index].text)")
+                                    .foregroundColor(.primary)
+                                Text(timeAgoSinceDate(comment.replies[index].date))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Button(action: {
+                                deleteComment(comment.replies[index])
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        .padding(.leading, 16) // Indent replies
+                    }
+                }
+                .padding(.leading, 16)
+            }
+            
+            if comment.isReplying {
+                HStack {
+                    TextField("Write a reply...", text: $comment.replyText, onCommit: {
+                        Task {
+                            await addReply()
+                        }
+                    })
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.vertical, 8)
+                    
+                    Button(action: {
+                        Task {
+                            await addReply()
+                        }
+                    }) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
+                    }
+                    .padding(.trailing, 16)
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func addReply() async {
+        if !comment.replyText.isEmpty {
+            let newReply = Comment(username: postUser.username, text: comment.replyText)
+            comment.replies.append(newReply)
+            comment.replyText = ""
+            comment.isReplying = false
+            comment.showReplies = true
+            // Save the reply to the server or database if necessary
+        }
+    }
+}
+
+struct CommentsSheetView: View {
+    @Binding var comments: [Comment]
+    let postId: UUID
+    let postUser: DBUser
+    let deleteComment: (Comment) -> Void
+    @Binding var showCommentSheet: Bool
+    
+    @State private var newCommentText = ""
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(comments.indices, id: \.self) { index in
+                            CommentView(comment: $comments[index], postId: postId, postUser: postUser, deleteComment: deleteComment)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 8)
+                        }
+                    }
+                }
+                
+                HStack {
+                    TextField("Add a comment...", text: $newCommentText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                    
+                    Button(action: {
+                        Task {
+                            await addComment()
+                        }
+                    }) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
+                    }
+                    .padding(.trailing, 16)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.white)
+            }
+            .navigationBarTitle("Comments", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Done") {
+                showCommentSheet = false
+            })
+        }
+    }
+    
+    private func addComment() async {
+        if !newCommentText.isEmpty {
+            do {
+                let newComment = Comment(username: postUser.username, text: newCommentText)
+                comments.append(newComment)
+                newCommentText = ""
+                // Save the comment to the server or database if necessary
+            } catch {
+                print("error adding comment \(error)")
+            }
+        }
+    }
+}
+
+
+func timeAgoSinceDate(_ date: Date) -> String {
+    let calendar = Calendar.current
+    let now = Date()
+    let components = calendar.dateComponents([.year, .month, .weekOfYear, .day, .hour, .minute, .second], from: date, to: now)
+    
+    if let weeks = components.weekOfYear, weeks > 0 {
+        return "\(weeks)w"
+    } else if let days = components.day, days > 0 {
+        return "\(days)d"
+    } else if let hours = components.hour, hours > 0 {
+        return "\(hours)h"
+    } else {
+        return "just now"
+    }
+}
+
+
+
 
 struct RotationPageView: View {
     @Binding var showRotationPage: Bool
@@ -519,397 +943,6 @@ struct RotationFinalConfirmationView: View {
         let selectedDatesStrings = selectedDates.map { dateFormatter.string(from: $0) }
         if let currentUserId = userStore.currentUser?.id {
             UserDefaults.standard.set(selectedDatesStrings, forKey: "selectedWorkoutDates-\(currentUserId)")
-        }
-    }
-}
-
-struct CustomPostView: View {
-    @Binding var post: Post
-    let deleteComment: (Comment) -> Void
-    private let userStore: UserStore
-    
-    @State private var isLiked = false
-    @State private var isCommenting = false
-    @State private var showComments = false
-    @State private var commentText = ""
-    @State private var comments: [Comment]
-    @State private var postUser: DBUser = DBUser.placeholder
-    @State private var likesCount: Int = 0 // State to store likes count
-    
-    init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
-        self.userStore = userStore
-        self._post = post
-        self.deleteComment = deleteComment
-        self._comments = State(initialValue: post.wrappedValue.comments)
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Circle()
-                        .stroke(Color.indigo, lineWidth: 2)
-                        .frame(width: 32, height: 32)
-                    
-                    NavigationLink(destination: UserProfileView(postUser: postUser)) {
-                        Text(post.username)
-                            .font(.headline)
-                            .foregroundColor(Color(.darkGray))
-                    }
-                    
-                    if post.multiplePictures {
-                        Text("📷")
-                            .font(.headline)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        print("More options button tapped")
-                    }) {
-                        Image(systemName: "ellipsis")
-                            .foregroundColor(Color(.darkGray))
-                    }
-                }
-
-                ZStack(alignment: .topTrailing) {
-                    if let url = URL(string: post.imageName) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                Image(systemName: "x.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(maxHeight: 400)
-                                    .clipped()
-                                    .cornerRadius(20)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .stroke(Color.gray, lineWidth: 1)
-                                    )
-                            case .failure:
-                                Image(systemName: "photo")
-                                    .resizable()
-                                    .scaledToFit()
-                            @unknown default:
-                                Image(systemName: "x.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                            }
-                        }
-                    }
-                    
-                    HStack {
-                        Text(post.workoutSplit)
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding(6)
-                            .background(getColorForWorkoutSplit(post.workoutSplit))
-                            .cornerRadius(10)
-                        
-                        Text(post.workoutSplitEmoji)
-                            .font(.caption)
-                            .foregroundColor(.white)
-                            .padding(6)
-                            .background(getColorForWorkoutSplit(post.workoutSplit))
-                            .cornerRadius(10)
-                    }
-                    .offset(x: -10, y: 10)
-                }
-                
-                // Move caption text below like and comment buttons
-                HStack {
-                    HStack(spacing: 20) {
-                        Button(action: {
-                            withAnimation {
-                                self.isLiked.toggle()
-                                Task {
-                                    if isLiked {
-                                        try await PostManager.shared.incrementLikes(postId: post.id)
-                                    } else {
-                                        try await PostManager.shared.decrementLikes(postId: post.id)
-                                    }
-                                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
-                                }
-                            }
-                        }) {
-                            Image(systemName: "dumbbell")
-                                .resizable()
-                                .frame(width: 25, height: 25)
-                                .foregroundColor(isLiked ? .green : Color(.darkGray))
-                        }
-                        
-                        Text("\(likesCount)") // Display likes count
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        
-                        Button(action: {
-                            withAnimation {
-                                self.isCommenting.toggle()
-                            }
-                        }) {
-                            Image(systemName: "bubble.left.and.bubble.right")
-                                .resizable()
-                                .frame(width: 25, height: 25)
-                                .foregroundColor(Color(.darkGray))
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .background(Circle().fill(Color.white).shadow(radius: 10))
-                        
-                        Text("\(comments.count)") // Display comments count
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    Spacer()
-                    
-                    Text(formatTimestamp(post.date))
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 4) // Adjusted padding for better spacing
-
-                Text(post.caption)
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4) // Adjusted padding for better spacing
-                
-                // Comment section
-                if comments.count > 0 {
-                    Button(action: {
-                        withAnimation {
-                            showComments.toggle()
-                        }
-                    }) {
-                        Text(showComments ? "Hide comments" : "View comments")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 4)
-                    }
-                }
-                
-                if showComments {
-                    VStack {
-                        ForEach($comments) { $comment in
-                            CommentView(comment: $comment, postId: post.id, postUser: postUser, deleteComment: deleteComment)
-                        }
-                    }
-                }
-                
-                if isCommenting {
-                    HStack {
-                        TextField("Write a comment...", text: $commentText, onCommit: {
-                            Task {
-                                await addComment(postId: post.id, username: post.username, text: commentText)
-                            }
-                        })
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal, 16)
-                        
-                        Button(action: {
-                            Task {
-                                await addComment(postId: post.id, username: post.username, text: commentText)
-                            }
-                        }) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .foregroundColor(.blue)
-                                .imageScale(.large)
-                        }
-                        .padding(.trailing, 16)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                }
-            }
-            .padding(8)
-            .background(Color.white)
-            .cornerRadius(20)
-            .shadow(radius: 5)
-            .onAppear {
-                Task {
-                    await loadPostUser()
-                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
-                }
-            }
-        }
-    }
-    
-    private func loadPostUser() async {
-        do {
-            let fetchedUser = try await UserManager.shared.getUser(userId: post.userId)
-            DispatchQueue.main.async {
-                self.postUser = fetchedUser
-            }
-        } catch {
-            DispatchQueue.main.async {
-                print("error loading post's user \(error)")
-            }
-        }
-    }
-    
-    private func getColorForWorkoutSplit(_ workoutSplit: String) -> Color {
-        switch workoutSplit {
-        case "Push":
-            return Color.indigo.opacity(0.8)
-        case "Pull":
-            return Color.indigo.opacity(0.8)
-        case "Legs":
-            return Color.green.opacity(0.8)
-        default:
-            return Color.white.opacity(0.8)
-        }
-    }
-    
-    private func addComment(postId: UUID, username: String, text: String) async {
-        do {
-            try await PostManager.shared.addComment(postId: post.id, username: username, comment: text)
-            commentText = ""
-            isCommenting = false
-            await fetchPostComments(postId: post.id)
-        } catch {
-            print("error making comment \(error)")
-        }
-    }
-    
-    private func fetchPostComments(postId: UUID) async {
-        do {
-            comments = try await PostManager.shared.getComments(postId: post.id)
-        } catch {
-            print("error fetching comments \(error)")
-        }
-    }
-
-    private func addReply(postId: UUID, commentId: UUID, username: String, text: String) async {
-        do {
-            try await PostManager.shared.addReply(postId: post.id, commentId: commentId, username: username, reply: text)
-            await fetchPostComments(postId: post.id)
-        } catch {
-            print("error making reply \(error)")
-        }
-    }
-
-    private func formatTimestamp(_ date: Date) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .short
-        dateFormatter.timeStyle = .short
-        return dateFormatter.string(from: date)
-    }
-}
-
-struct CommentView: View {
-    @Binding var comment: Comment
-    let postId: UUID
-    let postUser: DBUser
-    let deleteComment: (Comment) -> Void
-    
-    @State private var isReplying = false
-    @State private var replyText = ""
-    @State private var showReplies = false
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("\(comment.username): \(comment.text)")
-                    .padding(.horizontal, 16)
-                
-                Spacer()
-                
-                Button(action: {
-                    deleteComment(comment)
-                }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                }
-                .padding(.trailing, 16)
-            }
-            
-            if comment.replies.count > 0 {
-                Button(action: {
-                    withAnimation {
-                        showReplies.toggle()
-                    }
-                }) {
-                    Text(showReplies ? "Hide replies" : "View replies")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 4)
-                }
-            }
-            
-            if showReplies {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach($comment.replies) { $reply in
-                        HStack {
-                            Text("\(reply.username): \(reply.text)")
-                                .padding(.horizontal, 32)
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                deleteComment(reply)
-                            }) {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            }
-                            .padding(.trailing, 16)
-                        }
-                    }
-                }
-            }
-            
-            if isReplying {
-                HStack {
-                    TextField("Write a reply...", text: $replyText, onCommit: {
-                        Task {
-                            await addReply()
-                        }
-                    })
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.horizontal, 16)
-                    
-                    Button(action: {
-                        Task {
-                            await addReply()
-                        }
-                    }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .foregroundColor(.blue)
-                            .imageScale(.large)
-                    }
-                    .padding(.trailing, 16)
-                }
-            }
-            
-            Button(action: {
-                withAnimation {
-                    isReplying.toggle()
-                }
-            }) {
-                Text(isReplying ? "Cancel" : "Reply")
-                    .font(.caption)
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-            }
-        }
-    }
-    
-    private func addReply() async {
-        do {
-            try await PostManager.shared.addReply(postId: postId, commentId: comment.id, username: postUser.username, reply: replyText)
-            replyText = ""
-            isReplying = false
-            showReplies = true
-        } catch {
-            print("error making reply \(error)")
         }
     }
 }
