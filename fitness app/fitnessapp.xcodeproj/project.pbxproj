@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		273BD46D2BFFEABE00C658A8 /* Healthpage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273BD46C2BFFEABE00C658A8 /* Healthpage.swift */; };
-		27A32AAC2C250CDC00BC795D /* Explorepage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A32AAB2C250CDC00BC795D /* Explorepage.swift */; };
 		27B322542C22895E002FAC36 /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B322532C22895E002FAC36 /* Rotation.swift */; };
+		27BD507A2C2BA64B00083221 /* Explore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BD50792C2BA64B00083221 /* Explore.swift */; };
 		27EA4EA22B8C0B460027F19E /* Loginpage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27EA4EA12B8C0B460027F19E /* Loginpage.swift */; };
 		6F3818AA2BFFE46C009109EA /* PostManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3818A92BFFE46C009109EA /* PostManager.swift */; };
 		6F3818AC2BFFEF15009109EA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3818AB2BFFEF15009109EA /* FirebaseStorage */; };
@@ -50,8 +50,8 @@
 /* Begin PBXFileReference section */
 		273BD46C2BFFEABE00C658A8 /* Healthpage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Healthpage.swift; sourceTree = "<group>"; };
 		2776123A2C0EBEE700863E15 /* Leaderboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leaderboard.swift; sourceTree = "<group>"; };
-		27A32AAB2C250CDC00BC795D /* Explorepage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Explorepage.swift; sourceTree = "<group>"; };
 		27B322532C22895E002FAC36 /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
+		27BD50792C2BA64B00083221 /* Explore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Explore.swift; sourceTree = "<group>"; };
 		27EA4EA12B8C0B460027F19E /* Loginpage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Loginpage.swift; sourceTree = "<group>"; };
 		6F3818A92BFFE46C009109EA /* PostManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostManager.swift; sourceTree = "<group>"; };
 		6F3818AD2C0000B9009109EA /* UserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserStore.swift; sourceTree = "<group>"; };
@@ -147,7 +147,7 @@
 				6F962CE12B896AB900C52234 /* ImageChooser.swift */,
 				A9D0C9BD2C2276FC00E5F435 /* Search.swift */,
 				27B322532C22895E002FAC36 /* Rotation.swift */,
-				27A32AAB2C250CDC00BC795D /* Explorepage.swift */,
+				27BD50792C2BA64B00083221 /* Explore.swift */,
 				8C1F3FDB2BD200C0002C1465 /* Settings */,
 				6F962CDF2B896A9400C52234 /* ImagePicker.swift */,
 				6FB9B0D52BC62BEA00072477 /* GoogleService-Info.plist */,
@@ -296,7 +296,6 @@
 				27B322542C22895E002FAC36 /* Rotation.swift in Sources */,
 				6F7FDC972BB93407004170AC /* SettingsView.swift in Sources */,
 				6F3818AE2C0000B9009109EA /* UserStore.swift in Sources */,
-				27A32AAC2C250CDC00BC795D /* Explorepage.swift in Sources */,
 				6FB142322C10071200DCB572 /* Leaderboard.swift in Sources */,
 				8CE99DC22C194EF600AA680D /* HealthViewProfile.swift in Sources */,
 				A9D0C9BE2C2276FC00E5F435 /* Search.swift in Sources */,
@@ -308,6 +307,7 @@
 				6FD608842BB41B02002ED034 /* AuthenticationManager.swift in Sources */,
 				6FD608782BB3B014002ED034 /* SignupView.swift in Sources */,
 				8CAD9A6E2BD303F900CDC07C /* UserManager.swift in Sources */,
+				27BD507A2C2BA64B00083221 /* Explore.swift in Sources */,
 				6FFA86E32C20250300C47C74 /* ChatView.swift in Sources */,
 				6FB142342C11536C00DCB572 /* UserProfileView.swift in Sources */,
 				6FB142312C0C009600DCB572 /* CreatePostView.swift in Sources */,
