@@ -9,9 +9,9 @@ struct ContentView: View {
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
     @State private var showDMHomeView: Bool = false
-    @State private var selectedTab: Int = 0
-    @State private var selectedUser: DBUser? = nil
-    @State private var showRotationPage: Bool = false
+    @State private var selectedTab: Int = 0 // State to manage selected tab
+    @State private var selectedUser: DBUser? = nil // State to manage selected user
+    @State private var showRotationPage: Bool = false // State to manage the rotation page presentation
     
     var body: some View {
         Group {
@@ -47,15 +47,16 @@ struct ContentView: View {
                                     Image(systemName: "house.fill")
                                     Text("Home")
                                 }
-                                .tag(0)
+                                .tag(0) // Tag for Home tab
                             
                             forumView
                                 .tabItem {
                                     Image(systemName: "bubble.left.and.bubble.right")
                                     Text("Forum")
                                 }
-                                .tag(1)
+                                .tag(1) // Tag for Forum tab
                             
+                            // Placeholder for the post button
                             Text("")
                                 .tabItem {
                                     Image(systemName: "")
@@ -68,14 +69,14 @@ struct ContentView: View {
                                     Image(systemName: "heart.circle.fill")
                                     Text("Health")
                                 }
-                                .tag(2)
+                                .tag(2) // Tag for Health tab
                             
                             profileView
                                 .tabItem {
                                     Image(systemName: "person.circle.fill")
                                     Text("Profile")
                                 }
-                                .tag(3)
+                                .tag(3) // Tag for Profile tab
                         }
                         
                         VStack {
@@ -93,7 +94,7 @@ struct ContentView: View {
                                         .clipShape(Circle())
                                         .shadow(radius: 10)
                                 }
-                                .offset(y: -10)
+                                .offset(y: -10) // Adjust the offset to position the button properly
                                 Spacer()
                             }
                         }
@@ -151,10 +152,6 @@ struct ContentView: View {
                         ForEach(posts.indices, id: \.self) { index in
                             CustomPostView(userStore: userStore, post: $posts[index], deleteComment: { comment in
                                 deleteComment(comment, at: index)
-                            }, addReply: { postId, commentId, username, reply in
-                                Task {
-                                    try await PostManager.shared.addReply(postId: postId, commentId: commentId, username: username, reply: reply)
-                                }
                             })
                         }
                     }
@@ -171,7 +168,7 @@ struct ContentView: View {
             ForumView()
                 .navigationBarItems(leading: Button(action: {
                     withAnimation {
-                        selectedTab = 0
+                        selectedTab = 0 // Navigate back to Home tab
                     }
                 }) {
                     Image(systemName: "chevron.left")
@@ -205,6 +202,7 @@ struct ContentView: View {
                         userStore.setCurrentUser(user: dbUser)
                         showSignInView = false
                         
+                        // Check if the user has already confirmed rotation
                         let rotationConfirmedKey = "hasConfirmedRotation-\(authUser.uid)"
                         if !UserDefaults.standard.bool(forKey: rotationConfirmedKey) {
                             showRotationPage = true
@@ -226,7 +224,7 @@ struct ContentView: View {
     private func fetchPosts() async {
         do {
             var fetchedPosts = try await PostManager.shared.getPosts()
-            fetchedPosts.sort { $0.date > $1.date }
+            fetchedPosts.sort { $0.date > $1.date } // Sort posts by date in descending order
             self.posts = fetchedPosts
         } catch {
             print("Error fetching posts: \(error)")
@@ -528,25 +526,23 @@ struct RotationFinalConfirmationView: View {
 struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
-    let addReply: (UUID, UUID, String, String) -> Void
     private let userStore: UserStore
-
+    
     @State private var isLiked = false
     @State private var isCommenting = false
     @State private var showComments = false
     @State private var commentText = ""
     @State private var comments: [Comment]
     @State private var postUser: DBUser = DBUser.placeholder
-    @State private var likesCount: Int = 0
-
-    init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void, addReply: @escaping (UUID, UUID, String, String) -> Void) {
+    @State private var likesCount: Int = 0 // State to store likes count
+    
+    init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
         self.userStore = userStore
         self._post = post
         self.deleteComment = deleteComment
-        self.addReply = addReply
         self._comments = State(initialValue: post.wrappedValue.comments)
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
@@ -554,16 +550,20 @@ struct CustomPostView: View {
                     Circle()
                         .stroke(Color.indigo, lineWidth: 2)
                         .frame(width: 32, height: 32)
+                    
                     NavigationLink(destination: UserProfileView(postUser: postUser)) {
                         Text(post.username)
                             .font(.headline)
                             .foregroundColor(Color(.darkGray))
                     }
+                    
                     if post.multiplePictures {
                         Text("📷")
                             .font(.headline)
                     }
+                    
                     Spacer()
+                    
                     Button(action: {
                         print("More options button tapped")
                     }) {
@@ -571,6 +571,7 @@ struct CustomPostView: View {
                             .foregroundColor(Color(.darkGray))
                     }
                 }
+
                 ZStack(alignment: .topTrailing) {
                     if let url = URL(string: post.imageName) {
                         AsyncImage(url: url) { phase in
@@ -601,6 +602,7 @@ struct CustomPostView: View {
                             }
                         }
                     }
+                    
                     HStack {
                         Text(post.workoutSplit)
                             .font(.caption)
@@ -609,6 +611,7 @@ struct CustomPostView: View {
                             .padding(6)
                             .background(getColorForWorkoutSplit(post.workoutSplit))
                             .cornerRadius(10)
+                        
                         Text(post.workoutSplitEmoji)
                             .font(.caption)
                             .foregroundColor(.white)
@@ -618,6 +621,8 @@ struct CustomPostView: View {
                     }
                     .offset(x: -10, y: 10)
                 }
+                
+                // Move caption text below like and comment buttons
                 HStack {
                     HStack(spacing: 20) {
                         Button(action: {
@@ -638,9 +643,11 @@ struct CustomPostView: View {
                                 .frame(width: 25, height: 25)
                                 .foregroundColor(isLiked ? .green : Color(.darkGray))
                         }
-                        Text("\(likesCount)")
+                        
+                        Text("\(likesCount)") // Display likes count
                             .font(.caption)
                             .foregroundColor(.gray)
+                        
                         Button(action: {
                             withAnimation {
                                 self.isCommenting.toggle()
@@ -653,22 +660,28 @@ struct CustomPostView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         .background(Circle().fill(Color.white).shadow(radius: 10))
-                        Text("\(comments.count)")
+                        
+                        Text("\(comments.count)") // Display comments count
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
+                    
                     Spacer()
+                    
                     Text(formatTimestamp(post.date))
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 4)
+                .padding(.bottom, 4) // Adjusted padding for better spacing
+
                 Text(post.caption)
                     .foregroundColor(.primary)
                     .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                if comments.count > 1 {
+                    .padding(.top, 4) // Adjusted padding for better spacing
+                
+                // Comment section
+                if comments.count > 0 {
                     Button(action: {
                         withAnimation {
                             showComments.toggle()
@@ -681,13 +694,15 @@ struct CustomPostView: View {
                             .padding(.top, 4)
                     }
                 }
+                
                 if showComments {
-                    ForEach(comments) { comment in
-                        CommentView(comment: comment, postId: post.id, deleteComment: deleteComment, addReply: addReply)
+                    VStack {
+                        ForEach($comments) { $comment in
+                            CommentView(comment: $comment, postId: post.id, postUser: postUser, deleteComment: deleteComment)
+                        }
                     }
-                } else if comments.count == 1, let firstComment = comments.first {
-                    CommentView(comment: firstComment, postId: post.id, deleteComment: deleteComment, addReply: addReply)
                 }
+                
                 if isCommenting {
                     HStack {
                         TextField("Write a comment...", text: $commentText, onCommit: {
@@ -696,6 +711,8 @@ struct CustomPostView: View {
                             }
                         })
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.horizontal, 16)
+                        
                         Button(action: {
                             Task {
                                 await addComment(postId: post.id, username: post.username, text: commentText)
@@ -705,6 +722,7 @@ struct CustomPostView: View {
                                 .foregroundColor(.blue)
                                 .imageScale(.large)
                         }
+                        .padding(.trailing, 16)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -722,7 +740,7 @@ struct CustomPostView: View {
             }
         }
     }
-
+    
     private func loadPostUser() async {
         do {
             let fetchedUser = try await UserManager.shared.getUser(userId: post.userId)
@@ -735,7 +753,7 @@ struct CustomPostView: View {
             }
         }
     }
-
+    
     private func getColorForWorkoutSplit(_ workoutSplit: String) -> Color {
         switch workoutSplit {
         case "Push":
@@ -748,7 +766,7 @@ struct CustomPostView: View {
             return Color.white.opacity(0.8)
         }
     }
-
+    
     private func addComment(postId: UUID, username: String, text: String) async {
         do {
             try await PostManager.shared.addComment(postId: post.id, username: username, comment: text)
@@ -759,7 +777,7 @@ struct CustomPostView: View {
             print("error making comment \(error)")
         }
     }
-
+    
     private func fetchPostComments(postId: UUID) async {
         do {
             comments = try await PostManager.shared.getComments(postId: post.id)
@@ -768,11 +786,131 @@ struct CustomPostView: View {
         }
     }
 
+    private func addReply(postId: UUID, commentId: UUID, username: String, text: String) async {
+        do {
+            try await PostManager.shared.addReply(postId: post.id, commentId: commentId, username: username, reply: text)
+            await fetchPostComments(postId: post.id)
+        } catch {
+            print("error making reply \(error)")
+        }
+    }
+
     private func formatTimestamp(_ date: Date) -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .short
         dateFormatter.timeStyle = .short
         return dateFormatter.string(from: date)
+    }
+}
+
+struct CommentView: View {
+    @Binding var comment: Comment
+    let postId: UUID
+    let postUser: DBUser
+    let deleteComment: (Comment) -> Void
+    
+    @State private var isReplying = false
+    @State private var replyText = ""
+    @State private var showReplies = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("\(comment.username): \(comment.text)")
+                    .padding(.horizontal, 16)
+                
+                Spacer()
+                
+                Button(action: {
+                    deleteComment(comment)
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+                .padding(.trailing, 16)
+            }
+            
+            if comment.replies.count > 0 {
+                Button(action: {
+                    withAnimation {
+                        showReplies.toggle()
+                    }
+                }) {
+                    Text(showReplies ? "Hide replies" : "View replies")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4)
+                }
+            }
+            
+            if showReplies {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach($comment.replies) { $reply in
+                        HStack {
+                            Text("\(reply.username): \(reply.text)")
+                                .padding(.horizontal, 32)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                deleteComment(reply)
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .padding(.trailing, 16)
+                        }
+                    }
+                }
+            }
+            
+            if isReplying {
+                HStack {
+                    TextField("Write a reply...", text: $replyText, onCommit: {
+                        Task {
+                            await addReply()
+                        }
+                    })
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal, 16)
+                    
+                    Button(action: {
+                        Task {
+                            await addReply()
+                        }
+                    }) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
+                    }
+                    .padding(.trailing, 16)
+                }
+            }
+            
+            Button(action: {
+                withAnimation {
+                    isReplying.toggle()
+                }
+            }) {
+                Text(isReplying ? "Cancel" : "Reply")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+            }
+        }
+    }
+    
+    private func addReply() async {
+        do {
+            try await PostManager.shared.addReply(postId: postId, commentId: comment.id, username: postUser.username, reply: replyText)
+            replyText = ""
+            isReplying = false
+            showReplies = true
+        } catch {
+            print("error making reply \(error)")
+        }
     }
 }
 

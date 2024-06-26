@@ -8,7 +8,6 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
-import SwiftUI
 
 struct Post: Codable, Identifiable {
     let id: UUID
@@ -43,6 +42,9 @@ struct Comment: Codable, Identifiable {
     let username: String
     let text: String
     var replies: [Comment]
+    var showReplies: Bool = false // To toggle replies visibility
+    var isReplying: Bool = false // To toggle reply input visibility
+    var replyText: String = "" // To hold the reply text input
 
     init(id: UUID = UUID(), username: String, text: String, replies: [Comment] = []) {
         self.id = id
@@ -169,78 +171,5 @@ final class PostManager {
                 NSLocalizedDescriptionKey: "Unable to retrieve likes from snapshot \(postDocument)"
             ])
         }
-    }
-}
-
-struct CommentView: View {
-    var comment: Comment
-    var postId: UUID
-    var deleteComment: (Comment) -> Void
-    var addReply: (UUID, UUID, String, String) -> Void
-    
-    @State private var isReplying = false
-    @State private var replyText = ""
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("\(comment.username): \(comment.text)")
-                    .padding(.horizontal, 16)
-                Spacer()
-                Button(action: {
-                    deleteComment(comment)
-                }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                }
-                .padding(.trailing, 16)
-            }
-            
-            if isReplying {
-                HStack {
-                    TextField("Write a reply...", text: $replyText, onCommit: {
-                        Task {
-                            await addReply(postId, comment.id, comment.username, replyText)
-                            replyText = ""
-                            isReplying = false
-                        }
-                    })
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    Button(action: {
-                        Task {
-                            await addReply(postId, comment.id, comment.username, replyText)
-                            replyText = ""
-                            isReplying = false
-                        }
-                    }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .foregroundColor(.blue)
-                            .imageScale(.large)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            }
-            
-            ForEach(comment.replies) { reply in
-                HStack {
-                    Text("\(reply.username): \(reply.text)")
-                        .padding(.horizontal, 32)
-                    Spacer()
-                }
-            }
-            
-            Button(action: {
-                isReplying.toggle()
-            }) {
-                Text(isReplying ? "Cancel" : "Reply")
-                    .font(.caption)
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-            }
-        }
-        .padding(.vertical, 4)
     }
 }
