@@ -13,30 +13,19 @@ struct ExploreView: View {
 
     var body: some View {
         NavigationView {
-            VStack {
-                Text("Explore")
-                    .font(.largeTitle)
-                    .bold()
-                    .padding()
-
-                if posts.isEmpty {
-                    ProgressView("Loading...")
-                        .onAppear(perform: loadMockData)
-                } else {
-                    TabView {
-                        ForEach(posts.indices, id: \.self) { index in
-                            ExploreItemView(post: $posts[index])
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(Color(.systemBackground))
-                                .cornerRadius(15)
-                                .shadow(radius: 5)
-                                .padding()
-                        }
+            if posts.isEmpty {
+                ProgressView("Loading...")
+                    .onAppear(perform: loadMockData)
+                    .navigationBarHidden(true)
+            } else {
+                TabView {
+                    ForEach(posts.indices, id: \.self) { index in
+                        ExploreItemView(post: $posts[index])
                     }
-                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
                 }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                .navigationBarHidden(true)
             }
-            .navigationBarHidden(true)
         }
     }
 
@@ -82,79 +71,99 @@ struct ExploreItemView: View {
     @EnvironmentObject var userStore: UserStore
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottomTrailing) {
-                if let url = URL(string: post.imageName) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            Image(systemName: "photo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .background(Color.gray.opacity(0.2))
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .background(Color.gray.opacity(0.2))
-                        case .failure:
-                            Image(systemName: "photo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .background(Color.gray.opacity(0.2))
-                        @unknown default:
-                            Image(systemName: "photo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .background(Color.gray.opacity(0.2))
-                        }
+        VStack(spacing: 0) {
+            if let url = URL(string: post.imageName) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        Color.gray.opacity(0.2)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipped()
+                    case .failure:
+                        Color.gray.opacity(0.2)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    @unknown default:
+                        Color.gray.opacity(0.2)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                } else {
-                    Image(systemName: "photo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .background(Color.gray.opacity(0.2))
                 }
-                
-                HStack(spacing: 20) {
+            } else {
+                Color.gray.opacity(0.2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(post.username)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    Spacer()
+                    Text("\(post.date, formatter: DateFormatter.shortDate)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding([.horizontal, .top])
+
+                Text(post.caption)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .lineLimit(3)
+                    .padding(.horizontal)
+
+                HStack {
+                    Text(post.workoutSplit)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(5)
+                    Text(post.workoutSplitEmoji)
+                        .font(.caption)
+                }
+                .padding([.horizontal, .bottom])
+            }
+            .background(Color(.systemBackground))
+            .padding(.bottom, 10)
+        }
+        .edgesIgnoringSafeArea(.all) // Ensure content ignores safe area
+        .background(Color(.systemBackground))
+        .overlay(
+            HStack {
+                Spacer()
+                VStack {
                     Button(action: {
                         toggleLike()
                     }) {
-                        Image(systemName: "heart")
-                            .font(.title)
-                            .foregroundColor(isLiked ? .red : .white)
-                            .shadow(radius: 10)
+                        Image(systemName: isLiked ? "heart.fill" : "heart")
+                            .foregroundColor(isLiked ? .red : .primary)
                     }
-                    
+                    .padding()
+
                     Button(action: {
                         // Placeholder for comment action
                     }) {
                         Image(systemName: "message")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .shadow(radius: 10)
+                            .foregroundColor(.primary)
                     }
-                    
+                    .padding()
+
                     Button(action: {
-                        // Share action
+                        // Placeholder for share action
                     }) {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .shadow(radius: 10)
+                            .foregroundColor(.primary)
                     }
+                    .padding()
                 }
-                .padding()
-                .background(Color.black.opacity(0.7))
-                .cornerRadius(10)
-                .padding()
             }
-        }
+            .padding()
+            , alignment: .bottomTrailing
+        )
     }
 
     private func toggleLike() {
@@ -164,6 +173,14 @@ struct ExploreItemView: View {
         } else {
             post.likes -= 1
         }
+    }
+}
+
+extension DateFormatter {
+    static var shortDate: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter
     }
 }
 
