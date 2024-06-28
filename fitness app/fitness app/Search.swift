@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SearchView: View {
+    @EnvironmentObject var userStore: UserStore
     @State private var searchText = ""
     @State private var users = [DBUser]()
     @Binding var selectedUser: DBUser? // Binding to pass the selected user to the parent view
@@ -54,7 +55,7 @@ struct SearchView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(
             NavigationLink(
-                destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder),
+                destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore),
                 isActive: $isUserSelected,
                 label: { EmptyView() }
             )

@@ -107,7 +107,7 @@ struct ContentView: View {
             }
             .background(
                 NavigationLink(
-                    destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder),
+                    destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore),
                     isActive: .constant(selectedUser != nil),
                     label: { EmptyView() }
                 )
@@ -257,7 +257,7 @@ struct CustomPostView: View {
                         .stroke(Color.indigo, lineWidth: 2)
                         .frame(width: 32, height: 32)
                     
-                    NavigationLink(destination: UserProfileView(postUser: postUser)) {
+                    NavigationLink(destination: UserProfileView(postUser: postUser, userStore: userStore)) {
                         Text(post.username)
                             .font(.headline)
                             .foregroundColor(Color(.darkGray))

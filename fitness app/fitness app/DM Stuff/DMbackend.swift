@@ -6,20 +6,21 @@
 //
 
 import Foundation
+import Combine
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
 struct DBChat: Codable, Identifiable {
     @DocumentID var id: String?
     let participants: [String]
-    let name: String
+    let participantNames: [String: String]
     var lastMessage: String?
     var timestamp: Timestamp
     var profileImage: String? // URL to the profile image
     
-    init(participants: [String], name: String, lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
+    init(participants: [String], participantNames: [String: String], lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
         self.participants = participants
-        self.name = name
+        self.participantNames = participantNames
         self.lastMessage = lastMessage
         self.timestamp = timestamp
         self.profileImage = profileImage    }

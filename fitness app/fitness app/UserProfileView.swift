@@ -9,23 +9,37 @@ import SwiftUI
 
 @MainActor
 class ChatViewModel: ObservableObject {
+    private let userStore: UserStore
     @Published var chat: DBChat?
     @Published var errorMessage: String?
     
+    init(userStore: UserStore) {
+        self.userStore = userStore
+    }
+    
     func checkAndCreateChat(user1: DBUser, user2: DBUser) async {
         do {
-            if let existingChat = try await ChatManager.shared.getChatBetweenUsers(user1Id: user1.userId, user2Id: user2.userId) {
-                chat = existingChat
-            } else {
-                print("No chat exists between the users, creating a new one.")
-                let newChat = DBChat(
-                    participants: [user1.userId, user2.userId], name: user2.username, lastMessage: nil, profileImage: nil
-                )
-                try await ChatManager.shared.createNewChat(chat: newChat)
-                if let chatId = newChat.id {
-                    print("New chat created successfully with ID: \(chatId)")
+            if let currentUser = userStore.currentUser {
+                let otherUser = currentUser.id == user1.id ? user2 : user1
+                if let existingChat = try await ChatManager.shared.getChatBetweenUsers(user1Id: user1.userId, user2Id: user2.userId) {
+                    chat = existingChat
+                } else {
+                    print("No chat exists between the users, creating a new one.")
+                    
+                    let participantNames = [
+                       user1.userId: user1.username,
+                       user2.userId: user2.username
+                   ]
+                    
+                    let newChat = DBChat(
+                        participants: [user1.userId, user2.userId], participantNames: participantNames, lastMessage: nil, profileImage: nil
+                    )
+                    try await ChatManager.shared.createNewChat(chat: newChat)
+                    if let chatId = newChat.id {
+                        print("New chat created successfully with ID: \(chatId)")
+                    }
+                    chat = newChat
                 }
-                chat = newChat
             }
         } catch {
             errorMessage = "Failed to create or fetch chat: \(error.localizedDescription)"
@@ -39,9 +53,14 @@ struct UserProfileView: View {
     let postUser: DBUser
     @State var posts = [Post]() // Using the same Post structure
     
-    @StateObject private var chatViewModel = ChatViewModel()
+    @StateObject private var chatViewModel: ChatViewModel
     
     @State private var showChatView = false
+    
+    init(postUser: DBUser, userStore: UserStore) {
+        self.postUser = postUser
+        self._chatViewModel = StateObject(wrappedValue: ChatViewModel(userStore: userStore))
+    }
 
     var body: some View {
         NavigationStack {
@@ -219,7 +238,7 @@ struct UserProfileView_Previews: PreviewProvider {
     static var previews: some View {
         let mockUser = MockUser(uid: "12kjksdfj", email: "mockUser@gmail.com", photoURL: nil)
         let authResultModel = AuthenticationManager.shared.createMockUser(mockUser: mockUser)
-        return UserProfileView(postUser: DBUser(auth: authResultModel, username: "mock user"))
+        return UserProfileView(postUser: DBUser(auth: authResultModel, username: "mock user"), userStore: UserStore())
             .environmentObject(UserStore())
     }
 }

@@ -13,10 +13,11 @@ import FirebaseFirestore
 struct ChatView: View {
     @EnvironmentObject var userStore: UserStore
     @Environment(\.presentationMode) var presentationMode
-    @State var chat: DBChat
     @State private var messageText = ""
     @State var messages = [DBMessage]()
     @State private var messagesListener: ListenerRegistration?
+    
+    let chat: DBChat
     
     var body: some View {
         VStack {
@@ -49,7 +50,7 @@ struct ChatView: View {
                         }
                     }
 
-                    Text(chat.name)
+                    Text("chatName")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.gymPrimary)
                         .padding(.leading, 8)
@@ -204,7 +205,7 @@ struct ChatView_Previews: PreviewProvider {
     static var previews: some View {
         let newChat = DBChat(
             participants: [],
-            name: "mock user",
+            participantNames: ["":""],
             lastMessage: nil,
             profileImage: nil
         )
