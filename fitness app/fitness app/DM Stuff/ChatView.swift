@@ -43,14 +43,13 @@ struct ChatView: View {
                             Circle()
                                 .fill(Color.gymAccent.opacity(0.2))
                                 .frame(width: 50, height: 50)
-                            let initial = userStore.currentUser?.username.initial() ?? ""
-                            Text(initial)
+                            Text(chatInitials(for: chat))
                                 .font(.headline)
                                 .foregroundColor(.gymPrimary)
                         }
                     }
 
-                    Text("chatName")
+                    Text(chatName(for: chat))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.gymPrimary)
                         .padding(.leading, 8)
@@ -148,6 +147,7 @@ struct ChatView: View {
                 let newMessage = DBMessage(chatId: chatId, senderId: currentUser.userId, text: messageText)
                 
                 try await ChatManager.shared.sendMessage(message: newMessage)
+                self.messageText = ""
                 await fetchMessages()
             }
         } catch {
@@ -190,6 +190,32 @@ struct ChatView: View {
         messagesListener?.remove()
         messagesListener = nil
         print("successfully removed listener")
+    }
+    
+    private func chatName(for chat: DBChat) -> String {
+        if let currentUserId = userStore.currentUser?.userId {
+            // Exclude the current user's name from the participant names
+            return chat.participantNames
+                .filter { $0.key != currentUserId }
+                .map { $0.value }
+                .joined(separator: ", ")
+        } else {
+            print("couldnt find user id")
+            return ""
+        }
+    }
+    
+    private func chatInitials(for chat: DBChat) -> String {
+        if let currentUserId = userStore.currentUser?.userId {
+            // Exclude the current user's initials from the participant names and get initials for other participants
+            return chat.participantNames
+                .filter { $0.key != currentUserId }
+                .map { $0.value.initials() }
+                .joined(separator: ", ")
+        } else {
+            print("couldnt find user id")
+            return ""
+        }
     }
     
 }

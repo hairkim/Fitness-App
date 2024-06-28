@@ -69,7 +69,7 @@ struct SearchChatView: View {
         }
         
     }
-        
+    
     private func chatName(for chat: DBChat) -> String {
         if let currentUserId = userStore.currentUser?.userId {
             // Exclude the current user's name from the participant names
@@ -82,6 +82,7 @@ struct SearchChatView: View {
             return ""
         }
     }
+        
         
     private func chatInitials(for chat: DBChat) -> String {
         if let currentUserId = userStore.currentUser?.userId {

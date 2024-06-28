@@ -60,7 +60,7 @@ final class ChatManager {
         messagesCollection(chatId: chatId).document(messageId)
     }
     
-    func createNewChat(chat: DBChat) async throws {
+    func createNewChat(chat: inout DBChat) async throws {
         let chatId = chatCollection.document().documentID
         var chatWithId = chat
         chatWithId.id = chatId
@@ -121,5 +121,6 @@ final class ChatManager {
                 completion(messages, nil)
             }
     }
+    
 
 }

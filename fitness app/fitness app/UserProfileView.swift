@@ -19,32 +19,62 @@ class ChatViewModel: ObservableObject {
     
     func checkAndCreateChat(user1: DBUser, user2: DBUser) async {
         do {
-            if let currentUser = userStore.currentUser {
-                let otherUser = currentUser.id == user1.id ? user2 : user1
-                if let existingChat = try await ChatManager.shared.getChatBetweenUsers(user1Id: user1.userId, user2Id: user2.userId) {
-                    chat = existingChat
+            guard let currentUser = userStore.currentUser else {
+                errorMessage = "Couldn't find current user"
+                return
+            }
+            
+            let otherUser = currentUser.id == user1.id ? user2 : user1
+            
+            if let existingChat = try await ChatManager.shared.getChatBetweenUsers(user1Id: user1.userId, user2Id: user2.userId) {
+                if let chatId = existingChat.id {
+                    print("Existing chat found with ID: \(chatId)")
                 } else {
-                    print("No chat exists between the users, creating a new one.")
-                    
-                    let participantNames = [
-                       user1.userId: user1.username,
-                       user2.userId: user2.username
-                   ]
-                    
-                    let newChat = DBChat(
-                        participants: [user1.userId, user2.userId], participantNames: participantNames, lastMessage: nil, profileImage: nil
-                    )
-                    try await ChatManager.shared.createNewChat(chat: newChat)
-                    if let chatId = newChat.id {
-                        print("New chat created successfully with ID: \(chatId)")
+                    print("Couldn't find chat's ID")
+                }
+                chat = existingChat
+            } else {
+                print("No chat exists between the users, creating a new one.")
+                
+                let participantNames = [
+                    user1.userId: user1.username,
+                    user2.userId: user2.username
+                ]
+                
+                var newChat = DBChat(
+                    participants: [user1.userId, user2.userId],
+                    participantNames: participantNames,
+                    lastMessage: nil,
+                    profileImage: nil
+                )
+                
+                do {
+                    try await ChatManager.shared.createNewChat(chat: &newChat)
+                } catch {
+                    errorMessage = "Failed to create new chat: \(error.localizedDescription)"
+                    return
+                }
+                
+                do {
+                    if let chatRoom = try await ChatManager.shared.getChatBetweenUsers(user1Id: user1.userId, user2Id: user2.userId) {
+                        if let chatId = chatRoom.id {
+                            print("New chat created successfully with ID: \(chatId)")
+                        } else {
+                            print("Could not find chat's ID")
+                        }
+                        chat = chatRoom
+                    } else {
+                        errorMessage = "Failed to verify the newly created chat."
                     }
-                    chat = newChat
+                } catch {
+                    errorMessage = "Failed to retrieve the newly created chat: \(error.localizedDescription)"
                 }
             }
         } catch {
             errorMessage = "Failed to create or fetch chat: \(error.localizedDescription)"
         }
     }
+
 }
 
 struct UserProfileView: View {
