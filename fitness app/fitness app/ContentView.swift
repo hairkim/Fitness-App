@@ -409,7 +409,7 @@ struct CustomPostView: View {
             }
         }
         .sheet(isPresented: $showCommentSheet) {
-            CommentsSheetView(comments: $comments, postId: post.id, postUser: postUser, deleteComment: deleteComment, showCommentSheet: $showCommentSheet)
+            CommentsSheetView(comments: $comments, postId: post.id, postUser: postUser, currentUser: userStore.currentUser!, deleteComment: deleteComment, showCommentSheet: $showCommentSheet)
         }
     }
     
@@ -454,6 +454,7 @@ struct CommentView: View {
     let postId: UUID
     let postUser: DBUser
     let deleteComment: (Comment) -> Void
+    let currentUser: DBUser
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -466,16 +467,7 @@ struct CommentView: View {
                         .foregroundColor(.gray)
                 }
                 Spacer()
-                Button(action: {
-                    deleteComment(comment)
-                }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                }
-            }
-            .padding(.vertical, 8)
-            
-            HStack {
+                
                 Button(action: {
                     withAnimation {
                         comment.isReplying.toggle()
@@ -486,8 +478,16 @@ struct CommentView: View {
                         .foregroundColor(.blue)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
+            .padding(.vertical, 8)
+            .swipeActions(edge: .trailing) {
+                if comment.username == currentUser.username {
+                    Button(role: .destructive) {
+                        deleteComment(comment)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
             
             if comment.replies.count > 0 {
                 HStack {
@@ -509,27 +509,10 @@ struct CommentView: View {
             if comment.showReplies {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(comment.replies.indices, id: \.self) { index in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(comment.replies[index].username): \(comment.replies[index].text)")
-                                    .foregroundColor(.primary)
-                                Text(timeAgoSinceDate(comment.replies[index].date))
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Button(action: {
-                                deleteComment(comment.replies[index])
-                            }) {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.leading, 16) // Indent replies
+                        NestedReplyView(reply: $comment.replies[index], postId: postId, postUser: postUser, deleteComment: deleteComment, currentUser: currentUser, parentUsername: comment.username)
+                            .padding(.leading, 16)
                     }
                 }
-                .padding(.leading, 16)
             }
             
             if comment.isReplying {
@@ -561,20 +544,108 @@ struct CommentView: View {
     
     private func addReply() async {
         if !comment.replyText.isEmpty {
-            let newReply = Comment(username: postUser.username, text: comment.replyText)
+            let newReply = Comment(username: postUser.username, text: "@\(comment.username) \(comment.replyText)")
             comment.replies.append(newReply)
             comment.replyText = ""
             comment.isReplying = false
             comment.showReplies = true
-            // Save the reply to the server or database if necessary
         }
     }
 }
+
+struct NestedReplyView: View {
+    @Binding var reply: Comment
+    let postId: UUID
+    let postUser: DBUser
+    let deleteComment: (Comment) -> Void
+    let currentUser: DBUser
+    let parentUsername: String
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(reply.username): \(reply.text)")
+                    .foregroundColor(.primary)
+                Text(timeAgoSinceDate(reply.date))
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            Spacer()
+            
+            Button(action: {
+                withAnimation {
+                    reply.isReplying.toggle()
+                }
+            }) {
+                Text(reply.isReplying ? "Cancel" : "Reply")
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding(.vertical, 4)
+        .swipeActions(edge: .trailing) {
+            if reply.username == currentUser.username {
+                Button(role: .destructive) {
+                    deleteComment(reply)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
+        
+        if reply.isReplying {
+            HStack {
+                TextField("Write a reply...", text: $reply.replyText, onCommit: {
+                    Task {
+                        await addReply()
+                    }
+                })
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.vertical, 8)
+                
+                Button(action: {
+                    Task {
+                        await addReply()
+                    }
+                }) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .foregroundColor(.blue)
+                        .imageScale(.large)
+                }
+                .padding(.trailing, 16)
+            }
+            .padding(.horizontal, 16)
+        }
+        
+        if reply.showReplies {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(reply.replies.indices, id: \.self) { index in
+                    NestedReplyView(reply: $reply.replies[index], postId: postId, postUser: postUser, deleteComment: deleteComment, currentUser: currentUser, parentUsername: reply.username)
+                        .padding(.leading, 16)
+                }
+            }
+        }
+    }
+    
+    private func addReply() async {
+        if !reply.replyText.isEmpty {
+            let newReply = Comment(username: postUser.username, text: "@\(parentUsername) \(reply.replyText)")
+            reply.replies.append(newReply)
+            reply.replyText = ""
+            reply.isReplying = false
+            reply.showReplies = true
+        }
+    }
+}
+
+
+import SwiftUI
 
 struct CommentsSheetView: View {
     @Binding var comments: [Comment]
     let postId: UUID
     let postUser: DBUser
+    let currentUser: DBUser
     let deleteComment: (Comment) -> Void
     @Binding var showCommentSheet: Bool
     
@@ -586,7 +657,7 @@ struct CommentsSheetView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(comments.indices, id: \.self) { index in
-                            CommentView(comment: $comments[index], postId: postId, postUser: postUser, deleteComment: deleteComment)
+                            CommentView(comment: $comments[index], postId: postId, postUser: postUser, deleteComment: deleteComment, currentUser: currentUser)
                                 .padding(.horizontal, 16)
                                 .padding(.top, 8)
                         }
@@ -624,17 +695,13 @@ struct CommentsSheetView: View {
     
     private func addComment() async {
         if !newCommentText.isEmpty {
-            do {
-                let newComment = Comment(username: postUser.username, text: newCommentText)
-                comments.append(newComment)
-                newCommentText = ""
-                // Save the comment to the server or database if necessary
-            } catch {
-                print("error adding comment \(error)")
-            }
+            let newComment = Comment(username: postUser.username, text: newCommentText)
+            comments.append(newComment)
+            newCommentText = ""
         }
     }
 }
+
 
 
 func timeAgoSinceDate(_ date: Date) -> String {
@@ -652,9 +719,6 @@ func timeAgoSinceDate(_ date: Date) -> String {
         return "just now"
     }
 }
-
-
-
 
 struct RotationPageView: View {
     @Binding var showRotationPage: Bool
@@ -705,6 +769,10 @@ struct RotationInstructionsView: View {
         .padding()
     }
 }
+
+
+
+
 
 struct RotationWorkoutCalendarView: View {
     @Binding var showRotationPage: Bool

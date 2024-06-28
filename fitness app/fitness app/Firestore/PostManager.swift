@@ -37,15 +37,15 @@ struct Post: Codable, Identifiable {
     }
 }
 
-struct Comment: Codable, Identifiable {
+struct Comment: Identifiable, Codable {
     let id: UUID
     let username: String
     let text: String
     let date: Date
     var replies: [Comment]
-    var showReplies: Bool = false // To toggle replies visibility
-    var isReplying: Bool = false // To toggle reply input visibility
-    var replyText: String = "" // To hold the reply text input
+    var showReplies: Bool = false
+    var isReplying: Bool = false
+    var replyText: String = ""
 
     init(id: UUID = UUID(), username: String, text: String, date: Date = Date(), replies: [Comment] = []) {
         self.id = id
