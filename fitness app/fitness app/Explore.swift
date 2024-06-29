@@ -71,99 +71,99 @@ struct ExploreItemView: View {
     @EnvironmentObject var userStore: UserStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            if let url = URL(string: post.imageName) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        Color.gray.opacity(0.2)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .clipped()
-                    case .failure:
-                        Color.gray.opacity(0.2)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    @unknown default:
-                        Color.gray.opacity(0.2)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                if let url = URL(string: post.imageName) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            Color.gray.opacity(0.2)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .clipped()
+                        case .failure:
+                            Color.gray.opacity(0.2)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        @unknown default:
+                            Color.gray.opacity(0.2)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }
+                } else {
+                    Color.gray.opacity(0.2)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            } else {
-                Color.gray.opacity(0.2)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
 
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(post.username)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                    Spacer()
-                    Text("\(post.date, formatter: DateFormatter.shortDate)")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text(post.username)
+                            .font(.headline)
+                            .fontWeight(.bold)
+                        Spacer()
+                        Text("\(post.date, formatter: DateFormatter.shortDate)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    .padding([.horizontal, .top])
+
+                    Text(post.caption)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                        .lineLimit(3)
+                        .padding(.horizontal)
+
+                    HStack {
+                        Text(post.workoutSplit)
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(5)
+                        Text(post.workoutSplitEmoji)
+                            .font(.caption)
+                    }
+                    .padding([.horizontal, .bottom])
+
+                    HStack {
+                        Button(action: {
+                            toggleLike()
+                        }) {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .foregroundColor(isLiked ? .red : .primary)
+                        }
+                        .padding(.horizontal)
+
+                        Button(action: {
+                            // Placeholder for comment action
+                        }) {
+                            Image(systemName: "message")
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.horizontal)
+
+                        Button(action: {
+                            // Placeholder for share action
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.horizontal)
+                        
+                        Spacer()
+                    }
+                    .padding([.horizontal, .bottom])
                 }
-                .padding([.horizontal, .top])
-
-                Text(post.caption)
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
-                    .lineLimit(3)
-                    .padding(.horizontal)
-
-                HStack {
-                    Text(post.workoutSplit)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(5)
-                    Text(post.workoutSplitEmoji)
-                        .font(.caption)
-                }
-                .padding([.horizontal, .bottom])
+                .background(Color(.systemBackground))
+                .padding(.bottom, 10)
             }
             .background(Color(.systemBackground))
-            .padding(.bottom, 10)
+            .contentShape(Rectangle()) // Make the entire area tappable to avoid issues with the TabView
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
-        .edgesIgnoringSafeArea(.all) // Ensure content ignores safe area
-        .background(Color(.systemBackground))
-        .overlay(
-            HStack {
-                Spacer()
-                VStack {
-                    Button(action: {
-                        toggleLike()
-                    }) {
-                        Image(systemName: isLiked ? "heart.fill" : "heart")
-                            .foregroundColor(isLiked ? .red : .primary)
-                    }
-                    .padding()
-
-                    Button(action: {
-                        // Placeholder for comment action
-                    }) {
-                        Image(systemName: "message")
-                            .foregroundColor(.primary)
-                    }
-                    .padding()
-
-                    Button(action: {
-                        // Placeholder for share action
-                    }) {
-                        Image(systemName: "square.and.arrow.up")
-                            .foregroundColor(.primary)
-                    }
-                    .padding()
-                }
-            }
-            .padding()
-            , alignment: .bottomTrailing
-        )
     }
 
     private func toggleLike() {
