@@ -6,30 +6,47 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 @MainActor
 final class SignupViewModel: ObservableObject {
     @Published var email = ""
     @Published var password = ""
+    @Published var confirmPassword = ""
     @Published var username = ""
-    
-    func signUp() async throws {
+    @Published var isPasswordVisible = false
+    @Published var errorMessage = ""
+
+    func signUp() async {
         guard !email.isEmpty, !password.isEmpty else {
-            print("No email or password found.")
+            errorMessage = "Email and password must not be empty."
             return
         }
-        
-        Task {
-            do {
-                let returnedData = try await AuthenticationManager.shared.createUser(email: email, password: password)
-                let user = DBUser(auth: returnedData, username: username)
-                try await UserManager.shared.createNewUser(user: user)
 
-                print("success")
-                print(returnedData)
-            } catch {
-                print("Error: \(error)")
-            }
+        guard password == confirmPassword else {
+            errorMessage = "Passwords do not match."
+            return
+        }
+
+        do {
+            let returnedData = try await AuthenticationManager.shared.createUser(email: email, password: password)
+            let user = DBUser(auth: returnedData, username: username)
+            try await UserManager.shared.createNewUser(user: user)
+
+            errorMessage = "Success"
+            await sendEmailVerification()
+        } catch {
+            errorMessage = "Error: \(error.localizedDescription)"
+        }
+    }
+
+    func sendEmailVerification() async {
+        guard let currentUser = Auth.auth().currentUser else { return }
+        do {
+            try await currentUser.sendEmailVerification()
+            errorMessage = "Verification email sent. Please check your email."
+        } catch {
+            errorMessage = "Error sending verification email: \(error.localizedDescription)"
         }
     }
 }
@@ -91,43 +108,107 @@ struct SignupView: View {
                                 }
                             )
                         
-                        SecureField("Password", text: $viewModel.password)
-                            .padding()
-                            .background(Color("TextFieldBackground"))
-                            .cornerRadius(10)
-                            .foregroundColor(.black)
-                            .overlay(
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "lock")
-                                        .foregroundColor(.gray)
-                                        .padding(.trailing, 10)
-                                }
-                            )
-                        
-                        SecureField("Confirm Password", text: $viewModel.password)
-                            .padding()
-                            .background(Color("TextFieldBackground"))
-                            .cornerRadius(10)
-                            .foregroundColor(.black)
-                            .overlay(
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "lock.fill")
-                                        .foregroundColor(.gray)
-                                        .padding(.trailing, 10)
-                                }
-                            )
+                        Group {
+                            if viewModel.isPasswordVisible {
+                                TextField("Password", text: $viewModel.password)
+                                    .padding()
+                                    .background(Color("TextFieldBackground"))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.black)
+                                    .overlay(
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "lock")
+                                                .foregroundColor(.gray)
+                                                .padding(.trailing, 10)
+                                            Button(action: {
+                                                viewModel.isPasswordVisible.toggle()
+                                            }) {
+                                                Image(systemName: "eye.slash")
+                                                    .foregroundColor(.gray)
+                                                    .padding(.trailing, 10)
+                                            }
+                                        }
+                                    )
+                                
+                                TextField("Confirm Password", text: $viewModel.confirmPassword)
+                                    .padding()
+                                    .background(Color("TextFieldBackground"))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.black)
+                                    .overlay(
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "lock.fill")
+                                                .foregroundColor(.gray)
+                                                .padding(.trailing, 10)
+                                            Button(action: {
+                                                viewModel.isPasswordVisible.toggle()
+                                            }) {
+                                                Image(systemName: "eye.slash")
+                                                    .foregroundColor(.gray)
+                                                    .padding(.trailing, 10)
+                                            }
+                                        }
+                                    )
+                            } else {
+                                SecureField("Password", text: $viewModel.password)
+                                    .padding()
+                                    .background(Color("TextFieldBackground"))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.black)
+                                    .overlay(
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "lock")
+                                                .foregroundColor(.gray)
+                                                .padding(.trailing, 10)
+                                            Button(action: {
+                                                viewModel.isPasswordVisible.toggle()
+                                            }) {
+                                                Image(systemName: "eye")
+                                                    .foregroundColor(.gray)
+                                                    .padding(.trailing, 10)
+                                            }
+                                        }
+                                    )
+                                
+                                SecureField("Confirm Password", text: $viewModel.confirmPassword)
+                                    .padding()
+                                    .background(Color("TextFieldBackground"))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.black)
+                                    .overlay(
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "lock.fill")
+                                                .foregroundColor(.gray)
+                                                .padding(.trailing, 10)
+                                            Button(action: {
+                                                viewModel.isPasswordVisible.toggle()
+                                            }) {
+                                                Image(systemName: "eye")
+                                                    .foregroundColor(.gray)
+                                                    .padding(.trailing, 10)
+                                            }
+                                        }
+                                    )
+                            }
+                        }
                     }
                     .padding(.horizontal, 30)
                     
+                    if !viewModel.errorMessage.isEmpty {
+                        Text(viewModel.errorMessage)
+                            .foregroundColor(viewModel.errorMessage == "Success" ? .green : .red)
+                            .padding()
+                    }
+                    
                     Button(action: {
                         Task {
-                            do {
-                                try await viewModel.signUp()
+                            await viewModel.signUp()
+                            if viewModel.errorMessage == "Success" {
                                 showSignInView = false
-                            } catch {
-                                print("Login error: \(error)")
                             }
                         }
                     }) {
