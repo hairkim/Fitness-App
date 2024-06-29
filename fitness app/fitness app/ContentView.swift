@@ -149,9 +149,10 @@ struct ContentView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
                         ForEach(posts.indices, id: \.self) { index in
-                            CustomPostView(userStore: userStore, post: $posts[index], deleteComment: { comment in
+                            CustomPostView(post: $posts[index], deleteComment: { comment in
                                 deleteComment(comment, at: index)
                             })
+                            .environmentObject(userStore)
                         }
                     }
                     .padding()
@@ -233,7 +234,7 @@ struct ContentView: View {
 struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
-    private let userStore: UserStore
+    @EnvironmentObject private var userStore: UserStore
     
     @State private var isLiked = false
     @State private var showCommentSheet = false
@@ -242,8 +243,7 @@ struct CustomPostView: View {
     @State private var postUser: DBUser = DBUser.placeholder
     @State private var likesCount: Int = 0
     
-    init(userStore: UserStore, post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
-        self.userStore = userStore
+    init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
         self._post = post
         self.deleteComment = deleteComment
         self._comments = State(initialValue: post.wrappedValue.comments)
@@ -258,7 +258,7 @@ struct CustomPostView: View {
                         .frame(width: 32, height: 32)
                     
                     NavigationLink(destination: UserProfileView(postUser: postUser, userStore: userStore)) {
-                        Text(post.username)
+                        Text(postUser.username)
                             .font(.headline)
                             .foregroundColor(Color(.darkGray))
                     }
@@ -275,6 +275,15 @@ struct CustomPostView: View {
                     }) {
                         Image(systemName: "ellipsis")
                             .foregroundColor(Color(.darkGray))
+                    }
+                    .contextMenu {
+                        if post.userId == userStore.currentUser?.id {
+                            Button(role: .destructive) {
+                                // Delete post action
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 
@@ -468,27 +477,33 @@ struct CommentView: View {
                 }
                 Spacer()
                 
-                Button(action: {
-                    withAnimation {
-                        comment.isReplying.toggle()
+                HStack(spacing: 16) {
+                    Button(action: {
+                        withAnimation {
+                            comment.isReplying.toggle()
+                        }
+                    }) {
+                        Text(comment.isReplying ? "Cancel" : "Reply")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
                     }
-                }) {
-                    Text(comment.isReplying ? "Cancel" : "Reply")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
+                    
+                    if comment.username == currentUser.username {
+                        Menu {
+                            Button(role: .destructive) {
+                                deleteComment(comment)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .foregroundColor(.blue)
+                        }
+                    }
                 }
             }
             .padding(.vertical, 8)
-            .swipeActions(edge: .trailing) {
-                if comment.username == currentUser.username {
-                    Button(role: .destructive) {
-                        deleteComment(comment)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-            }
-            
+
             if comment.replies.count > 0 {
                 HStack {
                     Spacer()
@@ -505,16 +520,19 @@ struct CommentView: View {
                 }
                 .padding(.top, 4)
             }
-            
+
             if comment.showReplies {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(comment.replies.indices, id: \.self) { index in
-                        NestedReplyView(reply: $comment.replies[index], postId: postId, postUser: postUser, deleteComment: deleteComment, currentUser: currentUser, parentUsername: comment.username)
-                            .padding(.leading, 16)
+                        NestedReplyView(reply: $comment.replies[index], postId: postId, postUser: postUser, deleteComment: { reply in
+                            deleteComment(reply)
+                            comment.replies.removeAll { $0.id == reply.id }
+                        }, currentUser: currentUser, parentUsername: comment.username)
+                        .padding(.leading, 16)
                     }
                 }
             }
-            
+
             if comment.isReplying {
                 HStack {
                     TextField("Write a reply...", text: $comment.replyText, onCommit: {
@@ -524,7 +542,7 @@ struct CommentView: View {
                     })
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.vertical, 8)
-                    
+
                     Button(action: {
                         Task {
                             await addReply()
@@ -541,10 +559,10 @@ struct CommentView: View {
         }
         .padding(.vertical, 4)
     }
-    
+
     private func addReply() async {
         if !comment.replyText.isEmpty {
-            let newReply = Comment(username: postUser.username, text: "@\(comment.username) \(comment.replyText)")
+            let newReply = Comment(username: currentUser.username, text: "@\(comment.username) \(comment.replyText)")
             comment.replies.append(newReply)
             comment.replyText = ""
             comment.isReplying = false
@@ -572,27 +590,33 @@ struct NestedReplyView: View {
             }
             Spacer()
             
-            Button(action: {
-                withAnimation {
-                    reply.isReplying.toggle()
+            HStack(spacing: 16) {
+                Button(action: {
+                    withAnimation {
+                        reply.isReplying.toggle()
+                    }
+                }) {
+                    Text(reply.isReplying ? "Cancel" : "Reply")
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
                 }
-            }) {
-                Text(reply.isReplying ? "Cancel" : "Reply")
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
+                
+                if reply.username == currentUser.username {
+                    Menu {
+                        Button(role: .destructive) {
+                            deleteComment(reply)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundColor(.blue)
+                    }
+                }
             }
         }
         .padding(.vertical, 4)
-        .swipeActions(edge: .trailing) {
-            if reply.username == currentUser.username {
-                Button(role: .destructive) {
-                    deleteComment(reply)
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-            }
-        }
-        
+
         if reply.isReplying {
             HStack {
                 TextField("Write a reply...", text: $reply.replyText, onCommit: {
@@ -602,7 +626,7 @@ struct NestedReplyView: View {
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.vertical, 8)
-                
+
                 Button(action: {
                     Task {
                         await addReply()
@@ -616,20 +640,23 @@ struct NestedReplyView: View {
             }
             .padding(.horizontal, 16)
         }
-        
+
         if reply.showReplies {
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(reply.replies.indices, id: \.self) { index in
-                    NestedReplyView(reply: $reply.replies[index], postId: postId, postUser: postUser, deleteComment: deleteComment, currentUser: currentUser, parentUsername: reply.username)
-                        .padding(.leading, 16)
+                    NestedReplyView(reply: $reply.replies[index], postId: postId, postUser: postUser, deleteComment: { nestedReply in
+                        deleteComment(nestedReply)
+                        reply.replies.removeAll { $0.id == nestedReply.id }
+                    }, currentUser: currentUser, parentUsername: reply.username)
+                    .padding(.leading, 16)
                 }
             }
         }
     }
-    
+
     private func addReply() async {
         if !reply.replyText.isEmpty {
-            let newReply = Comment(username: postUser.username, text: "@\(parentUsername) \(reply.replyText)")
+            let newReply = Comment(username: currentUser.username, text: "@\(parentUsername) \(reply.replyText)")
             reply.replies.append(newReply)
             reply.replyText = ""
             reply.isReplying = false
@@ -637,9 +664,6 @@ struct NestedReplyView: View {
         }
     }
 }
-
-
-import SwiftUI
 
 struct CommentsSheetView: View {
     @Binding var comments: [Comment]
@@ -657,9 +681,12 @@ struct CommentsSheetView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(comments.indices, id: \.self) { index in
-                            CommentView(comment: $comments[index], postId: postId, postUser: postUser, deleteComment: deleteComment, currentUser: currentUser)
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
+                            CommentView(comment: $comments[index], postId: postId, postUser: postUser, deleteComment: { comment in
+                                deleteComment(comment)
+                                comments.removeAll { $0.id == comment.id }
+                            }, currentUser: currentUser)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
                         }
                     }
                 }
@@ -695,14 +722,12 @@ struct CommentsSheetView: View {
     
     private func addComment() async {
         if !newCommentText.isEmpty {
-            let newComment = Comment(username: postUser.username, text: newCommentText)
+            let newComment = Comment(username: currentUser.username, text: newCommentText)
             comments.append(newComment)
             newCommentText = ""
         }
     }
 }
-
-
 
 func timeAgoSinceDate(_ date: Date) -> String {
     let calendar = Calendar.current
@@ -719,6 +744,8 @@ func timeAgoSinceDate(_ date: Date) -> String {
         return "just now"
     }
 }
+
+
 
 struct RotationPageView: View {
     @Binding var showRotationPage: Bool
@@ -769,10 +796,6 @@ struct RotationInstructionsView: View {
         .padding()
     }
 }
-
-
-
-
 
 struct RotationWorkoutCalendarView: View {
     @Binding var showRotationPage: Bool
