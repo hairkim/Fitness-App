@@ -265,42 +265,7 @@ struct CustomPostView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Circle()
-                        .stroke(Color.indigo, lineWidth: 2)
-                        .frame(width: 32, height: 32)
-                    
-                    NavigationLink(destination: UserProfileView(postUser: postUser, userStore: userStore)) {
-                        Text(postUser.username)
-                            .font(.headline)
-                            .foregroundColor(Color(.darkGray))
-                    }
-                    
-                    if post.multiplePictures {
-                        Text("📷")
-                            .font(.headline)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        print("More options button tapped")
-                    }) {
-                        Image(systemName: "ellipsis")
-                            .foregroundColor(Color(.darkGray))
-                    }
-                    .contextMenu {
-                        if post.userId == userStore.currentUser?.id {
-                            Button(role: .destructive) {
-                                // Delete post action
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-                }
-                
-                ZStack(alignment: .topTrailing) {
+                ZStack(alignment: .topLeading) {
                     if let url = URL(string: post.imageName) {
                         AsyncImage(url: url) { phase in
                             switch phase {
@@ -331,23 +296,20 @@ struct CustomPostView: View {
                         }
                     }
                     
-                    HStack {
-                        Text(post.workoutSplit)
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding(6)
-                            .background(getColorForWorkoutSplit(post.workoutSplit))
-                            .cornerRadius(10)
-                        
-                        Text(post.workoutSplitEmoji)
-                            .font(.caption)
-                            .foregroundColor(.white)
-                            .padding(6)
-                            .background(getColorForWorkoutSplit(post.workoutSplit))
-                            .cornerRadius(10)
-                    }
-                    .offset(x: -10, y: 10)
+                    Circle()
+                        .stroke(Color.indigo, lineWidth: 2)
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Circle().fill(Color.white).frame(width: 28, height: 28)
+                                .overlay(
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 24, height: 24)
+                                        .clipShape(Circle())
+                                )
+                        )
+                        .padding([.top, .leading], 10)
                 }
                 
                 HStack {
@@ -400,10 +362,17 @@ struct CustomPostView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 4)
                 
-                Text(post.caption)
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
+                HStack {
+                    Text(postUser.username)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Text(post.caption)
+                        .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
                 
                 if comments.count > 0 {
                     Button(action: {
@@ -468,6 +437,7 @@ struct CustomPostView: View {
         return dateFormatter.string(from: date)
     }
 }
+
 
 import SwiftUI
 
