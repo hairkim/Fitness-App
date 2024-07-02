@@ -18,6 +18,9 @@ struct DBUser: Codable, Identifiable, Equatable {
     let photoUrl: String?
     var followers: [String]
     let isPublic: Bool
+    var gymDays: [Int] = [] // New field
+    var currentStreak: Int = 0 // New field
+    var lastGymVisit: Date? = nil // New field
     
     init(auth: AuthDataResultModel, username: String) {
         self.userId = auth.uid
@@ -41,14 +44,6 @@ struct DBUser: Codable, Identifiable, Equatable {
     }
 }
 
-
-
-//struct UserProfile: Identifiable, Codable {
-//    let user: DBUser
-//    
-//}
-
-
 final class UserManager {
     
     static let shared = UserManager()
@@ -65,12 +60,29 @@ final class UserManager {
     }
     
     func getUser(userId: String) async throws -> DBUser {
-        try await userDocument(userId: userId).getDocument(as: DBUser.self)
+        var user = try await userDocument(userId: userId).getDocument(as: DBUser.self)
+        
+        // Provide default values for new fields if missing
+        if user.gymDays.isEmpty {
+            user.gymDays = []
+        }
+        if user.currentStreak == 0 {
+            user.currentStreak = 0
+        }
+        if user.lastGymVisit == nil {
+            user.lastGymVisit = nil
+        }
+        
+        return user
     }
     
     func getAllUsers() async throws -> [DBUser] {
         let snapshot = try await userCollection.getDocuments()
         return snapshot.documents.compactMap { try? $0.data(as: DBUser.self) }
+    }
+    
+    func updateUser(_ user: DBUser) async throws {
+        try userDocument(userId: user.userId).setData(from: user, merge: true)
     }
     
     func addFollower(sender: DBUser, receiver: DBUser) async throws {
@@ -98,63 +110,85 @@ final class UserManager {
         }
     }
     
-    
     func fetchFollowers(for userId: String, completion: @escaping ([String]?) -> Void) {
-            userDocument(userId: userId).getDocument { (document, error) in
-                if let document = document, document.exists {
-                    let data = document.data()
-                    let followerIds = data?["followers"] as? [String]
-                    completion(followerIds)
-                } else {
-                    completion(nil)
-                }
+        userDocument(userId: userId).getDocument { (document, error) in
+            if let document = document, document.exists {
+                let data = document.data()
+                let followerIds = data?["followers"] as? [String]
+                completion(followerIds)
+            } else {
+                completion(nil)
             }
         }
-        
-        func searchFollowers(for userId: String, searchTerm: String, completion: @escaping ([DBUser]?) -> Void) {
-            fetchFollowers(for: userId) { followerIds in
-                guard let followerIds = followerIds else {
+    }
+    
+    func searchFollowers(for userId: String, searchTerm: String, completion: @escaping ([DBUser]?) -> Void) {
+        fetchFollowers(for: userId) { followerIds in
+            guard let followerIds = followerIds else {
+                completion(nil)
+                return
+            }
+            
+            self.userCollection.whereField("username", isGreaterThanOrEqualTo: searchTerm).whereField("username", isLessThanOrEqualTo: searchTerm + "\u{f8ff}").getDocuments { (querySnapshot, error) in
+                if let error = error {
+                    print("Error searching users: \(error)")
                     completion(nil)
-                    return
-                }
-                
-                self.userCollection.whereField("username", isGreaterThanOrEqualTo: searchTerm).whereField("username", isLessThanOrEqualTo: searchTerm + "\u{f8ff}").getDocuments { (querySnapshot, error) in
-                    if let error = error {
-                        print("Error searching users: \(error)")
-                        completion(nil)
-                    } else {
-                        Task {
-                            var users: [DBUser] = []
-                            await withTaskGroup(of: DBUser?.self) { group in
-                                for document in querySnapshot!.documents {
-                                    let data = document.data()
-                                    if let id = data["id"] as? String, followerIds.contains(id) {
-                                        let username = data["username"] as? String ?? ""
-                                        let profilePictureUrl = data["photoUrl"] as? String ?? ""
-                                        
-                                        group.addTask {
-                                            do {
-                                                let userAuthDataModel = try await AuthenticationManager.shared.getUser(id: id)
-                                                let user = DBUser(auth: userAuthDataModel, username: username)
-                                                return user
-                                            } catch {
-                                                print("Error fetching user details: \(error)")
-                                                return nil
-                                            }
+                } else {
+                    Task {
+                        var users: [DBUser] = []
+                        await withTaskGroup(of: DBUser?.self) { group in
+                            for document in querySnapshot!.documents {
+                                let data = document.data()
+                                if let id = data["id"] as? String, followerIds.contains(id) {
+                                    let username = data["username"] as? String ?? ""
+                                    let profilePictureUrl = data["photoUrl"] as? String ?? ""
+                                    
+                                    group.addTask {
+                                        do {
+                                            let userAuthDataModel = try await AuthenticationManager.shared.getUser(id: id)
+                                            let user = DBUser(auth: userAuthDataModel, username: username)
+                                            return user
+                                        } catch {
+                                            print("Error fetching user details: \(error)")
+                                            return nil
                                         }
                                     }
                                 }
-                                
-                                for await user in group {
-                                    if let user = user {
-                                        users.append(user)
-                                    }
+                            }
+                            
+                            for await user in group {
+                                if let user = user {
+                                    users.append(user)
                                 }
                             }
-                            completion(users)
                         }
+                        completion(users)
                     }
                 }
             }
         }
+    }
+    
+    // New Streak Calculation Method
+    func updateStreak(forUser userId: String, postDate: Date) async throws {
+        var user = try await getUser(userId: userId)
+        
+        let calendar = Calendar.current
+        let postWeekday = calendar.component(.weekday, from: postDate)
+        
+        if user.gymDays.contains(postWeekday) {
+            if let lastGymVisit = user.lastGymVisit, calendar.isDate(postDate, inSameDayAs: lastGymVisit) {
+                // Same day post, no need to update streak
+                return
+            } else if let lastGymVisit = user.lastGymVisit, calendar.isDate(postDate, equalTo: lastGymVisit, toGranularity: .day) {
+                // Next day post, update streak
+                user.currentStreak += 1
+            } else {
+                // Non-consecutive day post, reset streak
+                user.currentStreak = 1
+            }
+            user.lastGymVisit = postDate
+            try await updateUser(user)
+        }
+    }
 }
