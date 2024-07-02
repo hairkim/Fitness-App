@@ -63,10 +63,10 @@ struct ContentView: View {
                                 }
                                 .disabled(true)
                             
-                            healthView
+                            exploreView
                                 .tabItem {
-                                    Image(systemName: "heart.circle.fill")
-                                    Text("Health")
+                                    Image(systemName: "magnifyingglass")
+                                    Text("Explore")
                                 }
                                 .tag(2)
                             
@@ -177,9 +177,22 @@ struct ContentView: View {
         }
     }
     
-    var healthView: some View {
-        NavigationView {
-            HealthView()
+    var exploreView: some View {
+        VStack {
+            NavigationView {
+                ExploreView()
+                    .navigationBarItems(leading: Button(action: {
+                        withAnimation {
+                            selectedTab = 0
+                        }
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(.primary)
+                    })
+            }
+            .navigationBarBackButtonHidden(true)
+            Spacer()
+            Divider()
         }
     }
     
