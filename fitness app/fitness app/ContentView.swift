@@ -11,7 +11,7 @@ struct ContentView: View {
     @State private var showDMHomeView: Bool = false
     @State private var selectedTab: Int = 0
     @State private var selectedUser: DBUser? = nil
-    @State private var showRotationPage: Bool = false
+    // @State private var showRotationPage: Bool = false
     
     var body: some View {
         Group {
@@ -27,9 +27,9 @@ struct ContentView: View {
                 await fetchPosts()
             }
         }
-        .fullScreenCover(isPresented: $showRotationPage) {
-            RotationPageView(showRotationPage: $showRotationPage)
-        }
+        // .fullScreenCover(isPresented: $showRotationPage) {
+        //    RotationPageView(showRotationPage: $showRotationPage)
+        // }
     }
     
     var mainContentView: some View {
@@ -215,10 +215,10 @@ struct ContentView: View {
                         userStore.setCurrentUser(user: dbUser)
                         showSignInView = false
                         
-                        let rotationConfirmedKey = "hasConfirmedRotation-\(authUser.uid)"
-                        if !UserDefaults.standard.bool(forKey: rotationConfirmedKey) {
-                            showRotationPage = true
-                        }
+                        // let rotationConfirmedKey = "hasConfirmedRotation-\(authUser.uid)"
+                        // if !UserDefaults.standard.bool(forKey: rotationConfirmedKey) {
+                        //     showRotationPage = true
+                        // }
                     }
                 } else {
                     await MainActor.run {
@@ -437,7 +437,6 @@ struct CustomPostView: View {
         return dateFormatter.string(from: date)
     }
 }
-
 
 import SwiftUI
 
@@ -728,298 +727,296 @@ func timeAgoSinceDate(_ date: Date) -> String {
     }
 }
 
-
-
-struct RotationPageView: View {
-    @Binding var showRotationPage: Bool
-    
-    var body: some View {
-        RotationMainView(showRotationPage: $showRotationPage)
-            .onDisappear {
-                showRotationPage = false
-            }
-    }
-}
-
-struct RotationMainView: View {
-    @Binding var showRotationPage: Bool
-    
-    var body: some View {
-        NavigationView {
-            RotationInstructionsView(showRotationPage: $showRotationPage)
-        }
-    }
-}
-
-struct RotationInstructionsView: View {
-    @Binding var showRotationPage: Bool
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            Text("Welcome to the Workout Scheduler")
-                .font(.largeTitle)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Text("To stay consistent and not skip a day at the gym, please select the days you would like to work out each week.")
-                .font(.title2)
-                .multilineTextAlignment(.center)
-                .padding()
-            
-            NavigationLink(destination: RotationWorkoutCalendarView(showRotationPage: $showRotationPage)) {
-                Text("Choose Workout Days")
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-            Spacer()
-        }
-        .padding()
-    }
-}
-
-struct RotationWorkoutCalendarView: View {
-    @Binding var showRotationPage: Bool
-    @State private var currentDate = Date()
-    @State private var selectedDates: [Date] = []
-    @State private var showConfirmDialog = false
-    @State private var numberOfDaysSelected = 0
-    @State private var showFinalConfirmationView = false
-    
-    private var currentMonthAndYear: String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "MMMM yyyy"
-        return dateFormatter.string(from: currentDate)
-    }
-    
-    private var daysInMonth: [Date] {
-        let calendar = Calendar.current
-        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate)),
-              let range = calendar.range(of: .day, in: .month, for: currentDate) else {
-            return []
-        }
-        return range.compactMap { day in
-            calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)
-        }
-    }
-    
-    private var weeks: [[Date?]] {
-        let calendar = Calendar.current
-        var weeks: [[Date?]] = [[]]
-        guard let firstDay = daysInMonth.first else { return weeks }
-        
-        let firstWeekday = calendar.component(.weekday, from: firstDay)
-        
-        for _ in 1..<firstWeekday {
-            weeks[0].append(nil)
-        }
-        
-        for date in daysInMonth {
-            if weeks[weeks.count - 1].count == 7 {
-                weeks.append([date])
-            } else {
-                weeks[weeks.count - 1].append(date)
-            }
-        }
-        
-        while weeks[weeks.count - 1].count < 7 {
-            weeks[weeks.count - 1].append(nil)
-        }
-        
-        return weeks
-    }
-    
-    private func previousMonth() {
-        if let newDate = Calendar.current.date(byAdding: .month, value: -1, to: currentDate) {
-            currentDate = newDate
-        }
-    }
-    
-    private func nextMonth() {
-        if let newDate = Calendar.current.date(byAdding: .month, value: 1, to: currentDate) {
-            currentDate = newDate
-        }
-    }
-    
-    private func dateTapped(_ date: Date) {
-        if selectedDates.contains(where: { Calendar.current.isDate($0, inSameDayAs: date) }) {
-            selectedDates.removeAll { Calendar.current.isDate($0, inSameDayAs: date) }
-        } else {
-            if selectedDates.count >= 7 {
-                selectedDates.removeFirst()
-            }
-            selectedDates.append(date)
-        }
-        print("Selected dates: \(selectedDates)")
-    }
-    
-    private func confirmSelection() {
-        numberOfDaysSelected = selectedDates.count
-        showConfirmDialog = true
-    }
-    
-    var body: some View {
-        VStack {
-            header
-            daysOfWeek
-            calendarGrid
-            confirmButton
-            Spacer()
-        }
-        .padding()
-        .alert(isPresented: $showConfirmDialog) {
-            Alert(
-                title: Text("Confirm Selection"),
-                message: Text("You have selected \(numberOfDaysSelected) days within the week. Do you want to proceed?"),
-                primaryButton: .default(Text("Yes"), action: {
-                    showFinalConfirmationView = true
-                }),
-                secondaryButton: .cancel()
-            )
-        }
-        .sheet(isPresented: $showFinalConfirmationView) {
-            RotationFinalConfirmationView(numberOfDaysSelected: numberOfDaysSelected, selectedDates: selectedDates, showRotationPage: $showRotationPage)
-        }
-    }
-    
-    private var header: some View {
-        HStack {
-            Button(action: previousMonth) {
-                Image(systemName: "chevron.left")
-                    .padding()
-            }
-            Spacer()
-            Text(currentMonthAndYear)
-                .font(.title)
-                .padding()
-            Spacer()
-            Button(action: nextMonth) {
-                Image(systemName: "chevron.right")
-                    .padding()
-            }
-        }
-    }
-    
-    private var daysOfWeek: some View {
-        HStack {
-            ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { day in
-                Text(day)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-            }
-        }
-    }
-    
-    private var calendarGrid: some View {
-        VStack(spacing: 5) {
-            ForEach(weeks, id: \.self) { week in
-                HStack(spacing: 5) {
-                    ForEach(week, id: \.self) { date in
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.gray, lineWidth: 1)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(isDateSelected(date) ? Color.blue.opacity(0.2) : Color.white)
-                                )
-                                .frame(height: 50)
-                            
-                            if let date = date {
-                                Button(action: {
-                                    dateTapped(date)
-                                }) {
-                                    Text("\(Calendar.current.component(.day, from: date))")
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                        .background(Color.clear)
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func isDateSelected(_ date: Date?) -> Bool {
-        guard let date = date else { return false }
-        let calendar = Calendar.current
-        let selectedWeekdays = Set(selectedDates.map { calendar.component(.weekday, from: $0) })
-        return selectedWeekdays.contains(calendar.component(.weekday, from: date))
-    }
-    
-    private var confirmButton: some View {
-        Button(action: confirmSelection) {
-            Text("Confirm")
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(8)
-        }
-        .padding()
-    }
-}
-
-struct RotationFinalConfirmationView: View {
-    let numberOfDaysSelected: Int
-    let selectedDates: [Date]
-    @Environment(\.presentationMode) var presentationMode
-    @EnvironmentObject var userStore: UserStore
-    @Binding var showRotationPage: Bool
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("Final Confirmation")
-                .font(.largeTitle)
-                .padding()
-            
-            Text("You have selected \(numberOfDaysSelected) days to work out each week.")
-                .font(.title2)
-            
-            List {
-                ForEach(selectedDates, id: \.self) { date in
-                    Text("\(formattedDate(date))")
-                }
-            }
-            .frame(height: 200)
-            
-            Button(action: {
-                storeSelectedDates()
-                if let currentUserId = userStore.currentUser?.id {
-                    UserDefaults.standard.set(true, forKey: "hasConfirmedRotation-\(currentUserId)")
-                }
-                showRotationPage = false
-            }) {
-                Text("Confirm")
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-            .padding()
-        }
-        .padding()
-    }
-    
-    private func formattedDate(_ date: Date) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .full
-        return dateFormatter.string(from: date)
-    }
-    
-    private func storeSelectedDates() {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let selectedDatesStrings = selectedDates.map { dateFormatter.string(from: $0) }
-        if let currentUserId = userStore.currentUser?.id {
-            UserDefaults.standard.set(selectedDatesStrings, forKey: "selectedWorkoutDates-\(currentUserId)")
-        }
-    }
-}
+// struct RotationPageView: View {
+//     @Binding var showRotationPage: Bool
+//
+//     var body: some View {
+//         RotationMainView(showRotationPage: $showRotationPage)
+//             .onDisappear {
+//                 showRotationPage = false
+//             }
+//     }
+// }
+//
+// struct RotationMainView: View {
+//     @Binding var showRotationPage: Bool
+//
+//     var body: some View {
+//         NavigationView {
+//             RotationInstructionsView(showRotationPage: $showRotationPage)
+//         }
+//     }
+// }
+//
+// struct RotationInstructionsView: View {
+//     @Binding var showRotationPage: Bool
+//
+//     var body: some View {
+//         VStack(spacing: 20) {
+//             Spacer()
+//             Text("Welcome to the Workout Scheduler")
+//                 .font(.largeTitle)
+//                 .multilineTextAlignment(.center)
+//                 .padding(.horizontal)
+//
+//             Text("To stay consistent and not skip a day at the gym, please select the days you would like to work out each week.")
+//                 .font(.title2)
+//                 .multilineTextAlignment(.center)
+//                 .padding()
+//
+//             NavigationLink(destination: RotationWorkoutCalendarView(showRotationPage: $showRotationPage)) {
+//                 Text("Choose Workout Days")
+//                     .padding()
+//                     .background(Color.blue)
+//                     .foregroundColor(.white)
+//                     .cornerRadius(8)
+//             }
+//             Spacer()
+//         }
+//         .padding()
+//     }
+// }
+//
+// struct RotationWorkoutCalendarView: View {
+//     @Binding var showRotationPage: Bool
+//     @State private var currentDate = Date()
+//     @State private var selectedDates: [Date] = []
+//     @State private var showConfirmDialog = false
+//     @State private var numberOfDaysSelected = 0
+//     @State private var showFinalConfirmationView = false
+//
+//     private var currentMonthAndYear: String {
+//         let dateFormatter = DateFormatter()
+//         dateFormatter.dateFormat = "MMMM yyyy"
+//         return dateFormatter.string(from: currentDate)
+//     }
+//
+//     private var daysInMonth: [Date] {
+//         let calendar = Calendar.current
+//         guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate)),
+//               let range = calendar.range(of: .day, in: .month, for: currentDate) else {
+//             return []
+//         }
+//         return range.compactMap { day in
+//             calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)
+//         }
+//     }
+//
+//     private var weeks: [[Date?]] {
+//         let calendar = Calendar.current
+//         var weeks: [[Date?]] = [[]]
+//         guard let firstDay = daysInMonth.first else { return weeks }
+//
+//         let firstWeekday = calendar.component(.weekday, from: firstDay)
+//
+//         for _ in 1..<firstWeekday {
+//             weeks[0].append(nil)
+//         }
+//
+//         for date in daysInMonth {
+//             if weeks[weeks.count - 1].count == 7 {
+//                 weeks.append([date])
+//             } else {
+//                 weeks[weeks.count - 1].append(date)
+//             }
+//         }
+//
+//         while weeks[weeks.count - 1].count < 7 {
+//             weeks[weeks.count - 1].append(nil)
+//         }
+//
+//         return weeks
+//     }
+//
+//     private func previousMonth() {
+//         if let newDate = Calendar.current.date(byAdding: .month, value: -1, to: currentDate) {
+//             currentDate = newDate
+//         }
+//     }
+//
+//     private func nextMonth() {
+//         if let newDate = Calendar.current.date(byAdding: .month, value: 1, to: currentDate) {
+//             currentDate = newDate
+//         }
+//     }
+//
+//     private func dateTapped(_ date: Date) {
+//         if selectedDates.contains(where: { Calendar.current.isDate($0, inSameDayAs: date) }) {
+//             selectedDates.removeAll { Calendar.current.isDate($0, inSameDayAs: date) }
+//         } else {
+//             if selectedDates.count >= 7 {
+//                 selectedDates.removeFirst()
+//             }
+//             selectedDates.append(date)
+//         }
+//         print("Selected dates: \(selectedDates)")
+//     }
+//
+//     private func confirmSelection() {
+//         numberOfDaysSelected = selectedDates.count
+//         showConfirmDialog = true
+//     }
+//
+//     var body: some View {
+//         VStack {
+//             header
+//             daysOfWeek
+//             calendarGrid
+//             confirmButton
+//             Spacer()
+//         }
+//         .padding()
+//         .alert(isPresented: $showConfirmDialog) {
+//             Alert(
+//                 title: Text("Confirm Selection"),
+//                 message: Text("You have selected \(numberOfDaysSelected) days within the week. Do you want to proceed?"),
+//                 primaryButton: .default(Text("Yes"), action: {
+//                     showFinalConfirmationView = true
+//                 }),
+//                 secondaryButton: .cancel()
+//             )
+//         }
+//         .sheet(isPresented: $showFinalConfirmationView) {
+//             RotationFinalConfirmationView(numberOfDaysSelected: numberOfDaysSelected, selectedDates: selectedDates, showRotationPage: $showRotationPage)
+//         }
+//     }
+//
+//     private var header: some View {
+//         HStack {
+//             Button(action: previousMonth) {
+//                 Image(systemName: "chevron.left")
+//                     .padding()
+//             }
+//             Spacer()
+//             Text(currentMonthAndYear)
+//                 .font(.title)
+//                 .padding()
+//             Spacer()
+//             Button(action: nextMonth) {
+//                 Image(systemName: "chevron.right")
+//                     .padding()
+//             }
+//         }
+//     }
+//
+//     private var daysOfWeek: some View {
+//         HStack {
+//             ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { day in
+//                 Text(day)
+//                     .frame(maxWidth: .infinity)
+//                     .padding()
+//             }
+//         }
+//     }
+//
+//     private var calendarGrid: some View {
+//         VStack(spacing: 5) {
+//             ForEach(weeks, id: \.self) { week in
+//                 HStack(spacing: 5) {
+//                     ForEach(week, id: \.self) { date in
+//                         ZStack {
+//                             RoundedRectangle(cornerRadius: 8)
+//                                 .stroke(Color.gray, lineWidth: 1)
+//                                 .background(
+//                                     RoundedRectangle(cornerRadius: 8)
+//                                         .fill(isDateSelected(date) ? Color.blue.opacity(0.2) : Color.white)
+//                                 )
+//                                 .frame(height: 50)
+//
+//                             if let date = date {
+//                                 Button(action: {
+//                                     dateTapped(date)
+//                                 }) {
+//                                     Text("\(Calendar.current.component(.day, from: date))")
+//                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+//                                         .background(Color.clear)
+//                                         .cornerRadius(8)
+//                                 }
+//                                 .buttonStyle(PlainButtonStyle())
+//                             }
+//                         }
+//                         .frame(maxWidth: .infinity)
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//
+//     private func isDateSelected(_ date: Date?) -> Bool {
+//         guard let date = date else { return false }
+//         let calendar = Calendar.current
+//         let selectedWeekdays = Set(selectedDates.map { calendar.component(.weekday, from: $0) })
+//         return selectedWeekdays.contains(calendar.component(.weekday, from: date))
+//     }
+//
+//     private var confirmButton: some View {
+//         Button(action: confirmSelection) {
+//             Text("Confirm")
+//                 .padding()
+//                 .background(Color.blue)
+//                 .foregroundColor(.white)
+//                 .cornerRadius(8)
+//         }
+//         .padding()
+//     }
+// }
+//
+// struct RotationFinalConfirmationView: View {
+//     let numberOfDaysSelected: Int
+//     let selectedDates: [Date]
+//     @Environment(\.presentationMode) var presentationMode
+//     @EnvironmentObject var userStore: UserStore
+//     @Binding var showRotationPage: Bool
+//
+//     var body: some View {
+//         VStack(spacing: 20) {
+//             Text("Final Confirmation")
+//                 .font(.largeTitle)
+//                 .padding()
+//
+//             Text("You have selected \(numberOfDaysSelected) days to work out each week.")
+//                 .font(.title2)
+//
+//             List {
+//                 ForEach(selectedDates, id: \.self) { date in
+//                     Text("\(formattedDate(date))")
+//                 }
+//             }
+//             .frame(height: 200)
+//
+//             Button(action: {
+//                 storeSelectedDates()
+//                 if let currentUserId = userStore.currentUser?.id {
+//                     UserDefaults.standard.set(true, forKey: "hasConfirmedRotation-\(currentUserId)")
+//                 }
+//                 showRotationPage = false
+//             }) {
+//                 Text("Confirm")
+//                     .padding()
+//                     .background(Color.blue)
+//                     .foregroundColor(.white)
+//                     .cornerRadius(8)
+//             }
+//             .padding()
+//         }
+//         .padding()
+//     }
+//
+//     private func formattedDate(_ date: Date) -> String {
+//         let dateFormatter = DateFormatter()
+//         dateFormatter.dateStyle = .full
+//         return dateFormatter.string(from: date)
+//     }
+//
+//     private func storeSelectedDates() {
+//         let dateFormatter = DateFormatter()
+//         dateFormatter.dateFormat = "yyyy-MM-dd"
+//         let selectedDatesStrings = selectedDates.map { dateFormatter.string(from: $0) }
+//         if let currentUserId = userStore.currentUser?.id {
+//             UserDefaults.standard.set(selectedDatesStrings, forKey: "selectedWorkoutDates-\(currentUserId)")
+//         }
+//     }
+// }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
