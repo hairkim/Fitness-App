@@ -18,8 +18,7 @@ struct DBUser: Codable, Identifiable, Equatable {
     let photoUrl: String?
     var followers: [String]
     let isPublic: Bool
-    var gymDays: [Int] = [] // New field
-    var currentStreak: Int = 0 // New field
+    var sesh: Int = 0 // New field for tracking sessions
     var lastGymVisit: Date? = nil // New field
     
     init(auth: AuthDataResultModel, username: String) {
@@ -63,11 +62,8 @@ final class UserManager {
         var user = try await userDocument(userId: userId).getDocument(as: DBUser.self)
         
         // Provide default values for new fields if missing
-        if user.gymDays.isEmpty {
-            user.gymDays = []
-        }
-        if user.currentStreak == 0 {
-            user.currentStreak = 0
+        if user.sesh == 0 {
+            user.sesh = 0
         }
         if user.lastGymVisit == nil {
             user.lastGymVisit = nil
@@ -169,26 +165,11 @@ final class UserManager {
         }
     }
     
-    // New Streak Calculation Method
-    func updateStreak(forUser userId: String, postDate: Date) async throws {
+    // New Session Update Method
+    func updateSesh(forUser userId: String, postDate: Date) async throws {
         var user = try await getUser(userId: userId)
-        
-        let calendar = Calendar.current
-        let postWeekday = calendar.component(.weekday, from: postDate)
-        
-        if user.gymDays.contains(postWeekday) {
-            if let lastGymVisit = user.lastGymVisit, calendar.isDate(postDate, inSameDayAs: lastGymVisit) {
-                // Same day post, no need to update streak
-                return
-            } else if let lastGymVisit = user.lastGymVisit, calendar.isDate(postDate, equalTo: lastGymVisit, toGranularity: .day) {
-                // Next day post, update streak
-                user.currentStreak += 1
-            } else {
-                // Non-consecutive day post, reset streak
-                user.currentStreak = 1
-            }
-            user.lastGymVisit = postDate
-            try await updateUser(user)
-        }
+        user.sesh += 1
+        user.lastGymVisit = postDate
+        try await updateUser(user)
     }
 }
