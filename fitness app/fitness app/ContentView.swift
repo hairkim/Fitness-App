@@ -251,6 +251,7 @@ struct CustomPostView: View {
     
     @State private var isLiked = false
     @State private var showCommentSheet = false
+    @State private var showReportSheet = false
     
     @State private var comments: [Comment]
     @State private var postUser: DBUser = DBUser.placeholder
@@ -264,143 +265,158 @@ struct CustomPostView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            VStack(alignment: .leading, spacing: 8) {
-                ZStack(alignment: .topLeading) {
-                    if let url = URL(string: post.imageName) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                Image(systemName: "x.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                            case .success(let image):
-                                image
+            ZStack(alignment: .topLeading) {
+                if let url = URL(string: post.imageName) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            Image(systemName: "x.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxHeight: 400)
+                                .clipped()
+                                .cornerRadius(20)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .stroke(Color.gray, lineWidth: 1)
+                                )
+                        case .failure:
+                            Image(systemName: "photo")
+                                .resizable()
+                                .scaledToFit()
+                        @unknown default:
+                            Image(systemName: "x.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    }
+                }
+                
+                Circle()
+                    .stroke(Color.indigo, lineWidth: 2)
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Circle().fill(Color.white).frame(width: 28, height: 28)
+                            .overlay(
+                                Image(systemName: "person.circle.fill")
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
-                                    .frame(maxHeight: 400)
-                                    .clipped()
-                                    .cornerRadius(20)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .stroke(Color.gray, lineWidth: 1)
-                                    )
-                            case .failure:
-                                Image(systemName: "photo")
-                                    .resizable()
-                                    .scaledToFit()
-                            @unknown default:
-                                Image(systemName: "x.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                            }
-                        }
-                    }
-                    
-                    Circle()
-                        .stroke(Color.indigo, lineWidth: 2)
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Circle().fill(Color.white).frame(width: 28, height: 28)
-                                .overlay(
-                                    Image(systemName: "person.circle.fill")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 24, height: 24)
-                                        .clipShape(Circle())
-                                )
-                        )
-                        .padding([.top, .leading], 10)
-                }
-                
-                HStack {
-                    HStack(spacing: 20) {
-                        Button(action: {
-                            withAnimation {
-                                self.isLiked.toggle()
-                                Task {
-                                    if isLiked {
-                                        try await PostManager.shared.incrementLikes(postId: post.id)
-                                    } else {
-                                        try await PostManager.shared.decrementLikes(postId: post.id)
-                                    }
-                                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
+                                    .frame(width: 24, height: 24)
+                                    .clipShape(Circle())
+                            )
+                    )
+                    .padding([.top, .leading], 10)
+            }
+            
+            HStack {
+                HStack(spacing: 20) {
+                    Button(action: {
+                        withAnimation {
+                            self.isLiked.toggle()
+                            Task {
+                                if isLiked {
+                                    try await PostManager.shared.incrementLikes(postId: post.id)
+                                } else {
+                                    try await PostManager.shared.decrementLikes(postId: post.id)
                                 }
+                                likesCount = try await PostManager.shared.getLikes(postId: post.id)
                             }
-                        }) {
-                            Image(systemName: "dumbbell")
-                                .resizable()
-                                .frame(width: 25, height: 25)
-                                .foregroundColor(isLiked ? .green : Color(.darkGray))
                         }
-                        
-                        Text("\(likesCount)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        
-                        Button(action: {
-                            withAnimation {
-                                showCommentSheet.toggle()
-                            }
-                        }) {
-                            Image(systemName: "bubble.left.and.bubble.right")
-                                .resizable()
-                                .frame(width: 25, height: 25)
-                                .foregroundColor(Color(.darkGray))
-                        }
-                        
-                        Text("\(comments.count + comments.flatMap { $0.replies }.count)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                    }) {
+                        Image(systemName: "dumbbell")
+                            .resizable()
+                            .frame(width: 25, height: 25)
+                            .foregroundColor(isLiked ? .green : Color(.darkGray))
                     }
                     
-                    Spacer()
-                    
-                    Text(formatTimestamp(post.date))
+                    Text("\(likesCount)")
                         .font(.caption)
                         .foregroundColor(.gray)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 4)
-                
-                HStack {
-                    Text(postUser.username)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
                     
-                    Text(post.caption)
-                        .foregroundColor(.primary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
-                
-                if comments.count > 0 {
                     Button(action: {
                         withAnimation {
                             showCommentSheet.toggle()
                         }
                     }) {
-                        Text("View comments")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 4)
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .resizable()
+                            .frame(width: 25, height: 25)
+                            .foregroundColor(Color(.darkGray))
+                    }
+                    
+                    Text("\(comments.count + comments.flatMap { $0.replies }.count)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                HStack {
+                    Text(formatTimestamp(post.date))
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Button(action: {
+                        withAnimation {
+                            showReportSheet.toggle()
+                        }
+                    }) {
+                        Image(systemName: "ellipsis")
+                            .resizable()
+                            .frame(width: 20, height: 5)
+                            .foregroundColor(.gray)
+                            .padding(.leading, 8)
                     }
                 }
             }
-            .padding(8)
-            .background(Color.white)
-            .cornerRadius(20)
-            .shadow(radius: 5)
-            .onAppear {
-                Task {
-                    await loadPostUser()
-                    likesCount = try await PostManager.shared.getLikes(postId: post.id)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 4)
+            
+            HStack {
+                Text(postUser.username)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text(post.caption)
+                    .foregroundColor(.primary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            
+            if comments.count > 0 {
+                Button(action: {
+                    withAnimation {
+                        showCommentSheet.toggle()
+                    }
+                }) {
+                    Text("View comments")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4)
                 }
+            }
+        }
+        .padding(8)
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(radius: 5)
+        .onAppear {
+            Task {
+                await loadPostUser()
+                likesCount = try await PostManager.shared.getLikes(postId: post.id)
             }
         }
         .sheet(isPresented: $showCommentSheet) {
             CommentsSheetView(comments: $comments, postId: post.id, postUser: postUser, currentUser: userStore.currentUser!, deleteComment: deleteComment, showCommentSheet: $showCommentSheet)
+        }
+        .sheet(isPresented: $showReportSheet) {
+            ReportView(post: post, showReportSheet: $showReportSheet)
         }
     }
     
@@ -431,10 +447,17 @@ struct CustomPostView: View {
     }
     
     private func formatTimestamp(_ date: Date) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .short
-        dateFormatter.timeStyle = .short
-        return dateFormatter.string(from: date)
+        let now = Date()
+        let elapsedTime = now.timeIntervalSince(date)
+        
+        if elapsedTime < 86400 { // Less than a day
+            let hours = Int(elapsedTime / 3600)
+            return "\(hours)h ago"
+        } else {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .short
+            return dateFormatter.string(from: date)
+        }
     }
 }
 

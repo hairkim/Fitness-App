@@ -44,6 +44,7 @@
 		A914E2302BFED23B001116AF /* Forum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A914E22F2BFED23B001116AF /* Forum.swift */; };
 		A964BAE52BFFE9C30055403A /* CreateForum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A964BAE42BFFE9C30055403A /* CreateForum.swift */; };
 		A98B0A1C2C100158004673FE /* DM.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98B0A1B2C100158004673FE /* DM.swift */; };
+		A995DD682C34ED4700870D10 /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A995DD672C34ED4700870D10 /* ReportView.swift */; };
 		A99912372C1A82BB00272817 /* DMbackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A99912362C1A82BB00272817 /* DMbackend.swift */; };
 		A9D0C9BE2C2276FC00E5F435 /* Search.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D0C9BD2C2276FC00E5F435 /* Search.swift */; };
 /* End PBXBuildFile section */
@@ -82,6 +83,7 @@
 		A914E22F2BFED23B001116AF /* Forum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Forum.swift; sourceTree = "<group>"; };
 		A964BAE42BFFE9C30055403A /* CreateForum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateForum.swift; sourceTree = "<group>"; };
 		A98B0A1B2C100158004673FE /* DM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DM.swift; sourceTree = "<group>"; };
+		A995DD672C34ED4700870D10 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
 		A99912362C1A82BB00272817 /* DMbackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMbackend.swift; sourceTree = "<group>"; };
 		A9D0C9BD2C2276FC00E5F435 /* Search.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Search.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -146,6 +148,7 @@
 				273BD46C2BFFEABE00C658A8 /* Healthpage.swift */,
 				6F962CDD2B896A7600C52234 /* ProfileView.swift */,
 				A964BAE42BFFE9C30055403A /* CreateForum.swift */,
+				A995DD672C34ED4700870D10 /* ReportView.swift */,
 				6F962CE12B896AB900C52234 /* ImageChooser.swift */,
 				A9D0C9BD2C2276FC00E5F435 /* Search.swift */,
 				27B322532C22895E002FAC36 /* Rotation.swift */,
@@ -299,6 +302,7 @@
 				27B322542C22895E002FAC36 /* Rotation.swift in Sources */,
 				6F7FDC972BB93407004170AC /* SettingsView.swift in Sources */,
 				6F3818AE2C0000B9009109EA /* UserStore.swift in Sources */,
+				A995DD682C34ED4700870D10 /* ReportView.swift in Sources */,
 				6FB142322C10071200DCB572 /* Leaderboard.swift in Sources */,
 				8CE99DC22C194EF600AA680D /* HealthViewProfile.swift in Sources */,
 				A9D0C9BE2C2276FC00E5F435 /* Search.swift in Sources */,
