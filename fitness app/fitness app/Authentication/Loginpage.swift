@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 @MainActor
 final class LoginViewModel: ObservableObject {
     private let userStore: UserStore
@@ -32,7 +33,24 @@ final class LoginViewModel: ObservableObject {
             errorMessage = "Login failed. Try again."
         }
     }
+    
+    func sendPasswordResetEmail() async {
+        guard !email.isEmpty else {
+            errorMessage = "Enter your email address."
+            return
+        }
+        
+        do {
+            try await AuthenticationManager.shared.resetPassword(email: email)
+            errorMessage = "Password reset email sent."
+        } catch {
+            errorMessage = "Failed to send password reset email."
+        }
+    }
 }
+
+
+import SwiftUI
 
 struct LoginView: View {
     @StateObject private var viewModel: LoginViewModel
@@ -111,6 +129,16 @@ struct LoginView: View {
                                 .cornerRadius(10)
                         }
                         .padding(.horizontal, 50)
+                        
+                        Button(action: {
+                            Task {
+                                await viewModel.sendPasswordResetEmail()
+                            }
+                        }) {
+                            Text("Forgot Password?")
+                                .foregroundColor(.blue)
+                                .padding()
+                        }
                     }
                     
                     Spacer()
