@@ -128,6 +128,7 @@ struct ChatView: View {
         .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
         .onAppear {
             addMessagesListener()
+            markMessagesAsRead()
         }
         .onDisappear {
             removeMessagesListener()
@@ -213,6 +214,17 @@ struct ChatView: View {
         } else {
             print("couldnt find user id")
             return ""
+        }
+    }
+    
+    private func markMessagesAsRead() {
+        Task {
+            guard let chatId = chat.id, let userId = userStore.currentUser?.userId else { return }
+            do {
+                try await ChatManager.shared.markMessagesAsRead(chatId: chatId, userId: userId)
+            } catch {
+                print("Failed to mark messages as read: \(error)")
+            }
         }
     }
 }

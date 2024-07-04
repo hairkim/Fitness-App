@@ -31,6 +31,7 @@ struct DMHomeView: View {
     @Binding var showDMHomeView: Bool
     @EnvironmentObject var userStore: UserStore
     @State private var chats = [DBChat]()
+    @State private var unreadMessages = [String: Int]() // Dictionary to hold unread messages count for each chat
 
     var body: some View {
         NavigationView {
@@ -38,10 +39,10 @@ struct DMHomeView: View {
                 ForEach(chats) { chat in
                     NavigationLink(destination: ChatView(chat: chat)) {
                         HStack {
-                            Text(otherParticipantName(in: chat))
+                            Text(chat.participantNames.first(where: { $0.key != userStore.currentUser?.userId })?.value ?? "Unknown")
                             Spacer()
-                            if unreadMessagesCount(in: chat) > 0 {
-                                Text("\(unreadMessagesCount(in: chat))")
+                            if let count = unreadMessages[chat.id ?? ""], count > 0 {
+                                Text("\(count)")
                                     .font(.caption)
                                     .foregroundColor(.white)
                                     .padding(5)
@@ -86,17 +87,32 @@ struct DMHomeView: View {
                 self.chats = documents.compactMap { document -> DBChat? in
                     try? document.data(as: DBChat.self)
                 }
+
+                // Listen for unread messages for each chat
+                for chat in self.chats {
+                    if let chatId = chat.id {
+                        setupUnreadMessagesListener(chatId: chatId)
+                    }
+                }
             }
     }
 
-    private func otherParticipantName(in chat: DBChat) -> String {
-        guard let currentUserID = userStore.currentUser?.userId else { return "Unknown" }
-        return chat.participantNames.first { $0.key != currentUserID }?.value ?? "Unknown"
-    }
+    private func setupUnreadMessagesListener(chatId: String) {
+        guard let currentUserID = userStore.currentUser?.userId else { return }
+        let db = Firestore.firestore()
 
-    private func unreadMessagesCount(in chat: DBChat) -> Int {
-        // Implement logic to count unread messages
-        return 0 // Placeholder
+        db.collection("chats").document(chatId).collection("messages")
+            .whereField("receiverId", isEqualTo: currentUserID)
+            .whereField("isRead", isEqualTo: false)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error listening to unread messages: \(error)")
+                    return
+                }
+
+                guard let documents = querySnapshot?.documents else { return }
+                self.unreadMessages[chatId] = documents.count
+            }
     }
 }
 

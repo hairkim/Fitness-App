@@ -15,14 +15,16 @@ struct DBChat: Codable, Identifiable {
     let participantNames: [String: String]
     var lastMessage: String?
     var timestamp: Timestamp
+    var unreadMessages: [String: Int] // Unread message count for each participant
     var profileImage: String? // URL to the profile image
 
-    init(id: String? = nil, participants: [String], participantNames: [String: String], lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
+    init(id: String? = nil, participants: [String], participantNames: [String: String], lastMessage: String?, timestamp: Timestamp = Timestamp(), unreadMessages: [String: Int] = [:], profileImage: String?) {
         self.id = id
         self.participants = participants
         self.participantNames = participantNames
         self.lastMessage = lastMessage
         self.timestamp = timestamp
+        self.unreadMessages = unreadMessages
         self.profileImage = profileImage
     }
 }
@@ -33,12 +35,14 @@ struct DBMessage: Codable, Identifiable {
     let senderId: String
     let text: String
     let timestamp: Timestamp
-    
-    init(chatId: String, senderId: String, text: String, timestamp: Timestamp = Timestamp()) {
+    var isRead: Bool // To track if the message has been read
+
+    init(chatId: String, senderId: String, text: String, timestamp: Timestamp = Timestamp(), isRead: Bool = false) {
         self.chatId = chatId
         self.senderId = senderId
         self.text = text
         self.timestamp = timestamp
+        self.isRead = isRead
     }
 }
 
@@ -120,5 +124,16 @@ final class ChatManager {
                 let messages = documents.compactMap { try? $0.data(as: DBMessage.self) }
                 completion(messages, nil)
             }
+    }
+
+    func markMessagesAsRead(chatId: String, userId: String) async throws {
+        let snapshot = try await messagesCollection(chatId: chatId)
+            .whereField("senderId", isNotEqualTo: userId)
+            .whereField("isRead", isEqualTo: false)
+            .getDocuments()
+
+        for document in snapshot.documents {
+            try await document.reference.updateData(["isRead": true])
+        }
     }
 }
