@@ -4,7 +4,7 @@ struct ProfileView: View {
     @EnvironmentObject var userStore: UserStore
     @Binding var showSignInView: Bool
 
-    @State private var posts = [Post]() // Replace with your Post structure
+    @State private var posts = [Post]()
     @State private var leaderboard = [
         LeaderboardEntry(username: "JohnDoe", streak: 30),
         LeaderboardEntry(username: "JaneDoe", streak: 25),
@@ -13,7 +13,7 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView { // Added ScrollView
+            ScrollView {
                 VStack(spacing: 20) {
                     // Profile Header
                     VStack(alignment: .center, spacing: 10) {
@@ -39,14 +39,14 @@ struct ProfileView: View {
                                 }
                             }
                             .clipShape(Circle())
-                            .frame(width: 120, height: 120) // Slightly larger profile picture
+                            .frame(width: 120, height: 120)
                             .padding(.top)
                         } else {
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()
                                 .scaledToFit()
                                 .clipShape(Circle())
-                                .frame(width: 120, height: 120) // Slightly larger profile picture
+                                .frame(width: 120, height: 120)
                                 .padding(.top)
                         }
 
@@ -63,18 +63,18 @@ struct ProfileView: View {
                         // Statistics Section with Placeholders
                         HStack(spacing: 40) {
                             VStack {
-                                Text("Streak")
+                                Text("Sesh")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
-                                Text("4 weeks") // Placeholder value
+                                Text("\(userStore.currentUser?.sesh ?? 0) sessions")
                                     .font(.headline)
                             }
 
                             VStack {
-                                Text("Friends")
+                                Text("Followers")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
-                                Text("210") // Placeholder value
+                                Text("\(userStore.currentUser?.followers.count ?? 0)")
                                     .font(.headline)
                             }
                         }
@@ -115,8 +115,8 @@ struct ProfileView: View {
                     }
                     .padding()
                 }
-                .padding(.horizontal) // Add horizontal padding to match the design
-                .edgesIgnoringSafeArea(.top) // Extend the view to the top edge
+                .padding(.horizontal)
+                .edgesIgnoringSafeArea(.top)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -149,7 +149,6 @@ struct ProfileView: View {
 struct CalendarView: View {
     let posts: [Post]
     
-    // Generate a list of dates for the current month
     private var dates: [Date] {
         var dates: [Date] = []
         let calendar = Calendar.current
@@ -198,9 +197,9 @@ struct CalendarView: View {
                     }
                 } else {
                     Text("\(Calendar.current.component(.day, from: date))")
-                        .font(.system(size: 14, weight: .medium)) // Adjust font size
+                        .font(.system(size: 14, weight: .medium))
                         .frame(width: 40, height: 50)
-                        .background(Color.gray.opacity(0.2)) // Slightly lighter background color
+                        .background(Color.gray.opacity(0.2))
                         .cornerRadius(10)
                 }
             }
@@ -328,7 +327,7 @@ struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             ProfileView(showSignInView: .constant(false))
-                .environmentObject(UserStore()) // Provide an instance of UserStore for preview
+                .environmentObject(UserStore())
         }
     }
 }

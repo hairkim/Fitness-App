@@ -70,6 +70,7 @@ final class PostManager {
 
     func createNewPost(post: Post) async throws {
         try postDocument(postId: post.id).setData(from: post, merge: false, encoder: Firestore.Encoder())
+        try await UserManager.shared.updateSesh(forUser: post.userId, postDate: post.date)
     }
 
     func getPosts() async throws -> [Post] {
