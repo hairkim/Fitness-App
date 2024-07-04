@@ -77,6 +77,8 @@ class ChatViewModel: ObservableObject {
 
 }
 
+import SwiftUI
+
 struct UserProfileView: View {
     @EnvironmentObject var userStore: UserStore
     
@@ -157,25 +159,13 @@ struct UserProfileView: View {
                             .cornerRadius(10)
                     }
                     
-//                    if let chat = chatViewModel.chat {
-//                        NavigationLink(destination: ChatView(chat: chat)) {
-//                            Text("Message")
-//                                .font(.headline)
-//                                .foregroundColor(.white)
-//                                .padding()
-//                                .background(Color.blue)
-//                                .cornerRadius(10)
-//                        }
-//                    } else {
-//                        
-//                    }
                     Button(action: {
                         Task {
                             if let currentUser = userStore.currentUser {
                                 await chatViewModel.checkAndCreateChat(user1: currentUser, user2: postUser)
                                 showChatView = true
                             } else {
-                                print("could not find current user")
+                                print("Could not find current user")
                             }
                         }
                     }) {
@@ -186,7 +176,6 @@ struct UserProfileView: View {
                             .background(Color.blue)
                             .cornerRadius(10)
                     }
-
                 }
             
                 // Posts (Grid Layout)
@@ -233,6 +222,7 @@ struct UserProfileView: View {
             .fullScreenCover(isPresented: $showChatView) {
                 if let chat = chatViewModel.chat {
                     ChatView(chat: chat)
+                        .environmentObject(userStore)
                 }
             }
         }
@@ -260,9 +250,8 @@ struct UserProfileView: View {
             }
         }
     }
-    
-    
 }
+
 
 struct UserProfileView_Previews: PreviewProvider {
     static var previews: some View {

@@ -69,15 +69,15 @@ final class ChatManager {
     
     func sendMessage(message: DBMessage) async throws {
         let messageId = messagesCollection(chatId: message.chatId).document().documentID
-       var messageWithId = message
-       messageWithId.id = messageId
-       try messagesDocument(chatId: message.chatId, messageId: messageId).setData(from: messageWithId, encoder: Firestore.Encoder())
+        var messageWithId = message
+        messageWithId.id = messageId
+        try messagesDocument(chatId: message.chatId, messageId: messageId).setData(from: messageWithId, encoder: Firestore.Encoder())
        
-       // Update last message in chat document
-       try await chatDocument(chatId: message.chatId).updateData([
-           "lastMessage": message.text,
-           "timestamp": Timestamp(date: Date())
-       ])
+        // Update last message in chat document
+        try await chatDocument(chatId: message.chatId).updateData([
+            "lastMessage": message.text,
+            "timestamp": Timestamp(date: Date())
+        ])
     }
     
     func getChats(for userId: String) async throws -> [DBChat] {
@@ -121,6 +121,4 @@ final class ChatManager {
                 completion(messages, nil)
             }
     }
-    
-
 }

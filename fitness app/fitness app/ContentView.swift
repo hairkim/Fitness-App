@@ -1,6 +1,7 @@
 // created by the daniel han
 
 import SwiftUI
+import FirebaseFirestore
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
@@ -11,8 +12,8 @@ struct ContentView: View {
     @State private var showDMHomeView: Bool = false
     @State private var selectedTab: Int = 0
     @State private var selectedUser: DBUser? = nil
-    // @State private var showRotationPage: Bool = false
-    
+    @State private var unreadMessagesCount: Int = 0
+
     var body: some View {
         Group {
             if userStore.currentUser == nil {
@@ -25,11 +26,9 @@ struct ContentView: View {
             checkAuthStatus()
             Task {
                 await fetchPosts()
+                await fetchUnreadMessagesCount()
             }
         }
-        // .fullScreenCover(isPresented: $showRotationPage) {
-        //    RotationPageView(showRotationPage: $showRotationPage)
-        // }
     }
     
     var mainContentView: some View {
@@ -132,6 +131,15 @@ struct ContentView: View {
                         }
                     }) {
                         Image(systemName: "message.fill")
+                            .overlay(
+                                unreadMessagesCount > 0 ?
+                                    Text("\(unreadMessagesCount)")
+                                        .font(.caption2)
+                                        .foregroundColor(.white)
+                                        .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+                                        .offset(x: 10, y: -10)
+                                    : nil
+                            )
                             .imageScale(.large)
                             .foregroundColor(Color(.darkGray))
                             .padding(.trailing, 16)
@@ -214,11 +222,6 @@ struct ContentView: View {
                     await MainActor.run {
                         userStore.setCurrentUser(user: dbUser)
                         showSignInView = false
-                        
-                        // let rotationConfirmedKey = "hasConfirmedRotation-\(authUser.uid)"
-                        // if !UserDefaults.standard.bool(forKey: rotationConfirmedKey) {
-                        //     showRotationPage = true
-                        // }
                     }
                 } else {
                     await MainActor.run {
@@ -241,6 +244,31 @@ struct ContentView: View {
         } catch {
             print("Error fetching posts: \(error)")
         }
+    }
+    
+    private func fetchUnreadMessagesCount() async {
+        guard let currentUserID = userStore.currentUser?.id else { return }
+        do {
+            let count = try await MessageManager.shared.getUnreadMessagesCount(userId: currentUserID)
+            await MainActor.run {
+                self.unreadMessagesCount = count
+            }
+        } catch {
+            print("Error fetching unread messages count: \(error)")
+        }
+    }
+}
+
+class MessageManager {
+    static let shared = MessageManager()
+
+    func getUnreadMessagesCount(userId: String) async throws -> Int {
+        let db = Firestore.firestore()
+        let snapshot = try await db.collection("messages")
+            .whereField("receiverId", isEqualTo: userId)
+            .whereField("isRead", isEqualTo: false)
+            .getDocuments()
+        return snapshot.documents.count
     }
 }
 
@@ -460,6 +488,7 @@ struct CustomPostView: View {
         }
     }
 }
+
 
 import SwiftUI
 
