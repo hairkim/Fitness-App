@@ -1,7 +1,9 @@
 // created by the daniel han
 
 import SwiftUI
+import Firebase
 import FirebaseFirestore
+import FirebaseFirestoreSwift
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
@@ -24,9 +26,9 @@ struct ContentView: View {
         }
         .onAppear {
             checkAuthStatus()
+            setupUnreadMessagesListener()
             Task {
                 await fetchPosts()
-                await fetchUnreadMessagesCount()
             }
         }
     }
@@ -246,16 +248,22 @@ struct ContentView: View {
         }
     }
     
-    private func fetchUnreadMessagesCount() async {
-        guard let currentUserID = userStore.currentUser?.id else { return }
-        do {
-            let count = try await MessageManager.shared.getUnreadMessagesCount(userId: currentUserID)
-            await MainActor.run {
-                self.unreadMessagesCount = count
+    private func setupUnreadMessagesListener() {
+        guard let currentUserID = userStore.currentUser?.userId else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("messages")
+            .whereField("receiverId", isEqualTo: currentUserID)
+            .whereField("isRead", isEqualTo: false)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error listening to unread messages: \(error)")
+                    return
+                }
+                
+                guard let documents = querySnapshot?.documents else { return }
+                self.unreadMessagesCount = documents.count
             }
-        } catch {
-            print("Error fetching unread messages count: \(error)")
-        }
     }
 }
 
@@ -778,6 +786,7 @@ func timeAgoSinceDate(_ date: Date) -> String {
         return "just now"
     }
 }
+
 
 // struct RotationPageView: View {
 //     @Binding var showRotationPage: Bool

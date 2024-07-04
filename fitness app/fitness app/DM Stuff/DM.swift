@@ -22,101 +22,83 @@ extension Color {
 
 // DMHomeView
 
+import SwiftUI
+import Firebase
+import FirebaseFirestore
+import FirebaseFirestoreSwift
+
 struct DMHomeView: View {
-    @EnvironmentObject var userStore: UserStore
     @Binding var showDMHomeView: Bool
-    @State var chatRooms: [DBChat] = []
-    @State private var showFindFriendsView = false
-    @State private var searchText = ""
+    @EnvironmentObject var userStore: UserStore
+    @State private var chats = [DBChat]()
 
     var body: some View {
         NavigationView {
-            VStack {
-                HStack {
+            List {
+                ForEach(chats) { chat in
+                    NavigationLink(destination: ChatView(chat: chat)) {
+                        HStack {
+                            Text(otherParticipantName(in: chat))
+                            Spacer()
+                            if unreadMessagesCount(in: chat) > 0 {
+                                Text("\(unreadMessagesCount(in: chat))")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .padding(5)
+                                    .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Messages")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         withAnimation {
-                            showDMHomeView = false
+                            showDMHomeView.toggle()
                         }
                     }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.gymPrimary)
-                            .padding(.leading, 10)
-                    }
-                    
-                    Spacer()
-                    
-                    Text("Gym Chat")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.gymPrimary)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        showFindFriendsView.toggle()
-                    }) {
-                        Image(systemName: "person.badge.plus")
-                            .imageScale(.large)
-                            .foregroundColor(.gymSecondary)
-                            .padding(.trailing, 10)
+                        Image(systemName: "chevron.down")
+                            .foregroundColor(.primary)
                     }
                 }
-                .padding(.horizontal, 10)
-                .frame(height: 44) // Align with standard navigation bar height
-
-                HStack {
-                    TextField("Search", text: $searchText)
-                        .padding(7)
-                        .background(Color(.systemGray5))
-                        .cornerRadius(8)
-                        .padding(.horizontal, 10)
-                }
-                .padding(.bottom, 10)
-                
-                List {
-                    ForEach(chatRooms.filter {
-                        searchText.isEmpty ? true : $0.participantNames.contains { id, name in
-                            name.lowercased().contains(searchText.lowercased())
-                        }
-                    }) { (chatRoom) in
-                        SearchChatView(chatRoom: chatRoom)
-                    }
-                }
-                .background(Color.clear)
             }
-            .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
-//            .sheet(isPresented: $showFindFriendsView) {
-//                FindFriendsView(startNewChat: startNewChat)
-//            }
-            .navigationBarTitle("")
-            .navigationBarHidden(true)
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-        .onAppear {
-            Task {
-                await fetchChats()
+            .onAppear {
+                setupChatsListener()
             }
         }
     }
 
+    private func setupChatsListener() {
+        guard let currentUserID = userStore.currentUser?.userId else { return }
+        let db = Firestore.firestore()
 
-    
-    private func fetchChats() async {
-        guard let currentUser = userStore.currentUser else {
-            print("no current user data available")
-            return
-        }
-        do {
-            self.chatRooms = try await ChatManager.shared.getChats(for: currentUser.userId)
-            print("chats fetched")
-        } catch {
-            print("error fetching chats: \(error)")
-        }
+        db.collection("chats")
+            .whereField("participants", arrayContains: currentUserID)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error listening to chats: \(error)")
+                    return
+                }
+
+                guard let documents = querySnapshot?.documents else { return }
+                self.chats = documents.compactMap { document -> DBChat? in
+                    try? document.data(as: DBChat.self)
+                }
+            }
     }
-    
-    
+
+    private func otherParticipantName(in chat: DBChat) -> String {
+        guard let currentUserID = userStore.currentUser?.userId else { return "Unknown" }
+        return chat.participantNames.first { $0.key != currentUserID }?.value ?? "Unknown"
+    }
+
+    private func unreadMessagesCount(in chat: DBChat) -> Int {
+        // Implement logic to count unread messages
+        return 0 // Placeholder
+    }
 }
-
-
 
 struct DMHomeView_Previews: PreviewProvider {
     static var previews: some View {

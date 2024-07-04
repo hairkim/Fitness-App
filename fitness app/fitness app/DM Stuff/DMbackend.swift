@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Combine
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
@@ -17,13 +16,15 @@ struct DBChat: Codable, Identifiable {
     var lastMessage: String?
     var timestamp: Timestamp
     var profileImage: String? // URL to the profile image
-    
-    init(participants: [String], participantNames: [String: String], lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
+
+    init(id: String? = nil, participants: [String], participantNames: [String: String], lastMessage: String?, timestamp: Timestamp = Timestamp(), profileImage: String?) {
+        self.id = id
         self.participants = participants
         self.participantNames = participantNames
         self.lastMessage = lastMessage
         self.timestamp = timestamp
-        self.profileImage = profileImage    }
+        self.profileImage = profileImage
+    }
 }
 
 struct DBMessage: Codable, Identifiable {
@@ -42,54 +43,53 @@ struct DBMessage: Codable, Identifiable {
 }
 
 final class ChatManager {
-    
     static let shared = ChatManager()
     private init() { }
-    
+
     private let chatCollection = Firestore.firestore().collection("chats")
-    
+
     private func chatDocument(chatId: String) -> DocumentReference {
         chatCollection.document(chatId)
     }
-    
+
     private func messagesCollection(chatId: String) -> CollectionReference {
         chatDocument(chatId: chatId).collection("messages")
     }
-    
+
     private func messagesDocument(chatId: String, messageId: String) -> DocumentReference {
         messagesCollection(chatId: chatId).document(messageId)
     }
-    
+
     func createNewChat(chat: inout DBChat) async throws {
         let chatId = chatCollection.document().documentID
         var chatWithId = chat
         chatWithId.id = chatId
         try chatDocument(chatId: chatId).setData(from: chatWithId, merge: false, encoder: Firestore.Encoder())
     }
-    
+
     func sendMessage(message: DBMessage) async throws {
         let messageId = messagesCollection(chatId: message.chatId).document().documentID
         var messageWithId = message
         messageWithId.id = messageId
         try messagesDocument(chatId: message.chatId, messageId: messageId).setData(from: messageWithId, encoder: Firestore.Encoder())
-       
+
         // Update last message in chat document
         try await chatDocument(chatId: message.chatId).updateData([
             "lastMessage": message.text,
             "timestamp": Timestamp(date: Date())
         ])
     }
-    
+
     func getChats(for userId: String) async throws -> [DBChat] {
         let snapshot = try await chatCollection.whereField("participants", arrayContains: userId).getDocuments()
         return try snapshot.documents.compactMap { try $0.data(as: DBChat.self) }
     }
-    
+
     func getMessages(for chatId: String) async throws -> [DBMessage] {
         let snapshot = try await messagesCollection(chatId: chatId).order(by: "timestamp").getDocuments()
         return try snapshot.documents.compactMap { try $0.data(as: DBMessage.self) }
     }
-    
+
     func getChatBetweenUsers(user1Id: String, user2Id: String) async throws -> DBChat? {
         let snapshot = try await chatCollection
             .whereField("participants", arrayContains: user1Id)
@@ -104,7 +104,7 @@ final class ChatManager {
 
         return nil // No chat found between the users
     }
-    
+
     func addMessagesListener(chatId: String, completion: @escaping ([DBMessage]?, Error?) -> Void) -> ListenerRegistration {
         return messagesCollection(chatId: chatId)
             .order(by: "timestamp")

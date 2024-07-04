@@ -8,8 +8,6 @@
 import SwiftUI
 import FirebaseFirestore
 
-// ChatView
-
 struct ChatView: View {
     @EnvironmentObject var userStore: UserStore
     @Environment(\.presentationMode) var presentationMode
@@ -171,10 +169,10 @@ struct ChatView: View {
     
     private func addMessagesListener() {
         guard let chatId = chat.id else { return }
-        print("Setting up listener for chat ID: (chatId)")
+        print("Setting up listener for chat ID: \(chatId)")
         messagesListener = ChatManager.shared.addMessagesListener(chatId: chatId) { messages, error in
             if let error = error {
-                print("Error listening for messages: (error)")
+                print("Error listening for messages: \(error)")
                 return
             }
             guard let messages = messages else {
@@ -182,7 +180,7 @@ struct ChatView: View {
                 return
             }
             self.messages = messages
-            print("Messages updated: (self.messages)")
+            print("Messages updated: \(self.messages)")
         }
     }
 
@@ -210,14 +208,13 @@ struct ChatView: View {
             // Exclude the current user's initials from the participant names and get initials for other participants
             return chat.participantNames
                 .filter { $0.key != currentUserId }
-                .map { $0.value.initials() }
+                .map { $0.value.initial() }
                 .joined(separator: ", ")
         } else {
             print("couldnt find user id")
             return ""
         }
     }
-    
 }
 
 extension String {
@@ -233,6 +230,7 @@ struct ChatView_Previews: PreviewProvider {
             participants: [],
             participantNames: ["":""],
             lastMessage: nil,
+            timestamp: Timestamp(),
             profileImage: nil
         )
         
