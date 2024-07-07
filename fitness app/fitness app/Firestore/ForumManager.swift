@@ -5,6 +5,7 @@
 //  Created by Harris Kim on 7/3/24.
 //
 
+
 //import Foundation
 //import FirebaseFirestore
 //import FirebaseFirestoreSwift
@@ -33,7 +34,7 @@
 //        self.likedByCurrentUser = likedByCurrentUser
 //        self.createdAt = createdAt
 //    }
-//    
+//
 //    enum CodingKeys: String, CodingKey {
 //        case id
 //        case username
@@ -97,7 +98,7 @@
 //        self.replies = replies
 //        self.createdAt = createdAt
 //    }
-//    
+//
 //enum CodingKeys: String, CodingKey {
 //        case id
 //        case forumPostId
@@ -140,7 +141,7 @@
 //    @DocumentID var id: String?
 //    let type: MediaType
 //    let url: URL
-//    
+//
 //    init(type: MediaType, url: URL) {
 //        self.type = type
 //        self.url = url
@@ -165,29 +166,29 @@
 //final class ForumManager {
 //    static let shared = ForumManager()
 //    private init() { }
-//    
+//
 //    private let forumCollection = Firestore.firestore().collection("forum_posts")
-//    
+//
 //    private func forumDocument(forumId: String) -> DocumentReference {
 //        forumCollection.document(forumId)
 //    }
-//    
+//
 //    func getForumPost(forumPostId: String) async throws -> ForumPost {
 //        try await forumDocument(forumId: forumPostId).getDocument(as: ForumPost.self)
 //    }
-//    
+//
 //    func getAllForumPosts() async throws -> [ForumPost] {
 //        let snapshot = try await forumCollection.getDocuments()
 //        return snapshot.documents.compactMap { try? $0.data(as: ForumPost.self) }
 //    }
-//    
-//    
-//    
+//
+//
+//
 //    func createNewForumPost(forumPost: ForumPost) async throws {
 //        let forumDocument = forumCollection.document(forumPost.id ?? UUID().uuidString)
 //        try forumDocument.setData(from: forumPost, merge: false, encoder: Firestore.Encoder())
 //    }
-//    
+//
 //    func createNewReply(for post: ForumPost, reply: Reply) async throws {
 //        guard let postId = post.id else {
 //            print("Couldn't find post id")
@@ -217,7 +218,7 @@
 //            throw error
 //        }
 //    }
-//    
+//
 //    func createNewReply(for parentReply: Reply, reply: Reply) async throws {
 //        guard let parentReplyId = parentReply.id else {
 //            print("Couldn't find parent reply id")
@@ -248,3 +249,4 @@
 //        }
 //    }
 //}
+

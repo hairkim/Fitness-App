@@ -1348,3 +1348,4 @@ struct ForumView_Previews: PreviewProvider {
         ForumView()
     }
 }
+
