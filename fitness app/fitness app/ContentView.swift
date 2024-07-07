@@ -39,7 +39,7 @@ struct ContentView: View {
                 if showDMHomeView {
                     DMHomeView(showDMHomeView: $showDMHomeView)
                         .environmentObject(userStore)
-                        .transition(.move(edge: .bottom))
+                        .transition(.move(edge: .trailing)) // Change transition to right-to-left
                 } else {
                     if selectedTab != 1 {
                         TabView(selection: $selectedTab) {
@@ -114,6 +114,7 @@ struct ContentView: View {
                 )
             )
         }
+        .background(Color.white.edgesIgnoringSafeArea(.all)) // Make home page background white
     }
     
     var homeView: some View {
@@ -168,7 +169,7 @@ struct ContentView: View {
                     .padding()
                 }
             }
-            .background(Color.white)
+            .background(Color.white) // Home page background color white
             .navigationTitle("")
         }
     }
@@ -267,6 +268,7 @@ struct ContentView: View {
     }
 }
 
+
 class MessageManager {
     static let shared = MessageManager()
 
@@ -288,6 +290,7 @@ struct CustomPostView: View {
     @State private var isLiked = false
     @State private var showCommentSheet = false
     @State private var showReportSheet = false
+    @State private var showLikesList = false
     
     @State private var comments: [Comment]
     @State private var postUser: DBUser = DBUser.placeholder
@@ -351,15 +354,12 @@ struct CustomPostView: View {
             HStack {
                 HStack(spacing: 20) {
                     Button(action: {
-                        withAnimation {
-                            self.isLiked.toggle()
-                            Task {
-                                if isLiked {
-                                    try await PostManager.shared.incrementLikes(postId: post.id)
-                                } else {
-                                    try await PostManager.shared.decrementLikes(postId: post.id)
-                                }
-                                likesCount = try await PostManager.shared.getLikes(postId: post.id)
+                        Task {
+                            let hasLiked = try await PostManager.shared.checkIfUserLikedPost(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
+                            if !hasLiked {
+                                self.isLiked.toggle()
+                                try await PostManager.shared.incrementLikes(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
+                                likesCount = try await PostManager.shared.getLikes(postId: post.id.uuidString)
                             }
                         }
                     }) {
@@ -372,6 +372,9 @@ struct CustomPostView: View {
                     Text("\(likesCount)")
                         .font(.caption)
                         .foregroundColor(.gray)
+                        .onTapGesture {
+                            showLikesList.toggle()
+                        }
                     
                     Button(action: {
                         withAnimation {
@@ -445,11 +448,15 @@ struct CustomPostView: View {
         .onAppear {
             Task {
                 await loadPostUser()
-                likesCount = try await PostManager.shared.getLikes(postId: post.id)
+                likesCount = try await PostManager.shared.getLikes(postId: post.id.uuidString)
+                self.isLiked = try await PostManager.shared.checkIfUserLikedPost(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
             }
         }
         .sheet(isPresented: $showCommentSheet) {
             CommentsSheetView(comments: $comments, postId: post.id, postUser: postUser, currentUser: userStore.currentUser!, deleteComment: deleteComment, showCommentSheet: $showCommentSheet)
+        }
+        .sheet(isPresented: $showLikesList) {
+            LikesListView(postId: post.id.uuidString)
         }
         .sheet(isPresented: $showReportSheet) {
             ReportView(post: post, showReportSheet: $showReportSheet)
@@ -496,6 +503,8 @@ struct CustomPostView: View {
         }
     }
 }
+
+
 
 
 import SwiftUI
@@ -786,6 +795,7 @@ func timeAgoSinceDate(_ date: Date) -> String {
         return "just now"
     }
 }
+
 
 
 // struct RotationPageView: View {

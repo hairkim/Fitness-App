@@ -21,8 +21,9 @@ struct Post: Codable, Identifiable {
     var comments: [Comment]
     let date: Date
     var likes: Int
+    var likedBy: [String] // Add this line
 
-    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date(), likes: Int = 0) {
+    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date(), likes: Int = 0, likedBy: [String] = []) { // Modify this line
         self.id = id
         self.userId = userId
         self.username = username
@@ -34,6 +35,7 @@ struct Post: Codable, Identifiable {
         self.comments = comments
         self.date = date
         self.likes = likes
+        self.likedBy = likedBy // Add this line
     }
 }
 
@@ -56,7 +58,6 @@ struct Comment: Identifiable, Codable {
     }
 }
 
-
 final class PostManager {
 
     static let shared = PostManager()
@@ -64,12 +65,12 @@ final class PostManager {
 
     private let postCollection = Firestore.firestore().collection("posts")
 
-    private func postDocument(postId: UUID) -> DocumentReference {
-        postCollection.document(postId.uuidString)
+    private func postDocument(postId: String) -> DocumentReference {
+        postCollection.document(postId)
     }
 
     func createNewPost(post: Post) async throws {
-        try postDocument(postId: post.id).setData(from: post, merge: false, encoder: Firestore.Encoder())
+        try postDocument(postId: post.id.uuidString).setData(from: post, merge: false, encoder: Firestore.Encoder())
         try await UserManager.shared.updateSesh(forUser: post.userId, postDate: post.date)
     }
 
@@ -87,7 +88,7 @@ final class PostManager {
         }
     }
 
-    func addComment(postId: UUID, username: String, comment: String) async throws {
+    func addComment(postId: String, username: String, comment: String) async throws {
         let newComment = Comment(username: username, text: comment)
         let postRef = postDocument(postId: postId)
         let postDocument = try await postRef.getDocument()
@@ -98,7 +99,7 @@ final class PostManager {
         try postRef.setData(from: post)
     }
 
-    func addReply(postId: UUID, commentId: UUID, username: String, reply: String) async throws {
+    func addReply(postId: String, commentId: UUID, username: String, reply: String) async throws {
         let newReply = Comment(username: username, text: reply)
         let postRef = postDocument(postId: postId)
         let postDocument = try await postRef.getDocument()
@@ -111,13 +112,13 @@ final class PostManager {
         try postRef.setData(from: post)
     }
 
-    func getComments(postId: UUID) async throws -> [Comment] {
-        let document = try await postCollection.document(postId.uuidString).getDocument()
+    func getComments(postId: String) async throws -> [Comment] {
+        let document = try await postCollection.document(postId).getDocument()
         let post = try document.data(as: Post.self)
         return post.comments
     }
 
-    func incrementLikes(postId: UUID) async throws {
+    func incrementLikes(postId: String, userId: String) async throws {
         let postRef = postDocument(postId: postId)
         try await Firestore.firestore().runTransaction { (transaction, errorPointer) -> Any? in
             let postDocument: DocumentSnapshot
@@ -136,12 +137,14 @@ final class PostManager {
                 return nil
             }
 
-            transaction.updateData(["likes": oldLikes + 1], forDocument: postRef)
+            var post = try? postDocument.data(as: Post.self)
+            post!.likedBy.append(userId)
+            transaction.updateData(["likes": oldLikes + 1, "likedBy": post!.likedBy], forDocument: postRef)
             return nil
         }
     }
 
-    func decrementLikes(postId: UUID) async throws {
+    func decrementLikes(postId: String, userId: String) async throws {
         let postRef = postDocument(postId: postId)
         try await Firestore.firestore().runTransaction { (transaction, errorPointer) -> Any? in
             let postDocument: DocumentSnapshot
@@ -160,12 +163,14 @@ final class PostManager {
                 return nil
             }
 
-            transaction.updateData(["likes": oldLikes - 1], forDocument: postRef)
+            var post = try? postDocument.data(as: Post.self)
+            post!.likedBy.removeAll { $0 == userId }
+            transaction.updateData(["likes": oldLikes - 1, "likedBy": post!.likedBy], forDocument: postRef)
             return nil
         }
     }
 
-    func getLikes(postId: UUID) async throws -> Int {
+    func getLikes(postId: String) async throws -> Int {
         let postRef = postDocument(postId: postId)
         let postDocument = try await postRef.getDocument()
         if let likes = postDocument.data()?["likes"] as? Int {
@@ -174,6 +179,40 @@ final class PostManager {
             throw NSError(domain: "AppErrorDomain", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "Unable to retrieve likes from snapshot \(postDocument)"
             ])
+        }
+    }
+
+    func checkIfUserLikedPost(postId: String, userId: String) async throws -> Bool {
+        let postRef = postDocument(postId: postId)
+        let postDocument = try await postRef.getDocument()
+        if let likedBy = postDocument.data()?["likedBy"] as? [String] {
+            return likedBy.contains(userId)
+        } else {
+            return false
+        }
+    }
+
+    func getUsersWhoLikedPost(postId: String) async throws -> [DBUser] {
+        let postRef = postDocument(postId: postId)
+        let postDocument = try await postRef.getDocument()
+        guard let likedBy = postDocument.data()?["likedBy"] as? [String] else {
+            throw NSError(domain: "AppErrorDomain", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Unable to retrieve likedBy from snapshot \(postDocument)"
+            ])
+        }
+
+        return try await withThrowingTaskGroup(of: DBUser.self, returning: [DBUser].self) { group in
+            for userId in likedBy {
+                group.addTask {
+                    return try await UserManager.shared.getUser(userId: userId)
+                }
+            }
+
+            var users = [DBUser]()
+            for try await user in group {
+                users.append(user)
+            }
+            return users
         }
     }
 }

@@ -6,23 +6,6 @@
 //
 
 import SwiftUI
-import Foundation
-import FirebaseFirestore
-import FirebaseFirestoreSwift
-
-
-// Custom Colors
-extension Color {
-    static let gymPrimary = Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)
-    static let gymSecondary = Color(red: 86 / 255, green: 167 / 255, blue: 124 / 255) // Muted green
-    static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
-    static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255) // Light beige
-}
-
-
-// DMHomeView
-
-import SwiftUI
 import Firebase
 import FirebaseFirestore
 import FirebaseFirestoreSwift
@@ -36,10 +19,15 @@ struct DMHomeView: View {
     var body: some View {
         NavigationView {
             List {
-                ForEach(chats) { chat in
+                ForEach(chats, id: \.id) { chat in
                     NavigationLink(destination: ChatView(chat: chat)) {
                         HStack {
-                            Text(chat.participantNames.first(where: { $0.key != userStore.currentUser?.userId })?.value ?? "Unknown")
+                            if let participantId = chat.participants.first(where: { $0 != userStore.currentUser?.userId }) {
+                                ProfileImageView(userId: participantId)
+                                    .frame(width: 40, height: 40)
+                                Text(chat.participantNames[participantId] ?? "Unknown")
+                                    .padding(.leading, 10)
+                            }
                             Spacer()
                             if let count = unreadMessages[chat.id ?? ""], count > 0 {
                                 Text("\(count)")
@@ -60,7 +48,7 @@ struct DMHomeView: View {
                             showDMHomeView.toggle()
                         }
                     }) {
-                        Image(systemName: "chevron.down")
+                        Image(systemName: "chevron.left")
                             .foregroundColor(.primary)
                     }
                 }
@@ -69,6 +57,7 @@ struct DMHomeView: View {
                 setupChatsListener()
             }
         }
+        .transition(.move(edge: .trailing)) // Change transition to right-to-left
     }
 
     private func setupChatsListener() {
@@ -122,4 +111,12 @@ struct DMHomeView_Previews: PreviewProvider {
         DMHomeView(showDMHomeView: .constant(false))
             .environmentObject(userStore)
     }
+}
+
+
+extension Color {
+    static let gymPrimary = Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)
+    static let gymSecondary = Color(red: 86 / 255, green: 167 / 255, blue: 124 / 255) // Muted green
+    static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
+    static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255) // Light beige
 }
