@@ -8,13 +8,14 @@
 import SwiftUI
 
 struct CreateQuestionView: View {
-    @State private var username: String = "CurrentUser"
+    @EnvironmentObject var userStore: UserStore
     @State private var title: String = ""
     @State private var bodyText: String = ""
     @State private var link: String = ""
     @State private var selectedMediaItems: [MediaItem] = []
-    var onAddQuestion: (String, String, String, [MediaItem], URL?) -> Void
+    var onAddQuestion: (String, String, [MediaItem], URL?) async -> Void
     @Environment(\.presentationMode) var presentationMode
+    
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -22,7 +23,7 @@ struct CreateQuestionView: View {
                 Text("Username")
                     .font(.caption)
                     .foregroundColor(.gray)
-                Text(username)
+                Text(userStore.currentUser?.username ?? "Loading...")
                     .font(.body)
                     .foregroundColor(.primary)
             }
@@ -68,9 +69,11 @@ struct CreateQuestionView: View {
                 .padding(.vertical)
 
             Button(action: {
-                let url = URL(string: link)
-                onAddQuestion(username, title, bodyText, selectedMediaItems, url)
-                presentationMode.wrappedValue.dismiss() // Dismiss the view after adding the post
+                Task {
+                    let url = URL(string: link)
+                    await onAddQuestion(title, bodyText, selectedMediaItems, url)
+                    presentationMode.wrappedValue.dismiss() // Dismiss the view after adding the post
+                }
             }) {
                 Text("Post Question")
                     .foregroundColor(.white)
@@ -92,6 +95,8 @@ struct CreateQuestionView: View {
 // Preview Provider
 struct CreateQuestionView_Previews: PreviewProvider {
     static var previews: some View {
-        CreateQuestionView(onAddQuestion: { _, _, _, _, _ in })
+        let userStore = UserStore()
+        CreateQuestionView(onAddQuestion: { _, _, _, _ in })
+            .environmentObject(userStore)
     }
 }
