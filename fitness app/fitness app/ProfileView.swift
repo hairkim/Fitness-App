@@ -5,11 +5,7 @@ struct ProfileView: View {
     @Binding var showSignInView: Bool
 
     @State private var posts = [Post]()
-    @State private var leaderboard = [
-        LeaderboardEntry(username: "JohnDoe", streak: 30),
-        LeaderboardEntry(username: "JaneDoe", streak: 25),
-        LeaderboardEntry(username: "JimBeam", streak: 20)
-    ]
+    @State private var leaderboard = [LeaderboardEntry]()
 
     var body: some View {
         NavigationView {
@@ -137,7 +133,29 @@ struct ProfileView: View {
         Task {
             do {
                 if let currentUser = userStore.currentUser {
+                    // Fetch current user's posts
                     self.posts = try await PostManager.shared.getPosts(forUser: currentUser.userId)
+                    
+                    // Fetch current user's friends
+                    let friendsIds = currentUser.followers
+                    var friends = [DBUser]()
+                    
+                    for friendId in friendsIds {
+                        let friend = try await UserManager.shared.getUser(userId: friendId)
+                        friends.append(friend)
+                    }
+                    
+                    // Include current user in the leaderboard
+                    var allUsers = friends
+                    allUsers.append(currentUser)
+                    
+                    // Sort users based on sesh count
+                    allUsers.sort { $0.sesh > $1.sesh }
+                    
+                    // Update leaderboard entries
+                    self.leaderboard = allUsers.map { user in
+                        LeaderboardEntry(username: user.username, sesh: user.sesh)
+                    }
                 }
             } catch {
                 print("Error fetching profile data: \(error)")
@@ -211,7 +229,7 @@ struct CalendarView: View {
 struct LeaderboardEntry: Identifiable {
     let id = UUID()
     let username: String
-    let streak: Int
+    let sesh: Int
 }
 
 struct LeaderboardView: View {
@@ -229,7 +247,7 @@ struct LeaderboardView: View {
                         .font(.subheadline)
                         .foregroundColor(.primary)
                     Spacer()
-                    Text("\(entry.streak) days")
+                    Text("\(entry.sesh) sessions")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                 }
