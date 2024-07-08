@@ -20,7 +20,7 @@ struct DMHomeView: View {
         NavigationView {
             List {
                 ForEach(sortedChats(), id: \.id) { chat in
-                    NavigationLink(destination: ChatView(chat: chat).environmentObject(userStore)) {
+                    NavigationLink(destination: ChatView(chat: chat)) {
                         chatRowView(chat: chat)
                     }
                 }
@@ -64,6 +64,10 @@ struct DMHomeView: View {
                     .foregroundColor(.white)
                     .padding(5)
                     .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+            }
+            if chat.lastMessage != nil {
+                Image(systemName: chat.lastMessage == nil ? "circle.fill" : "checkmark.circle.fill")
+                    .foregroundColor(chat.lastMessage == nil ? .blue : .gray)
             }
         }
     }

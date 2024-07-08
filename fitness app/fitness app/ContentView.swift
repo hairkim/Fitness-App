@@ -2,8 +2,8 @@
 
 import SwiftUI
 import Firebase
-import FirebaseCore
 import FirebaseFirestore
+import FirebaseFirestoreSwift
 import UserNotifications
 
 struct ContentView: View {
@@ -253,13 +253,26 @@ struct ContentView: View {
     
     private func setupUnreadMessagesListener() {
         guard let currentUserID = userStore.currentUser?.userId else { return }
-        Task {
-            do {
-                self.unreadMessagesCount = try await ChatManager.shared.getUnreadMessagesCount(userId: currentUserID)
-            } catch {
-                print("Error getting unread messages count: \(error)")
+        let db = Firestore.firestore()
+        
+        db.collection("chats")
+            .whereField("participants", arrayContains: currentUserID)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error listening to chats: \(error)")
+                    return
+                }
+
+                guard let documents = querySnapshot?.documents else { return }
+                var totalUnreadMessages = 0
+                for document in documents {
+                    if let chat = try? document.data(as: DBChat.self),
+                       let unreadCount = chat.unreadMessages[currentUserID] {
+                        totalUnreadMessages += unreadCount
+                    }
+                }
+                self.unreadMessagesCount = totalUnreadMessages
             }
-        }
     }
     
     private func requestNotificationPermissions() {
