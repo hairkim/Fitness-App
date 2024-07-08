@@ -82,9 +82,8 @@ struct UserProfileView: View {
     @EnvironmentObject var userStore: UserStore
     
     let postUser: DBUser
-    @Binding var chats: [DBChat]
-    @State var posts = [Post]() // Using the same Post structure
-    
+    @Binding var chats: [DBChat] // Add this binding
+    @State var posts = [Post]()
     @StateObject private var chatViewModel: ChatViewModel
     
     @State private var showChatView = false
@@ -222,7 +221,7 @@ struct UserProfileView: View {
             }
             .fullScreenCover(isPresented: $showChatView) {
                 if let chat = chatViewModel.chat {
-                    ChatView(chats: $chats, chat: chat)
+                    ChatView(chats: $chats, chat: chat, unreadMessagesCount: .constant(0))
                         .environmentObject(userStore)
                 }
             }
@@ -253,15 +252,11 @@ struct UserProfileView: View {
     }
 }
 
-
 struct UserProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        let userStore = UserStore()
         let mockUser = MockUser(uid: "12kjksdfj", email: "mockUser@gmail.com", photoURL: nil)
         let authResultModel = AuthenticationManager.shared.createMockUser(mockUser: mockUser)
-        let postUser = DBUser(auth: authResultModel, username: "mock user")
-        
-        UserProfileView(postUser: postUser, userStore: userStore, chats: .constant([]))
-            .environmentObject(userStore)
+        return UserProfileView(postUser: DBUser(auth: authResultModel, username: "mock user"), userStore: UserStore(), chats: .constant([]))
+            .environmentObject(UserStore())
     }
 }

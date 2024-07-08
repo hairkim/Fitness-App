@@ -10,10 +10,11 @@ import SwiftUI
 struct SearchChatView: View {
     @EnvironmentObject var userStore: UserStore
     @Binding var chats: [DBChat]
+    @Binding var unreadMessagesCount: Int
     let chatRoom: DBChat
     
     var body: some View {
-        NavigationLink(destination: ChatView(chats: $chats, chat: chatRoom)) {
+        NavigationLink(destination: ChatView(chats: $chats, chat: chatRoom, unreadMessagesCount: $unreadMessagesCount)) {
             VStack {
                 HStack(spacing: 12) {
                     if let profileImage = chatRoom.profileImage, !profileImage.isEmpty {
@@ -114,7 +115,7 @@ struct SearchChatView_Previews: PreviewProvider {
             lastMessage: "",
             profileImage: nil
         )
-        SearchChatView(chats: .constant([]), chatRoom: newChat)
+        SearchChatView(chats: .constant([]), unreadMessagesCount: .constant(0), chatRoom: newChat)
             .environmentObject(userStore)
     }
 }

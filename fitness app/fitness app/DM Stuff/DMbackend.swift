@@ -82,8 +82,24 @@ final class ChatManager {
         // Update last message in chat document
         try await chatDocument(chatId: message.chatId).updateData([
             "lastMessage": message.text,
-            "timestamp": Timestamp(date: Date())
+            "timestamp": Timestamp(date: Date()),
+            "unreadMessages.\(message.receiverId)": FieldValue.increment(Int64(1))
         ])
+        
+        // Trigger local notification
+        sendNotification(for: message.chatId, messageText: message.text)
+    }
+
+    func sendNotification(for chatId: String, messageText: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "New Message"
+        content.body = messageText
+        content.sound = UNNotificationSound.default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(identifier: chatId, content: content, trigger: trigger)
+
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
     }
 
     func getChats(for userId: String) async throws -> [DBChat] {

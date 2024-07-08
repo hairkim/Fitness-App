@@ -12,7 +12,7 @@ struct SearchView: View {
     @State private var searchText = ""
     @State private var users = [DBUser]()
     @Binding var selectedUser: DBUser? // Binding to pass the selected user to the parent view
-    @Binding var chats: [DBChat] // Add this binding
+    @Binding var chats: [DBChat]
     @State private var isUserSelected: Bool = false
 
     var body: some View {
@@ -111,7 +111,6 @@ struct CustomSearchBar: UIViewRepresentable {
 // Preview
 struct SearchView_Previews: PreviewProvider {
     static var previews: some View {
-        SearchView(selectedUser: .constant(nil), chats: .constant([])) // Add chats binding
-            .environmentObject(UserStore())
+        SearchView(selectedUser: .constant(nil), chats: .constant([]))
     }
 }

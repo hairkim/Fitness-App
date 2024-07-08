@@ -9,15 +9,15 @@ import SwiftUI
 import FirebaseFirestore
 
 struct ChatView: View {
+    @Binding var chats: [DBChat]
+    let chat: DBChat
+    @Binding var unreadMessagesCount: Int
     @EnvironmentObject var userStore: UserStore
     @Environment(\.presentationMode) var presentationMode
-    @Binding var chats: [DBChat] // Add this binding
     @State private var messageText = ""
     @State var messages = [DBMessage]()
     @State private var messagesListener: ListenerRegistration?
     
-    let chat: DBChat
-
     var body: some View {
         VStack {
             // Header
@@ -128,7 +128,9 @@ struct ChatView: View {
         .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
         .onAppear {
             addMessagesListener()
-            markMessagesAsRead()
+            Task {
+                await markMessagesAsRead()
+            }
         }
         .onDisappear {
             removeMessagesListener()
@@ -200,7 +202,6 @@ struct ChatView: View {
     
     private func chatName(for chat: DBChat) -> String {
         if let currentUserId = userStore.currentUser?.userId {
-            // Exclude the current user's name from the participant names
             return chat.participantNames
                 .filter { $0.key != currentUserId }
                 .map { $0.value }
@@ -213,7 +214,6 @@ struct ChatView: View {
     
     private func chatInitials(for chat: DBChat) -> String {
         if let currentUserId = userStore.currentUser?.userId {
-            // Exclude the current user's initials from the participant names and get initials for other participants
             return chat.participantNames
                 .filter { $0.key != currentUserId }
                 .map { $0.value.initial() }
@@ -224,18 +224,23 @@ struct ChatView: View {
         }
     }
     
-    private func markMessagesAsRead() {
-        Task {
-            guard let chatId = chat.id, let userId = userStore.currentUser?.userId else { return }
-            do {
-                try await ChatManager.shared.markMessagesAsRead(chatId: chatId, userId: userId)
-                // Update the unreadMessagesCount in the parent view
-                if let index = chats.firstIndex(where: { $0.id == chat.id }) {
-                    chats[index].unreadMessages[userId] = 0
-                }
-            } catch {
-                print("Failed to mark messages as read: \(error)")
+    private func markMessagesAsRead() async {
+        guard let chatId = chat.id, let userId = userStore.currentUser?.userId else { return }
+        do {
+            try await ChatManager.shared.markMessagesAsRead(chatId: chatId, userId: userId)
+            if let index = chats.firstIndex(where: { $0.id == chat.id }) {
+                chats[index].unreadMessages[userId] = 0
+                updateUnreadMessagesCount()
             }
+        } catch {
+            print("Failed to mark messages as read: \(error)")
+        }
+    }
+
+    private func updateUnreadMessagesCount() {
+        guard let currentUserID = userStore.currentUser?.userId else { return }
+        unreadMessagesCount = chats.reduce(0) { count, chat in
+            count + (chat.unreadMessages[currentUserID] ?? 0)
         }
     }
 }
@@ -247,7 +252,6 @@ extension String {
     }
 }
 
-
 struct ChatView_Previews: PreviewProvider {
     static var previews: some View {
         let newChat = DBChat(
@@ -258,9 +262,10 @@ struct ChatView_Previews: PreviewProvider {
             profileImage: nil
         )
         
-        ChatView(chats: .constant([]), chat: newChat)
+        ChatView(chats: .constant([]), chat: newChat, unreadMessagesCount: .constant(0))
     }
 }
+
 
 import SwiftUI
 

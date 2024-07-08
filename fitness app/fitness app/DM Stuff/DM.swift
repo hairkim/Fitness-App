@@ -13,12 +13,12 @@ struct DMHomeView: View {
     @Binding var chats: [DBChat]
     @Binding var unreadMessagesCount: Int
     @EnvironmentObject var userStore: UserStore
-
+    
     var body: some View {
         NavigationView {
             List {
                 ForEach(sortedChats(), id: \.id) { chat in
-                    NavigationLink(destination: ChatView(chats: $chats, chat: chat)) {
+                    NavigationLink(destination: ChatView(chats: $chats, chat: chat, unreadMessagesCount: $unreadMessagesCount)) {
                         chatRowView(chat: chat)
                     }
                 }
@@ -56,7 +56,7 @@ struct DMHomeView: View {
                     .padding(.leading, 10)
             }
             Spacer()
-            if let count = chat.unreadMessages[userStore.currentUser?.userId ?? ""], count > 0 {
+            if let count = chat.unreadMessages[userStore.currentUser?.userId ?? ""] {
                 Text("\(count)")
                     .font(.caption)
                     .foregroundColor(.white)
@@ -92,19 +92,6 @@ struct DMHomeView: View {
         unreadMessagesCount = chats.reduce(0) { count, chat in
             count + (chat.unreadMessages[currentUserID] ?? 0)
         }
-    }
-
-
-    private func sendNotification(for chatId: String, count: Int) {
-        let content = UNMutableNotificationContent()
-        content.title = "New Message"
-        content.body = "You have \(count) unread messages."
-        content.sound = UNNotificationSound.default
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(identifier: chatId, content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
     }
 }
 
