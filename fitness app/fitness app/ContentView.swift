@@ -4,6 +4,7 @@ import SwiftUI
 import Firebase
 import FirebaseFirestore
 import FirebaseFirestoreSwift
+import UserNotifications
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
@@ -30,6 +31,7 @@ struct ContentView: View {
             Task {
                 await fetchPosts()
             }
+            requestNotificationPermissions()
         }
     }
     
@@ -39,7 +41,7 @@ struct ContentView: View {
                 if showDMHomeView {
                     DMHomeView(showDMHomeView: $showDMHomeView)
                         .environmentObject(userStore)
-                        .transition(.move(edge: .trailing)) // Change transition to right-to-left
+                        .transition(.move(edge: .trailing))
                 } else {
                     if selectedTab != 1 {
                         TabView(selection: $selectedTab) {
@@ -114,7 +116,7 @@ struct ContentView: View {
                 )
             )
         }
-        .background(Color.white.edgesIgnoringSafeArea(.all)) // Make home page background white
+        .background(Color.white.edgesIgnoringSafeArea(.all))
     }
     
     var homeView: some View {
@@ -169,7 +171,7 @@ struct ContentView: View {
                     .padding()
                 }
             }
-            .background(Color.white) // Home page background color white
+            .background(Color.white)
             .navigationTitle("")
         }
     }
@@ -265,6 +267,14 @@ struct ContentView: View {
                 guard let documents = querySnapshot?.documents else { return }
                 self.unreadMessagesCount = documents.count
             }
+    }
+    
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if let error = error {
+                print("Error requesting notification permissions: \(error)")
+            }
+        }
     }
 }
 

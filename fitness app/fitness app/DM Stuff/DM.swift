@@ -19,24 +19,9 @@ struct DMHomeView: View {
     var body: some View {
         NavigationView {
             List {
-                ForEach(chats, id: \.id) { chat in
+                ForEach(sortedChats(), id: \.id) { chat in
                     NavigationLink(destination: ChatView(chat: chat)) {
-                        HStack {
-                            if let participantId = chat.participants.first(where: { $0 != userStore.currentUser?.userId }) {
-                                ProfileImageView(userId: participantId)
-                                    .frame(width: 40, height: 40)
-                                Text(chat.participantNames[participantId] ?? "Unknown")
-                                    .padding(.leading, 10)
-                            }
-                            Spacer()
-                            if let count = unreadMessages[chat.id ?? ""], count > 0 {
-                                Text("\(count)")
-                                    .font(.caption)
-                                    .foregroundColor(.white)
-                                    .padding(5)
-                                    .background(Circle().fill(Color.red).frame(width: 20, height: 20))
-                            }
-                        }
+                        chatRowView(chat: chat)
                     }
                 }
             }
@@ -57,7 +42,34 @@ struct DMHomeView: View {
                 setupChatsListener()
             }
         }
-        .transition(.move(edge: .trailing)) // Change transition to right-to-left
+        .transition(.move(edge: .trailing))
+    }
+
+    private func sortedChats() -> [DBChat] {
+        return chats.sorted(by: { $0.timestamp.dateValue() > $1.timestamp.dateValue() })
+    }
+
+    private func chatRowView(chat: DBChat) -> some View {
+        HStack {
+            if let participantId = chat.participants.first(where: { $0 != userStore.currentUser?.userId }) {
+                ProfileImageView(userId: participantId)
+                    .frame(width: 40, height: 40)
+                Text(chat.participantNames[participantId] ?? "Unknown")
+                    .padding(.leading, 10)
+            }
+            Spacer()
+            if let count = unreadMessages[chat.id ?? ""], count > 0 {
+                Text("\(count)")
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .padding(5)
+                    .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+            }
+            if chat.lastMessage != nil {
+                Image(systemName: chat.lastMessage == nil ? "circle.fill" : "checkmark.circle.fill")
+                    .foregroundColor(chat.lastMessage == nil ? .blue : .gray)
+            }
+        }
     }
 
     private func setupChatsListener() {
@@ -101,7 +113,20 @@ struct DMHomeView: View {
 
                 guard let documents = querySnapshot?.documents else { return }
                 self.unreadMessages[chatId] = documents.count
+                sendNotification(for: chatId, count: documents.count)
             }
+    }
+
+    private func sendNotification(for chatId: String, count: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "New Message"
+        content.body = "You have \(count) unread messages."
+        content.sound = UNNotificationSound.default
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(identifier: chatId, content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
     }
 }
 
@@ -111,12 +136,4 @@ struct DMHomeView_Previews: PreviewProvider {
         DMHomeView(showDMHomeView: .constant(false))
             .environmentObject(userStore)
     }
-}
-
-
-extension Color {
-    static let gymPrimary = Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)
-    static let gymSecondary = Color(red: 86 / 255, green: 167 / 255, blue: 124 / 255) // Muted green
-    static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
-    static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255) // Light beige
 }
