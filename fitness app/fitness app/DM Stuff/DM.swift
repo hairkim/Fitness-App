@@ -13,7 +13,7 @@ struct DMHomeView: View {
     @Binding var chats: [DBChat]
     @Binding var unreadMessagesCount: Int
     @EnvironmentObject var userStore: UserStore
-    
+
     var body: some View {
         NavigationView {
             List {
@@ -56,7 +56,7 @@ struct DMHomeView: View {
                     .padding(.leading, 10)
             }
             Spacer()
-            if let count = chat.unreadMessages[userStore.currentUser?.userId ?? ""] {
+            if let count = chat.unreadMessages[userStore.currentUser?.userId ?? ""], count > 0 {
                 Text("\(count)")
                     .font(.caption)
                     .foregroundColor(.white)
@@ -93,6 +93,7 @@ struct DMHomeView: View {
             count + (chat.unreadMessages[currentUserID] ?? 0)
         }
     }
+
 
     private func sendNotification(for chatId: String, count: Int) {
         let content = UNMutableNotificationContent()

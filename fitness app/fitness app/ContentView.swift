@@ -287,7 +287,6 @@ struct ContentView: View {
 }
 
 
-
 class MessageManager {
     static let shared = MessageManager()
 

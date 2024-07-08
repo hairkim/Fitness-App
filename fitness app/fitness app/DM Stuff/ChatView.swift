@@ -11,7 +11,7 @@ import FirebaseFirestore
 struct ChatView: View {
     @EnvironmentObject var userStore: UserStore
     @Environment(\.presentationMode) var presentationMode
-    @Binding var chats: [DBChat]
+    @Binding var chats: [DBChat] // Add this binding
     @State private var messageText = ""
     @State var messages = [DBMessage]()
     @State private var messagesListener: ListenerRegistration?
@@ -200,6 +200,7 @@ struct ChatView: View {
     
     private func chatName(for chat: DBChat) -> String {
         if let currentUserId = userStore.currentUser?.userId {
+            // Exclude the current user's name from the participant names
             return chat.participantNames
                 .filter { $0.key != currentUserId }
                 .map { $0.value }
@@ -212,6 +213,7 @@ struct ChatView: View {
     
     private func chatInitials(for chat: DBChat) -> String {
         if let currentUserId = userStore.currentUser?.userId {
+            // Exclude the current user's initials from the participant names and get initials for other participants
             return chat.participantNames
                 .filter { $0.key != currentUserId }
                 .map { $0.value.initial() }
