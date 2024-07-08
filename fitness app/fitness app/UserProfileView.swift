@@ -74,7 +74,6 @@ class ChatViewModel: ObservableObject {
             errorMessage = "Failed to create or fetch chat: \(error.localizedDescription)"
         }
     }
-
 }
 
 import SwiftUI
@@ -83,15 +82,17 @@ struct UserProfileView: View {
     @EnvironmentObject var userStore: UserStore
     
     let postUser: DBUser
+    @Binding var chats: [DBChat]
     @State var posts = [Post]() // Using the same Post structure
     
     @StateObject private var chatViewModel: ChatViewModel
     
     @State private var showChatView = false
     
-    init(postUser: DBUser, userStore: UserStore) {
+    init(postUser: DBUser, userStore: UserStore, chats: Binding<[DBChat]>) {
         self.postUser = postUser
         self._chatViewModel = StateObject(wrappedValue: ChatViewModel(userStore: userStore))
+        self._chats = chats
     }
 
     var body: some View {
@@ -221,7 +222,7 @@ struct UserProfileView: View {
             }
             .fullScreenCover(isPresented: $showChatView) {
                 if let chat = chatViewModel.chat {
-                    ChatView(chat: chat)
+                    ChatView(chats: $chats, chat: chat)
                         .environmentObject(userStore)
                 }
             }
@@ -255,9 +256,12 @@ struct UserProfileView: View {
 
 struct UserProfileView_Previews: PreviewProvider {
     static var previews: some View {
+        let userStore = UserStore()
         let mockUser = MockUser(uid: "12kjksdfj", email: "mockUser@gmail.com", photoURL: nil)
         let authResultModel = AuthenticationManager.shared.createMockUser(mockUser: mockUser)
-        return UserProfileView(postUser: DBUser(auth: authResultModel, username: "mock user"), userStore: UserStore())
-            .environmentObject(UserStore())
+        let postUser = DBUser(auth: authResultModel, username: "mock user")
+        
+        UserProfileView(postUser: postUser, userStore: userStore, chats: .constant([]))
+            .environmentObject(userStore)
     }
 }

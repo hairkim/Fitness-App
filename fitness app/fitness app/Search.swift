@@ -12,6 +12,7 @@ struct SearchView: View {
     @State private var searchText = ""
     @State private var users = [DBUser]()
     @Binding var selectedUser: DBUser? // Binding to pass the selected user to the parent view
+    @Binding var chats: [DBChat] // Add this binding
     @State private var isUserSelected: Bool = false
 
     var body: some View {
@@ -55,7 +56,7 @@ struct SearchView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(
             NavigationLink(
-                destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore),
+                destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore, chats: $chats),
                 isActive: $isUserSelected,
                 label: { EmptyView() }
             )
@@ -110,6 +111,7 @@ struct CustomSearchBar: UIViewRepresentable {
 // Preview
 struct SearchView_Previews: PreviewProvider {
     static var previews: some View {
-        SearchView(selectedUser: .constant(nil))
+        SearchView(selectedUser: .constant(nil), chats: .constant([])) // Add chats binding
+            .environmentObject(UserStore())
     }
 }

@@ -9,10 +9,11 @@ import SwiftUI
 
 struct SearchChatView: View {
     @EnvironmentObject var userStore: UserStore
+    @Binding var chats: [DBChat]
     let chatRoom: DBChat
     
     var body: some View {
-        NavigationLink(destination: ChatView(chat: chatRoom)) {
+        NavigationLink(destination: ChatView(chats: $chats, chat: chatRoom)) {
             VStack {
                 HStack(spacing: 12) {
                     if let profileImage = chatRoom.profileImage, !profileImage.isEmpty {
@@ -67,7 +68,6 @@ struct SearchChatView: View {
                 .padding(.horizontal, 16)
             }
         }
-        
     }
     
     private func chatName(for chat: DBChat) -> String {
@@ -82,8 +82,7 @@ struct SearchChatView: View {
             return ""
         }
     }
-        
-        
+    
     private func chatInitials(for chat: DBChat) -> String {
         if let currentUserId = userStore.currentUser?.userId {
             // Exclude the current user's initials from the participant names and get initials for other participants
@@ -97,7 +96,7 @@ struct SearchChatView: View {
         }
     }
 }
-    
+
 extension String {
     func initials() -> String {
         self.split(separator: " ")
@@ -115,7 +114,7 @@ struct SearchChatView_Previews: PreviewProvider {
             lastMessage: "",
             profileImage: nil
         )
-        SearchChatView(chatRoom: newChat)
+        SearchChatView(chats: .constant([]), chatRoom: newChat)
             .environmentObject(userStore)
     }
 }

@@ -11,6 +11,7 @@ import FirebaseFirestore
 struct ChatView: View {
     @EnvironmentObject var userStore: UserStore
     @Environment(\.presentationMode) var presentationMode
+    @Binding var chats: [DBChat]
     @State private var messageText = ""
     @State var messages = [DBMessage]()
     @State private var messagesListener: ListenerRegistration?
@@ -56,7 +57,7 @@ struct ChatView: View {
                         .foregroundColor(.gymPrimary)
                         .padding(.leading, 8)
                 }
-                .padding(.leading, 10) // Shift the combined view to the left
+                .padding(.leading, 10)
 
                 Spacer()
 
@@ -79,7 +80,7 @@ struct ChatView: View {
                 VStack(spacing: 10) {
                     ForEach(self.messages) { message in
                         HStack {
-                            if message.senderId == userStore.currentUser?.userId {
+                            if message.senderId == userStore.currentUser!.userId {
                                 Spacer()
                                 Text(message.text)
                                     .padding()
@@ -126,7 +127,6 @@ struct ChatView: View {
         .navigationBarHidden(true)
         .background(Color.gymBackground.edgesIgnoringSafeArea(.all))
         .onAppear {
-            print("ChatView appeared")
             addMessagesListener()
             markMessagesAsRead()
         }
@@ -138,7 +138,7 @@ struct ChatView: View {
     private func sendMessage() async {
         guard !messageText.isEmpty else { return }
         guard let currentUser = userStore.currentUser else {
-            print("No current user found")
+            print("no current user found")
             return
         }
         do {
@@ -150,7 +150,7 @@ struct ChatView: View {
                 await fetchMessages()
             }
         } catch {
-            print("Error sending message: \(error)")
+            print("error sending message: \(error)")
         }
     }
 
@@ -166,10 +166,10 @@ struct ChatView: View {
             if let id = chat.id {
                 self.messages = try await ChatManager.shared.getMessages(for: id)
             } else {
-                print("No chat ID found")
+                print("no chat id found")
                 return
             }
-            print("Messages fetched")
+            print("messages fetched")
         } catch {
             print("Error fetching messages: \(error)")
         }
@@ -195,7 +195,7 @@ struct ChatView: View {
     private func removeMessagesListener() {
         messagesListener?.remove()
         messagesListener = nil
-        print("Successfully removed listener")
+        print("successfully removed listener")
     }
     
     private func chatName(for chat: DBChat) -> String {
@@ -205,7 +205,7 @@ struct ChatView: View {
                 .map { $0.value }
                 .joined(separator: ", ")
         } else {
-            print("Couldn't find user ID")
+            print("couldnt find user id")
             return ""
         }
     }
@@ -217,7 +217,7 @@ struct ChatView: View {
                 .map { $0.value.initial() }
                 .joined(separator: ", ")
         } else {
-            print("Couldn't find user ID")
+            print("couldnt find user id")
             return ""
         }
     }
@@ -227,6 +227,10 @@ struct ChatView: View {
             guard let chatId = chat.id, let userId = userStore.currentUser?.userId else { return }
             do {
                 try await ChatManager.shared.markMessagesAsRead(chatId: chatId, userId: userId)
+                // Update the unreadMessagesCount in the parent view
+                if let index = chats.firstIndex(where: { $0.id == chat.id }) {
+                    chats[index].unreadMessages[userId] = 0
+                }
             } catch {
                 print("Failed to mark messages as read: \(error)")
             }
@@ -245,15 +249,14 @@ extension String {
 struct ChatView_Previews: PreviewProvider {
     static var previews: some View {
         let newChat = DBChat(
-            participants: ["user1", "user2"],
-            participantNames: ["user1": "User One", "user2": "User Two"],
+            participants: [],
+            participantNames: ["":""],
             lastMessage: nil,
             timestamp: Timestamp(),
             profileImage: nil
         )
         
-        ChatView(chat: newChat)
-            .environmentObject(UserStore())
+        ChatView(chats: .constant([]), chat: newChat)
     }
 }
 

@@ -1,14 +1,12 @@
 // created by the daniel han
 
 import SwiftUI
-import Firebase
 import FirebaseFirestore
-import FirebaseFirestoreSwift
-import UserNotifications
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
     @State var posts = [Post]()
+    @State var chats = [DBChat]()
     
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
@@ -39,7 +37,7 @@ struct ContentView: View {
         NavigationView {
             ZStack {
                 if showDMHomeView {
-                    DMHomeView(showDMHomeView: $showDMHomeView)
+                    DMHomeView(showDMHomeView: $showDMHomeView, chats: $chats, unreadMessagesCount: $unreadMessagesCount)
                         .environmentObject(userStore)
                         .transition(.move(edge: .trailing))
                 } else {
@@ -110,7 +108,7 @@ struct ContentView: View {
             }
             .background(
                 NavigationLink(
-                    destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore),
+                    destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore, chats: $chats),
                     isActive: .constant(selectedUser != nil),
                     label: { EmptyView() }
                 )
@@ -141,7 +139,7 @@ struct ContentView: View {
                                     Text("\(unreadMessagesCount)")
                                         .font(.caption2)
                                         .foregroundColor(.white)
-                                        .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+                                        .background(Circle().fill(Color.red))
                                         .offset(x: 10, y: -10)
                                     : nil
                             )
@@ -150,7 +148,7 @@ struct ContentView: View {
                             .padding(.trailing, 16)
                     }
                     
-                    NavigationLink(destination: SearchView(selectedUser: $selectedUser)) {
+                    NavigationLink(destination: SearchView(selectedUser: $selectedUser, chats: $chats)) {
                         Image(systemName: "magnifyingglass")
                             .imageScale(.large)
                             .foregroundColor(Color(.darkGray))
@@ -264,15 +262,19 @@ struct ContentView: View {
                 }
 
                 guard let documents = querySnapshot?.documents else { return }
-                var totalUnreadMessages = 0
-                for document in documents {
-                    if let chat = try? document.data(as: DBChat.self),
-                       let unreadCount = chat.unreadMessages[currentUserID] {
-                        totalUnreadMessages += unreadCount
-                    }
+                self.chats = documents.compactMap { document -> DBChat? in
+                    try? document.data(as: DBChat.self)
                 }
-                self.unreadMessagesCount = totalUnreadMessages
+
+                self.updateUnreadMessagesCount()
             }
+    }
+
+    private func updateUnreadMessagesCount() {
+        guard let currentUserID = userStore.currentUser?.userId else { return }
+        unreadMessagesCount = chats.reduce(0) { count, chat in
+            count + (chat.unreadMessages[currentUserID] ?? 0)
+        }
     }
     
     private func requestNotificationPermissions() {
@@ -283,6 +285,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 
 class MessageManager {
