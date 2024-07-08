@@ -16,7 +16,7 @@ struct ChatView: View {
     @State private var messagesListener: ListenerRegistration?
     
     let chat: DBChat
-    
+
     var body: some View {
         VStack {
             // Header
@@ -31,11 +31,15 @@ struct ChatView: View {
 
                 HStack {
                     if let profileImage = chat.profileImage, !profileImage.isEmpty {
-                        Image(profileImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 50, height: 50)
-                            .clipShape(Circle())
+                        AsyncImage(url: URL(string: profileImage)) { image in
+                            image.resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                        } placeholder: {
+                            ProgressView()
+                                .frame(width: 50, height: 50)
+                        }
                     } else {
                         ZStack {
                             Circle()
@@ -101,14 +105,9 @@ struct ChatView: View {
             }
 
             HStack {
-                TextField("Type your message...", text: $messageText, onCommit: {
-                    Task {
-                        await sendMessage()
-                    }
-                })
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal)
-                .font(.system(size: 16, weight: .medium))
+                TextField("Type your message...", text: $messageText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal)
 
                 Button(action: {
                     Task {
@@ -247,9 +246,9 @@ struct ChatView_Previews: PreviewProvider {
         )
         
         ChatView(chat: newChat)
+            .environmentObject(UserStore()) // Provide the environment object
     }
 }
-
 
 import SwiftUI
 

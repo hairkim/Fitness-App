@@ -21,7 +21,7 @@ struct ContentView: View {
         Group {
             if userStore.currentUser == nil {
                 LoginView(showSignInView: $showSignInView, userStore: userStore)
-            } else if showSignInView == false {
+            } else if !showSignInView {
                 mainContentView
             }
         }
@@ -34,7 +34,7 @@ struct ContentView: View {
             requestNotificationPermissions()
         }
     }
-    
+
     var mainContentView: some View {
         NavigationView {
             ZStack {
@@ -118,7 +118,7 @@ struct ContentView: View {
         }
         .background(Color.white.edgesIgnoringSafeArea(.all))
     }
-    
+
     var homeView: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 16) {
@@ -135,19 +135,20 @@ struct ContentView: View {
                             showDMHomeView.toggle()
                         }
                     }) {
-                        Image(systemName: "message.fill")
-                            .overlay(
-                                unreadMessagesCount > 0 ?
-                                    Text("\(unreadMessagesCount)")
-                                        .font(.caption2)
-                                        .foregroundColor(.white)
-                                        .background(Circle().fill(Color.red).frame(width: 20, height: 20))
-                                        .offset(x: 10, y: -10)
-                                    : nil
-                            )
-                            .imageScale(.large)
-                            .foregroundColor(Color(.darkGray))
-                            .padding(.trailing, 16)
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "message.fill")
+                                .imageScale(.large)
+                                .foregroundColor(Color(.darkGray))
+                                .padding(.trailing, 16)
+                            
+                            if unreadMessagesCount > 0 {
+                                Text("\(unreadMessagesCount)")
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                    .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+                                    .offset(x: 10, y: -10)
+                            }
+                        }
                     }
                     
                     NavigationLink(destination: SearchView(selectedUser: $selectedUser)) {
@@ -255,17 +256,19 @@ struct ContentView: View {
         guard let currentUserID = userStore.currentUser?.userId else { return }
         let db = Firestore.firestore()
         
-        db.collection("messages")
-            .whereField("receiverId", isEqualTo: currentUserID)
-            .whereField("isRead", isEqualTo: false)
+        db.collection("chats")
+            .whereField("participants", arrayContains: currentUserID)
             .addSnapshotListener { querySnapshot, error in
                 if let error = error {
-                    print("Error listening to unread messages: \(error)")
+                    print("Error listening to chats: \(error)")
                     return
                 }
                 
                 guard let documents = querySnapshot?.documents else { return }
-                self.unreadMessagesCount = documents.count
+                self.unreadMessagesCount = documents.reduce(0) { (count, document) -> Int in
+                    let chat = try? document.data(as: DBChat.self)
+                    return count + (chat?.unreadMessages[currentUserID] ?? 0)
+                }
             }
     }
     

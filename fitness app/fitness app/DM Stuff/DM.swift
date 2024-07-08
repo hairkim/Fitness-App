@@ -10,130 +10,111 @@ import Firebase
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-struct DMHomeView: View {
-    @Binding var showDMHomeView: Bool
-    @EnvironmentObject var userStore: UserStore
-    @State private var chats = [DBChat]()
-    @State private var unreadMessages = [String: Int]() // Dictionary to hold unread messages count for each chat
 
+struct DMHomeView: View {
+    @EnvironmentObject var userStore: UserStore
+    @Binding var showDMHomeView: Bool
+    @State private var chats = [DBChat]()
+    
     var body: some View {
         NavigationView {
-            List {
-                ForEach(sortedChats(), id: \.id) { chat in
-                    NavigationLink(destination: ChatView(chat: chat)) {
-                        chatRowView(chat: chat)
+            List(chats) { chat in
+                NavigationLink(destination: ChatView(chat: chat).environmentObject(userStore)) {
+                    HStack {
+                        if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                            AsyncImage(url: URL(string: profileImage)) { image in
+                                image.resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 50, height: 50)
+                            }
+                        } else {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.gymAccent.opacity(0.2))
+                                    .frame(width: 50, height: 50)
+                                Text(chatInitials(for: chat))
+                                    .font(.headline)
+                                    .foregroundColor(.gymPrimary)
+                            }
+                        }
+
+                        VStack(alignment: .leading) {
+                            Text(chatName(for: chat))
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Text(chat.lastMessage ?? "")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+                        
+                        if let currentUserId = userStore.currentUser?.userId,
+                           chat.unreadMessages[currentUserId] ?? 0 > 0 {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 12, height: 12)
+                        }
                     }
                 }
             }
             .navigationTitle("Messages")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        withAnimation {
-                            showDMHomeView.toggle()
-                        }
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.primary)
-                    }
+            .navigationBarItems(leading: Button(action: {
+                withAnimation {
+                    showDMHomeView.toggle()
                 }
-            }
+            }) {
+                Image(systemName: "chevron.left")
+                    .foregroundColor(.primary)
+            })
             .onAppear {
-                setupChatsListener()
-            }
-        }
-        .transition(.move(edge: .trailing))
-    }
-
-    private func sortedChats() -> [DBChat] {
-        return chats.sorted(by: { $0.timestamp.dateValue() > $1.timestamp.dateValue() })
-    }
-
-    private func chatRowView(chat: DBChat) -> some View {
-        HStack {
-            if let participantId = chat.participants.first(where: { $0 != userStore.currentUser?.userId }) {
-                ProfileImageView(userId: participantId)
-                    .frame(width: 40, height: 40)
-                Text(chat.participantNames[participantId] ?? "Unknown")
-                    .padding(.leading, 10)
-            }
-            Spacer()
-            if let count = unreadMessages[chat.id ?? ""], count > 0 {
-                Text("\(count)")
-                    .font(.caption)
-                    .foregroundColor(.white)
-                    .padding(5)
-                    .background(Circle().fill(Color.red).frame(width: 20, height: 20))
-            }
-            if chat.lastMessage != nil {
-                Image(systemName: chat.lastMessage == nil ? "circle.fill" : "checkmark.circle.fill")
-                    .foregroundColor(chat.lastMessage == nil ? .blue : .gray)
+                fetchChats()
             }
         }
     }
 
-    private func setupChatsListener() {
-        guard let currentUserID = userStore.currentUser?.userId else { return }
-        let db = Firestore.firestore()
-
-        db.collection("chats")
-            .whereField("participants", arrayContains: currentUserID)
-            .addSnapshotListener { querySnapshot, error in
-                if let error = error {
-                    print("Error listening to chats: \(error)")
-                    return
-                }
-
-                guard let documents = querySnapshot?.documents else { return }
-                self.chats = documents.compactMap { document -> DBChat? in
-                    try? document.data(as: DBChat.self)
-                }
-
-                // Listen for unread messages for each chat
-                for chat in self.chats {
-                    if let chatId = chat.id {
-                        setupUnreadMessagesListener(chatId: chatId)
-                    }
-                }
-            }
+    private func chatName(for chat: DBChat) -> String {
+        if let currentUserId = userStore.currentUser?.userId {
+            return chat.participantNames
+                .filter { $0.key != currentUserId }
+                .map { $0.value }
+                .joined(separator: ", ")
+        } else {
+            return ""
+        }
     }
 
-    private func setupUnreadMessagesListener(chatId: String) {
-        guard let currentUserID = userStore.currentUser?.userId else { return }
-        let db = Firestore.firestore()
-
-        db.collection("chats").document(chatId).collection("messages")
-            .whereField("receiverId", isEqualTo: currentUserID)
-            .whereField("isRead", isEqualTo: false)
-            .addSnapshotListener { querySnapshot, error in
-                if let error = error {
-                    print("Error listening to unread messages: \(error)")
-                    return
-                }
-
-                guard let documents = querySnapshot?.documents else { return }
-                self.unreadMessages[chatId] = documents.count
-                sendNotification(for: chatId, count: documents.count)
-            }
+    private func chatInitials(for chat: DBChat) -> String {
+        if let currentUserId = userStore.currentUser?.userId {
+            return chat.participantNames
+                .filter { $0.key != currentUserId }
+                .map { $0.value.initial() }
+                .joined(separator: ", ")
+        } else {
+            return ""
+        }
     }
-
-    private func sendNotification(for chatId: String, count: Int) {
-        let content = UNMutableNotificationContent()
-        content.title = "New Message"
-        content.body = "You have \(count) unread messages."
-        content.sound = UNNotificationSound.default
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(identifier: chatId, content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+    
+    private func fetchChats() {
+        Task {
+            guard let currentUserID = userStore.currentUser?.userId else { return }
+            do {
+                self.chats = try await ChatManager.shared.getChats(for: currentUserID)
+            } catch {
+                print("Error fetching chats: \(error)")
+            }
+        }
     }
 }
 
 struct DMHomeView_Previews: PreviewProvider {
     static var previews: some View {
-        let userStore = UserStore()
-        DMHomeView(showDMHomeView: .constant(false))
-            .environmentObject(userStore)
+        DMHomeView(showDMHomeView: .constant(true))
+            .environmentObject(UserStore())
     }
 }

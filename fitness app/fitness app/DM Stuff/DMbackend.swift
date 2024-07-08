@@ -9,6 +9,7 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
+
 struct DBChat: Codable, Identifiable {
     @DocumentID var id: String?
     let participants: [String]
@@ -18,7 +19,7 @@ struct DBChat: Codable, Identifiable {
     var unreadMessages: [String: Int] // Unread message count for each participant
     var profileImage: String? // URL to the profile image
 
-    init(id: String? = nil, participants: [String], participantNames: [String: String], lastMessage: String?, timestamp: Timestamp = Timestamp(), unreadMessages: [String: Int] = [:], profileImage: String?) {
+    init(id: String? = nil, participants: [String], participantNames: [String: String], lastMessage: String? = nil, timestamp: Timestamp = Timestamp(), unreadMessages: [String: Int] = [:], profileImage: String? = nil) {
         self.id = id
         self.participants = participants
         self.participantNames = participantNames
@@ -135,5 +136,11 @@ final class ChatManager {
         for document in snapshot.documents {
             try await document.reference.updateData(["isRead": true])
         }
+
+        // Update unreadMessages count in chat document
+        let chatDoc = chatDocument(chatId: chatId)
+        try await chatDoc.updateData([
+            "unreadMessages.\(userId)": 0
+        ])
     }
 }
