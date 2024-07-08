@@ -2,8 +2,8 @@
 
 import SwiftUI
 import Firebase
+import FirebaseCore
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 import UserNotifications
 
 struct ContentView: View {
@@ -21,7 +21,7 @@ struct ContentView: View {
         Group {
             if userStore.currentUser == nil {
                 LoginView(showSignInView: $showSignInView, userStore: userStore)
-            } else if !showSignInView {
+            } else if showSignInView == false {
                 mainContentView
             }
         }
@@ -34,7 +34,7 @@ struct ContentView: View {
             requestNotificationPermissions()
         }
     }
-
+    
     var mainContentView: some View {
         NavigationView {
             ZStack {
@@ -118,7 +118,7 @@ struct ContentView: View {
         }
         .background(Color.white.edgesIgnoringSafeArea(.all))
     }
-
+    
     var homeView: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 16) {
@@ -135,20 +135,19 @@ struct ContentView: View {
                             showDMHomeView.toggle()
                         }
                     }) {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "message.fill")
-                                .imageScale(.large)
-                                .foregroundColor(Color(.darkGray))
-                                .padding(.trailing, 16)
-                            
-                            if unreadMessagesCount > 0 {
-                                Text("\(unreadMessagesCount)")
-                                    .font(.caption2)
-                                    .foregroundColor(.white)
-                                    .background(Circle().fill(Color.red).frame(width: 20, height: 20))
-                                    .offset(x: 10, y: -10)
-                            }
-                        }
+                        Image(systemName: "message.fill")
+                            .overlay(
+                                unreadMessagesCount > 0 ?
+                                    Text("\(unreadMessagesCount)")
+                                        .font(.caption2)
+                                        .foregroundColor(.white)
+                                        .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+                                        .offset(x: 10, y: -10)
+                                    : nil
+                            )
+                            .imageScale(.large)
+                            .foregroundColor(Color(.darkGray))
+                            .padding(.trailing, 16)
                     }
                     
                     NavigationLink(destination: SearchView(selectedUser: $selectedUser)) {
@@ -254,22 +253,13 @@ struct ContentView: View {
     
     private func setupUnreadMessagesListener() {
         guard let currentUserID = userStore.currentUser?.userId else { return }
-        let db = Firestore.firestore()
-        
-        db.collection("chats")
-            .whereField("participants", arrayContains: currentUserID)
-            .addSnapshotListener { querySnapshot, error in
-                if let error = error {
-                    print("Error listening to chats: \(error)")
-                    return
-                }
-                
-                guard let documents = querySnapshot?.documents else { return }
-                self.unreadMessagesCount = documents.reduce(0) { (count, document) -> Int in
-                    let chat = try? document.data(as: DBChat.self)
-                    return count + (chat?.unreadMessages[currentUserID] ?? 0)
-                }
+        Task {
+            do {
+                self.unreadMessagesCount = try await ChatManager.shared.getUnreadMessagesCount(userId: currentUserID)
+            } catch {
+                print("Error getting unread messages count: \(error)")
             }
+        }
     }
     
     private func requestNotificationPermissions() {

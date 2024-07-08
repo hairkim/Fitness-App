@@ -9,7 +9,6 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-
 struct DBChat: Codable, Identifiable {
     @DocumentID var id: String?
     let participants: [String]
@@ -34,13 +33,15 @@ struct DBMessage: Codable, Identifiable {
     @DocumentID var id: String?
     let chatId: String
     let senderId: String
+    let receiverId: String // Add this property to identify the receiver
     let text: String
     let timestamp: Timestamp
     var isRead: Bool // To track if the message has been read
 
-    init(chatId: String, senderId: String, text: String, timestamp: Timestamp = Timestamp(), isRead: Bool = false) {
+    init(chatId: String, senderId: String, receiverId: String, text: String, timestamp: Timestamp = Timestamp(), isRead: Bool = false) {
         self.chatId = chatId
         self.senderId = senderId
+        self.receiverId = receiverId
         self.text = text
         self.timestamp = timestamp
         self.isRead = isRead
@@ -142,5 +143,21 @@ final class ChatManager {
         try await chatDoc.updateData([
             "unreadMessages.\(userId)": 0
         ])
+    }
+
+    func getUnreadMessagesCount(userId: String) async throws -> Int {
+        let snapshot = try await chatCollection
+            .whereField("participants", arrayContains: userId)
+            .getDocuments()
+
+        var totalUnreadMessages = 0
+
+        for document in snapshot.documents {
+            if let chat = try? document.data(as: DBChat.self) {
+                totalUnreadMessages += chat.unreadMessages[userId] ?? 0
+            }
+        }
+
+        return totalUnreadMessages
     }
 }

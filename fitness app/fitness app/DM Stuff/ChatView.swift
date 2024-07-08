@@ -142,7 +142,8 @@ struct ChatView: View {
         }
         do {
             if let chatId = chat.id {
-                let newMessage = DBMessage(chatId: chatId, senderId: currentUser.userId, text: messageText)
+                let receiverId = chat.participants.first { $0 != currentUser.userId } ?? "" // Assuming there's always another participant
+                let newMessage = DBMessage(chatId: chatId, senderId: currentUser.userId, receiverId: receiverId, text: messageText)
                 
                 try await ChatManager.shared.sendMessage(message: newMessage)
                 self.messageText = ""
@@ -246,7 +247,6 @@ struct ChatView_Previews: PreviewProvider {
         )
         
         ChatView(chat: newChat)
-            .environmentObject(UserStore()) // Provide the environment object
     }
 }
 
