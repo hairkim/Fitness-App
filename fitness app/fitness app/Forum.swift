@@ -25,7 +25,7 @@ struct ForumView: View {
             List {
                 ForEach(filteredPosts) { post in
                     ForumPostRow(post: post, onLike: {
-                        likePost(post)
+                        await likePost(post: post)
                     }, onNavigate: {
                         navigateToDetail(post: post)
                     })
@@ -73,6 +73,8 @@ struct ForumView: View {
         .onAppear {
             Task {
                 self.posts = try await ForumManager.shared.getAllForumPosts()
+                print("forum psots fetched")
+//                print(self.posts.count)
             }
         }
     }
@@ -80,21 +82,21 @@ struct ForumView: View {
     private var sortedPosts: [ForumPost] {
         switch selectedSortOption {
         case .hot:
-            return posts.sorted(by: { $0.likes > $1.likes && $0.createdAt > $1.createdAt })
+            return posts.sorted(by: { $0.likes.count > $1.likes.count && $0.createdAt > $1.createdAt })
         case .topDay:
             return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .day, value: -1, to: Date())! }
-                .sorted(by: { $0.likes > $1.likes })
+                .sorted(by: { $0.likes.count > $1.likes.count })
         case .topWeek:
             return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .weekOfYear, value: -1, to: Date())! }
-                .sorted(by: { $0.likes > $1.likes })
+                .sorted(by: { $0.likes.count > $1.likes.count })
         case .topMonth:
             return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .month, value: -1, to: Date())! }
-                .sorted(by: { $0.likes > $1.likes })
+                .sorted(by: { $0.likes.count > $1.likes.count })
         case .topYear:
             return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .year, value: -1, to: Date())! }
-                .sorted(by: { $0.likes > $1.likes })
+                .sorted(by: { $0.likes.count > $1.likes.count })
         case .topAllTime:
-            return posts.sorted(by: { $0.likes > $1.likes })
+            return posts.sorted(by: { $0.likes.count > $1.likes.count })
         }
     }
 
@@ -107,78 +109,62 @@ struct ForumView: View {
             }
         }
     }
+    
+    //------------------------
 
     private func addQuestion(title: String, body: String, media: [MediaItem], link: URL?) async {
         guard let username = userStore.currentUser?.username else {
             print("couldnt find username")
             return
         }
+        guard let userId = userStore.currentUser?.userId else {
+            print("couldnt find userid")
+            return
+        }
         do {
-            let newPost = ForumPost(username: username, title: title, body: body, replies: [], media: media, link: link)
-            posts.append(newPost)
+            let newPost = ForumPost(userId: userId, username: username, title: title, body: body, replies: [], media: media, link: link)
             try await ForumManager.shared.createNewForumPost(forumPost: newPost)
             isShowingQuestionForm = false // Hide the question form after adding the post
+            print("Post created successfully")
         } catch {
             print("couldnt create question post \(error)")
         }
     }
 
-    private func addReply(to post: ForumPost, reply: Reply) async {
-        do {
-            if posts.contains(where: { $0.id == post.id }) {
-                try await ForumManager.shared.createNewReply(for: post, reply: reply)
-            }
-        } catch {
-            print("couldnt add reply")
-        }
-    }
-
-    private func addReply(to parentReply: Reply, in post: ForumPost, reply: Reply) {
-        guard let parentReplyId = parentReply.id else {
-            print("Couldn't find post id")
+    private func likePost(post: ForumPost) async {
+        guard let forumPostId = post.id else {
+            print("couldnt find forum post id")
             return
         }
-        if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
-            if let replyIndex = findReplyIndex(parentReplyId, in: &posts[postIndex].replies) {
-                posts[postIndex].replies[replyIndex].replies.append(reply)
+        guard let userId = userStore.currentUser?.userId else {
+            print("couldnt find user id")
+            return
+        }
+        do {
+            if let index = posts.firstIndex(where: { $0.id == forumPostId }) {
+                try await ForumManager.shared.likePost(for: forumPostId, userId: userId)
+                print("liked the post")
             }
+        } catch {
+            print("couldnt like the post: \(error)")
         }
     }
 
-    private func likePost(_ post: ForumPost) {
-        if let index = posts.firstIndex(where: { $0.id == post.id }) {
-            if posts[index].likedByCurrentUser {
-                posts[index].likes -= 1
-            } else {
-                posts[index].likes += 1
-            }
-            posts[index].likedByCurrentUser.toggle()
-        }
-    }
-
-    private func likeReply(_ reply: Reply, in post: ForumPost) {
+    private func likeReply(_ reply: Reply, in post: ForumPost) async {
         guard let replyId = reply.id else {
             print("Couldn't find post id")
             return
         }
-        if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
-            updateLikeStatus(for: &posts[postIndex].replies, replyID: replyId)
+        guard let userId = userStore.currentUser?.userId else {
+            print("Couldnt get the user id")
+            return
         }
-    }
-
-    private func updateLikeStatus(for replies: inout [Reply], replyID: String?) {
-        for index in replies.indices {
-            if replies[index].id == replyID {
-                if replies[index].likedByCurrentUser {
-                    replies[index].likes -= 1
-                } else {
-                    replies[index].likes += 1
-                }
-                replies[index].likedByCurrentUser.toggle()
-                return
-            } else {
-                updateLikeStatus(for: &replies[index].replies, replyID: replyID)
+        do {
+            if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
+                try await ForumManager.shared.likeReply(userId: userId, for: reply, in: post)
             }
+        } catch {
+            print("couldnt like reply")
         }
     }
 
@@ -192,17 +178,44 @@ struct ForumView: View {
         }
         return nil
     }
+    
+    func addReply(to post: ForumPost, reply: Reply) async {
+        do {
+            if posts.contains(where: { $0.id == post.id }) {
+                try await ForumManager.shared.createNewReply(for: post, reply: reply)
+                print("reply added")
+            }
+        } catch {
+            print("couldnt add reply")
+        }
+    }
+
+    func addReply(to parentReply: Reply, in post: ForumPost, reply: Reply) async {
+        guard let parentReplyId = parentReply.id else {
+            print("Couldn't find post id")
+            return
+        }
+        do {
+            if let postIndex = posts.firstIndex(where: { $0.id == post.id }) {
+                try await ForumManager.shared.createNewReply(for: parentReply, reply: reply)
+                print("created child reply")
+            }
+        } catch {
+            print("couldnt add reply: \(error)")
+        }
+    }
 
     private func navigateToDetail(post: ForumPost) {
         let destination = PostDetailView(post: post, onReply: { reply in
             await addReply(to: post, reply: reply)
         }, onLike: {
-            likePost(post)
+            await likePost(post: post)
         }, onReplyToReply: { parentReply, reply in
-            addReply(to: parentReply, in: post, reply: reply)
+            await addReply(to: parentReply, in: post, reply: reply)
         }, onLikeReply: { reply in
-            likeReply(reply, in: post)
+            await likeReply(reply, in: post)
         })
+        .environmentObject(userStore)
 
         if let window = UIApplication.shared.windows.first {
             window.rootViewController?.show(UIHostingController(rootView: destination), sender: nil)
@@ -212,8 +225,10 @@ struct ForumView: View {
 
 // Forum Post Row View
 struct ForumPostRow: View {
+    @EnvironmentObject var userStore: UserStore
     @ObservedObject var post: ForumPost
-    let onLike: () -> Void
+    @State private var likedByUser: Bool = false
+    let onLike: () async -> Void
     let onNavigate: () -> Void
 
     var body: some View {
@@ -226,12 +241,14 @@ struct ForumPostRow: View {
                     Spacer()
                     HStack(spacing: 15) {
                         Button(action: {
-                            onLike()
+                            Task {
+                                await onLike()
+                            }
                         }) {
                             HStack {
-                                Image(systemName: post.likedByCurrentUser ? "heart.fill" : "heart")
-                                    .foregroundColor(post.likedByCurrentUser ? .red : .gray)
-                                Text("\(post.likes)")
+                                Image(systemName: likedByUser ? "heart.fill" : "heart")
+                                    .foregroundColor(likedByUser ? .red : .gray)
+                                Text("\(post.likes.count)")
                             }
                         }
                         HStack {
@@ -277,19 +294,35 @@ struct ForumPostRow: View {
             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
         }
         .buttonStyle(PlainButtonStyle()) // This removes the default button styling
+        .onAppear {
+            checkIfUserLiked()
+        }
+    }
+    
+    private func checkIfUserLiked() {
+        guard let userId = userStore.currentUser?.userId else {
+            print("couldnt get user's id while checking if they liked")
+            return
+        }
+        
+        if self.post.likes.contains(where: { $0 == userId }) {
+            self.likedByUser = true
+        }
     }
 }
 
 // Post Detail View
 struct PostDetailView: View {
+    @EnvironmentObject var userStore: UserStore
     @ObservedObject var post: ForumPost
     let onReply: (Reply) async -> Void
-    let onLike: () -> Void
-    let onReplyToReply: (Reply, Reply) -> Void
-    let onLikeReply: (Reply) -> Void
+    let onLike: () async -> Void
+    let onReplyToReply: (Reply, Reply) async -> Void
+    let onLikeReply: (Reply) async -> Void
     @State private var newReply = ""
     @State private var selectedMediaItems: [MediaItem] = []
     @State private var replyingTo: Reply?
+    @State private var likedByUser: Bool = false
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
@@ -314,7 +347,9 @@ struct PostDetailView: View {
                 VStack(alignment: .leading) {
                     ForumPostRow(post: post, onLike: onLike, onNavigate: {})
                         .onTapGesture(count: 2) {
-                            onLike()
+                            Task {
+                                await onLike()
+                            }
                         }
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -350,11 +385,11 @@ struct PostDetailView: View {
                     }
                     .padding(.vertical, 4)
 
-                    ForEach($post.replies) { $reply in
-                        ReplyView(reply: $reply, onReplyToReply: { parentReply, newReply in
-                            onReplyToReply(parentReply, newReply)
+                    ForEach(post.replies) { reply in
+                        ReplyView(reply: reply, onReplyToReply: { parentReply, newReply in
+                            await onReplyToReply(parentReply, newReply)
                         }, onLikeReply: { likedReply in
-                            onLikeReply(likedReply)
+                            await onLikeReply(likedReply)
                         })
                         .padding(.leading, 20) // Add this line to indent replies
                     }
@@ -363,10 +398,17 @@ struct PostDetailView: View {
             }
             .navigationTitle("Post Details")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: Button(action: onLike) {
+            .navigationBarItems(trailing: Button(action: {
+                Task {
+                    onLike
+                }
+            }) {
                 Image(systemName: "heart.fill")
-                    .foregroundColor(post.likedByCurrentUser ? .gray : .red)
+                    .foregroundColor(likedByUser ? .gray : .red)
             })
+        }
+        .onAppear {
+            checkIfUserLiked()
         }
     }
 
@@ -374,6 +416,10 @@ struct PostDetailView: View {
         guard !newReply.isEmpty else { return }
         guard let postId = post.id else {
             print("couldnt get post id [1234]")
+            return
+        }
+        guard let username = userStore.currentUser?.username else {
+            print("couldnt get user id [24432]")
             return
         }
 
@@ -384,10 +430,10 @@ struct PostDetailView: View {
             replyText = newReply
         }
 
-        let reply = Reply(forumPostId: postId, username: "CurrentUser", replyText: replyText, media: selectedMediaItems)
+        let reply = Reply(forumPostId: postId, username: username, replyText: replyText, media: selectedMediaItems)
 
         if let replyingTo = replyingTo {
-            onReplyToReply(replyingTo, reply)
+            await onReplyToReply(replyingTo, reply)
         } else {
             await onReply(reply)
         }
@@ -396,16 +442,29 @@ struct PostDetailView: View {
         selectedMediaItems = []
         replyingTo = nil
     }
+    
+    private func checkIfUserLiked() {
+        guard let userId = userStore.currentUser?.userId else {
+            print("couldnt get user's id while checking if they liked")
+            return
+        }
+        
+        if self.post.likes.contains(where: { $0 == userId }) {
+            self.likedByUser = true
+        }
+    }
 }
 
 // Reply View
 struct ReplyView: View {
-    @Binding var reply: Reply
-    let onReplyToReply: (Reply, Reply) -> Void
-    let onLikeReply: (Reply) -> Void
+    @EnvironmentObject var userStore: UserStore
+    @ObservedObject var reply: Reply
+    let onReplyToReply: (Reply, Reply) async -> Void
+    let onLikeReply: (Reply) async -> Void
     @State private var showReplyField = false
     @State private var newReplyText = ""
     @State private var selectedMediaItems: [MediaItem] = []
+    @State private var likedByUser: Bool = false
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -415,11 +474,15 @@ struct ReplyView: View {
                     .foregroundColor(.green)
                 Spacer()
                 HStack(spacing: 20) {
-                    Button(action: { onLikeReply(reply) }) {
+                    Button(action: { 
+                        Task {
+                            await onLikeReply(reply)
+                        }
+                    }) {
                         HStack {
-                            Image(systemName: reply.likedByCurrentUser ? "heart.fill" : "heart")
-                                .foregroundColor(reply.likedByCurrentUser ? .red : .gray)
-                            Text("\(reply.likes)")
+                            Image(systemName: likedByUser ? "heart.fill" : "heart")
+                                .foregroundColor(likedByUser ? .red : .gray)
+                            Text("\(reply.likes.count)")
                         }
                     }
                     Button(action: { showReplyField.toggle() }) {
@@ -459,10 +522,16 @@ struct ReplyView: View {
                             .background(Color(.systemGray6))
                             .cornerRadius(8)
                             .onSubmit {
-                                postReply()
+                                Task {
+                                    await postReply()
+                                }
                             }
 
-                        Button(action: postReply) {
+                        Button(action: {
+                            Task {
+                                await postReply()
+                            }
+                        }) {
                             Image(systemName: "arrow.up.circle.fill")
                                 .resizable()
                                 .frame(width: 25, height: 25)
@@ -476,8 +545,8 @@ struct ReplyView: View {
                 .padding(.vertical, 4)
             }
 
-            ForEach($reply.replies) { $nestedReply in
-                ReplyView(reply: $nestedReply, onReplyToReply: onReplyToReply, onLikeReply: onLikeReply)
+            ForEach(reply.replies) { nestedReply in
+                ReplyView(reply: nestedReply, onReplyToReply: onReplyToReply, onLikeReply: onLikeReply)
                     .padding(.leading, 20) // Add this line to indent nested replies
             }
         }
@@ -487,19 +556,21 @@ struct ReplyView: View {
         .padding(.bottom, 8) // Add bottom padding for spacing between replies
     }
 
-    private func postReply() {
+    private func postReply() async {
         guard !newReplyText.isEmpty else { return }
-
-        let newReply = Reply(forumPostId: reply.forumPostId, username: "CurrentUser", replyText: "@\(reply.username) \(newReplyText)", media: selectedMediaItems)
-        onReplyToReply(reply, newReply)
-        newReplyText = ""
-        selectedMediaItems = []
-        showReplyField = false
+        do {
+            let newReply = Reply(forumPostId: reply.forumPostId, username: "CurrentUser", replyText: "@\(reply.username) \(newReplyText)", media: selectedMediaItems)
+            await onReplyToReply(reply, newReply)
+            newReplyText = ""
+            selectedMediaItems = []
+            showReplyField = false
+        }
     }
 }
 
 // Media Picker Button
 struct MediaPickerButton: View {
+    @EnvironmentObject var userStore: UserStore
     @Binding var selectedMediaItems: [MediaItem]
     @State private var isPresentingImagePicker = false
     @State private var selectedImages: [UIImage] = []
