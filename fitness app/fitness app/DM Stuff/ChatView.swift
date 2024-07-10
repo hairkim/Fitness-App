@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 struct ChatView: View {
     @Binding var chats: [DBChat]
@@ -17,7 +18,8 @@ struct ChatView: View {
     @State private var messageText = ""
     @State var messages = [DBMessage]()
     @State private var messagesListener: ListenerRegistration?
-    
+    @State private var scrollToBottom = false
+
     var body: some View {
         VStack {
             // Header
@@ -76,33 +78,52 @@ struct ChatView: View {
             .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
             .padding(.top, 10)
 
-            ScrollView {
-                VStack(spacing: 10) {
-                    ForEach(self.messages) { message in
-                        HStack {
-                            if message.senderId == userStore.currentUser!.userId {
-                                Spacer()
-                                Text(message.text)
-                                    .padding()
-                                    .background(Color.gymPrimary.opacity(0.8))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(16)
-                                    .padding(.trailing)
-                                    .font(.system(size: 16, weight: .bold))
-                            } else {
-                                Text(message.text)
-                                    .padding()
-                                    .background(Color.green.opacity(0.8))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(16)
-                                    .padding(.leading)
-                                    .font(.system(size: 16, weight: .bold))
-                                Spacer()
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 10) {
+                        ForEach(self.messages) { message in
+                            HStack {
+                                if message.senderId == userStore.currentUser!.userId {
+                                    Spacer()
+                                    Text(message.text)
+                                        .padding()
+                                        .background(Color.gymPrimary.opacity(0.8))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(16)
+                                        .padding(.trailing)
+                                        .font(.system(size: 16, weight: .bold))
+                                } else {
+                                    Text(message.text)
+                                        .padding()
+                                        .background(Color.green.opacity(0.8))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(16)
+                                        .padding(.leading)
+                                        .font(.system(size: 16, weight: .bold))
+                                    Spacer()
+                                }
                             }
+                            .id(message.id)
+                        }
+                    }
+                    .padding()
+                    .onAppear {
+                        if let lastMessage = messages.last?.id {
+                            proxy.scrollTo(lastMessage, anchor: .bottom)
                         }
                     }
                 }
-                .padding()
+                .onChange(of: messages) { _ in
+                    scrollToBottom = true
+                }
+                .onReceive([scrollToBottom].publisher.first(), perform: { _ in
+                    if scrollToBottom, let lastMessage = messages.last?.id {
+                        withAnimation {
+                            proxy.scrollTo(lastMessage, anchor: .bottom)
+                        }
+                        scrollToBottom = false
+                    }
+                })
             }
 
             HStack {
@@ -190,6 +211,9 @@ struct ChatView: View {
                 return
             }
             self.messages = messages
+            Task {
+                await markMessagesAsRead()
+            }
             print("Messages updated: \(self.messages)")
         }
     }
@@ -227,10 +251,14 @@ struct ChatView: View {
     private func markMessagesAsRead() async {
         guard let chatId = chat.id, let userId = userStore.currentUser?.userId else { return }
         do {
+            print("Marking messages as read for chatId: \(chatId), userId: \(userId)")
             try await ChatManager.shared.markMessagesAsRead(chatId: chatId, userId: userId)
             if let index = chats.firstIndex(where: { $0.id == chat.id }) {
                 chats[index].unreadMessages[userId] = 0
-                updateUnreadMessagesCount()
+                await MainActor.run {
+                    updateUnreadMessagesCount()
+                }
+                print("Marked messages as read and updated unread count")
             }
         } catch {
             print("Failed to mark messages as read: \(error)")
@@ -245,6 +273,7 @@ struct ChatView: View {
     }
 }
 
+// Extension to add the initial() method to String
 extension String {
     func initial() -> String {
         guard let firstCharacter = self.first else { return "" }
@@ -254,15 +283,17 @@ extension String {
 
 struct ChatView_Previews: PreviewProvider {
     static var previews: some View {
+        let userStore = UserStore()
         let newChat = DBChat(
-            participants: [],
-            participantNames: ["":""],
-            lastMessage: nil,
+            participants: ["user1", "user2"],
+            participantNames: ["user1": "John", "user2": "Doe"],
+            lastMessage: "Hello",
             timestamp: Timestamp(),
             profileImage: nil
         )
         
-        ChatView(chats: .constant([]), chat: newChat, unreadMessagesCount: .constant(0))
+        ChatView(chats: .constant([newChat]), chat: newChat, unreadMessagesCount: .constant(0))
+            .environmentObject(userStore)
     }
 }
 
@@ -275,3 +306,4 @@ extension Color {
     static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
     static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255)
 }
+

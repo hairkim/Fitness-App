@@ -19,7 +19,7 @@ struct ContentView: View {
         Group {
             if userStore.currentUser == nil {
                 LoginView(showSignInView: $showSignInView, userStore: userStore)
-            } else if showSignInView == false {
+            } else if !showSignInView {
                 mainContentView
             }
         }
@@ -125,29 +125,30 @@ struct ContentView: View {
                         .font(.title)
                         .foregroundColor(Color(.darkGray))
                         .padding(.leading, 16)
-                    
+
                     Spacer()
-                    
+
                     Button(action: {
                         withAnimation {
                             showDMHomeView.toggle()
                         }
                     }) {
-                        Image(systemName: "message.fill")
-                            .overlay(
-                                unreadMessagesCount > 0 ?
-                                    Text("\(unreadMessagesCount)")
-                                        .font(.caption2)
-                                        .foregroundColor(.white)
-                                        .background(Circle().fill(Color.red))
-                                        .offset(x: 10, y: -10)
-                                    : nil
-                            )
-                            .imageScale(.large)
-                            .foregroundColor(Color(.darkGray))
-                            .padding(.trailing, 16)
+                        ZStack {
+                            Image(systemName: "message.fill")
+                            if unreadMessagesCount > 0 {
+                                Text("\(unreadMessagesCount)")
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                    .padding(5)
+                                    .background(Circle().fill(Color.red))
+                                    .offset(x: 10, y: -10)
+                            }
+                        }
+                        .imageScale(.large)
+                        .foregroundColor(Color(.darkGray))
                     }
-                    
+                    .padding(.trailing, 16)
+
                     NavigationLink(destination: SearchView(selectedUser: $selectedUser, chats: $chats)) {
                         Image(systemName: "magnifyingglass")
                             .imageScale(.large)
@@ -156,7 +157,7 @@ struct ContentView: View {
                     .padding(.trailing, 16)
                 }
                 .padding(.horizontal)
-                
+
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
                         ForEach(posts.indices, id: \.self) { index in
@@ -173,6 +174,7 @@ struct ContentView: View {
             .navigationTitle("")
         }
     }
+
     
     var forumView: some View {
         NavigationView {
@@ -522,7 +524,6 @@ struct CustomPostView: View {
         }
     }
 }
-
 
 
 

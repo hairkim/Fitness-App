@@ -8,6 +8,8 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
+import FirebaseAuth
+import UserNotifications
 
 struct DBChat: Codable, Identifiable {
     @DocumentID var id: String?
@@ -29,14 +31,14 @@ struct DBChat: Codable, Identifiable {
     }
 }
 
-struct DBMessage: Codable, Identifiable {
+struct DBMessage: Codable, Identifiable, Equatable {
     @DocumentID var id: String?
     let chatId: String
     let senderId: String
-    let receiverId: String // Add this property to identify the receiver
+    let receiverId: String
     let text: String
     let timestamp: Timestamp
-    var isRead: Bool // To track if the message has been read
+    var isRead: Bool
 
     init(chatId: String, senderId: String, receiverId: String, text: String, timestamp: Timestamp = Timestamp(), isRead: Bool = false) {
         self.chatId = chatId
@@ -45,6 +47,10 @@ struct DBMessage: Codable, Identifiable {
         self.text = text
         self.timestamp = timestamp
         self.isRead = isRead
+    }
+
+    static func ==(lhs: DBMessage, rhs: DBMessage) -> Bool {
+        return lhs.id == rhs.id
     }
 }
 
@@ -86,8 +92,10 @@ final class ChatManager {
             "unreadMessages.\(message.receiverId)": FieldValue.increment(Int64(1))
         ])
         
-        // Trigger local notification
-        sendNotification(for: message.chatId, messageText: message.text)
+        // Trigger local notification for other users' messages
+        if message.senderId != Auth.auth().currentUser?.uid {
+            sendNotification(for: message.chatId, messageText: message.text)
+        }
     }
 
     func sendNotification(for chatId: String, messageText: String) {
@@ -177,3 +185,4 @@ final class ChatManager {
         return totalUnreadMessages
     }
 }
+

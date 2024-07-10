@@ -13,13 +13,18 @@ struct DMHomeView: View {
     @Binding var chats: [DBChat]
     @Binding var unreadMessagesCount: Int
     @EnvironmentObject var userStore: UserStore
-    
+
     var body: some View {
         NavigationView {
             List {
                 ForEach(sortedChats(), id: \.id) { chat in
                     NavigationLink(destination: ChatView(chats: $chats, chat: chat, unreadMessagesCount: $unreadMessagesCount)) {
                         chatRowView(chat: chat)
+                    }
+                    .onTapGesture {
+                        Task {
+                            await markMessagesAsRead(chat: chat)
+                        }
                     }
                 }
             }
@@ -56,12 +61,11 @@ struct DMHomeView: View {
                     .padding(.leading, 10)
             }
             Spacer()
-            if let count = chat.unreadMessages[userStore.currentUser?.userId ?? ""] {
-                Text("\(count)")
-                    .font(.caption)
-                    .foregroundColor(.white)
-                    .padding(5)
-                    .background(Circle().fill(Color.red).frame(width: 20, height: 20))
+            if let count = chat.unreadMessages[userStore.currentUser?.userId ?? ""], count > 0 {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 10, height: 10)
+                    .padding(.trailing, 10)
             }
         }
     }
@@ -91,6 +95,23 @@ struct DMHomeView: View {
         guard let currentUserID = userStore.currentUser?.userId else { return }
         unreadMessagesCount = chats.reduce(0) { count, chat in
             count + (chat.unreadMessages[currentUserID] ?? 0)
+        }
+    }
+
+    private func markMessagesAsRead(chat: DBChat) async {
+        guard let currentUserID = userStore.currentUser?.userId else { return }
+        do {
+            print("Marking messages as read for chatId: \(chat.id!), userId: \(currentUserID)")
+            try await ChatManager.shared.markMessagesAsRead(chatId: chat.id!, userId: currentUserID)
+            if let index = chats.firstIndex(where: { $0.id == chat.id }) {
+                chats[index].unreadMessages[currentUserID] = 0
+                await MainActor.run {
+                    updateUnreadMessagesCount()
+                }
+                print("Marked messages as read and updated unread count")
+            }
+        } catch {
+            print("Failed to mark messages as read: \(error)")
         }
     }
 }
