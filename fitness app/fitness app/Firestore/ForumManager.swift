@@ -174,13 +174,31 @@ final class ForumManager {
 
     func getAllForumPosts() async throws -> [ForumPost] {
         let snapshot = try await forumCollection.getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: ForumPost.self) }
+        
+        // Log the document data to debug
+        for document in snapshot.documents {
+            print("Document ID: \(document.documentID)")
+            print("Document Data: \(document.data())")
+        }
+
+        return snapshot.documents.compactMap { document in
+            do {
+                let forumPost = try document.data(as: ForumPost.self)
+                print("Decoded ForumPost: \(forumPost)")
+                return forumPost
+            } catch {
+                print("Error decoding document ID \(document.documentID): \(error)")
+                return nil
+            }
+        }
     }
 
 
     func createNewForumPost(forumPost: ForumPost) async throws {
-        let forumDocument = forumCollection.document(forumPost.id ?? UUID().uuidString)
-        try forumDocument.setData(from: forumPost, merge: false, encoder: Firestore.Encoder())
+        let forumPostId = forumCollection.document().documentID
+        var forumPostWithId = forumPost
+        forumPostWithId.id = forumPostId
+        try forumDocument(forumId: forumPostId).setData(from: forumPostWithId, merge: false, encoder: Firestore.Encoder())
     }
 
     func createNewReply(for post: ForumPost, reply: Reply) async throws {
@@ -255,7 +273,7 @@ final class ForumManager {
             let forumRef = forumDocument(forumId: forumPostId)
             let forumDocument = try await forumRef.getDocument()
             
-            guard var forumPost = try? forumDocument.data(as: ForumPost.self) else {
+            guard let forumPost = try? forumDocument.data(as: ForumPost.self) else {
                 throw NSError(domain: "App ErrorDomain", code: -4, userInfo: [NSLocalizedDescriptionKey: "Unable to decode forum post"])
             }
             

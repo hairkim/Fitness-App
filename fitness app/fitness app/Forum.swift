@@ -72,43 +72,68 @@ struct ForumView: View {
         }
         .onAppear {
             Task {
-                self.posts = try await ForumManager.shared.getAllForumPosts()
-                print("forum psots fetched")
-//                print(self.posts.count)
+                do {
+                    self.posts = try await ForumManager.shared.getAllForumPosts()
+                    print("Forum posts fetched: \(self.posts.count)")
+                    for post in self.posts {
+                        print("Post ID: \(post.id ?? "no id"), Title: \(post.title), Likes: \(post.likes.count)")
+                    }
+                } catch {
+                    print("Error fetching forum posts: \(error)")
+                }
             }
         }
     }
 
     private var sortedPosts: [ForumPost] {
+        let sorted: [ForumPost]
         switch selectedSortOption {
         case .hot:
-            return posts.sorted(by: { $0.likes.count > $1.likes.count && $0.createdAt > $1.createdAt })
+            sorted = posts.sorted { (first, second) -> Bool in
+                if first.likes.count == second.likes.count {
+                    return first.createdAt > second.createdAt
+                }
+                return first.likes.count > second.likes.count
+            }
         case .topDay:
-            return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .day, value: -1, to: Date())! }
+            sorted = posts.filter { $0.createdAt > Calendar.current.date(byAdding: .day, value: -1, to: Date())! }
                 .sorted(by: { $0.likes.count > $1.likes.count })
         case .topWeek:
-            return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .weekOfYear, value: -1, to: Date())! }
+            sorted = posts.filter { $0.createdAt > Calendar.current.date(byAdding: .weekOfYear, value: -1, to: Date())! }
                 .sorted(by: { $0.likes.count > $1.likes.count })
         case .topMonth:
-            return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .month, value: -1, to: Date())! }
+            sorted = posts.filter { $0.createdAt > Calendar.current.date(byAdding: .month, value: -1, to: Date())! }
                 .sorted(by: { $0.likes.count > $1.likes.count })
         case .topYear:
-            return posts.filter { $0.createdAt > Calendar.current.date(byAdding: .year, value: -1, to: Date())! }
+            sorted = posts.filter { $0.createdAt > Calendar.current.date(byAdding: .year, value: -1, to: Date())! }
                 .sorted(by: { $0.likes.count > $1.likes.count })
         case .topAllTime:
-            return posts.sorted(by: { $0.likes.count > $1.likes.count })
+            sorted = posts.sorted(by: { $0.likes.count > $1.likes.count })
         }
+        print("Sorted posts: \(sorted.count)")
+        for post in sorted {
+            print("Post ID: \(post.id ?? "no id"), Title: \(post.title), Likes: \(post.likes.count)")
+        }
+        return sorted
     }
 
+
     private var filteredPosts: [ForumPost] {
+        let filtered: [ForumPost]
         if searchText.isEmpty {
-            return sortedPosts
+            filtered = sortedPosts
         } else {
-            return sortedPosts.filter { post in
+            filtered = sortedPosts.filter { post in
                 post.title.lowercased().contains(searchText.lowercased()) || post.body.lowercased().contains(searchText.lowercased())
             }
         }
+        print("Filtered posts: \(filtered.count)")
+        for post in filtered {
+            print("Post ID: \(post.id ?? "no id"), Title: \(post.title), Likes: \(post.likes.count)")
+        }
+        return filtered
     }
+
     
     //------------------------
 
@@ -133,20 +158,26 @@ struct ForumView: View {
 
     private func likePost(post: ForumPost) async {
         guard let forumPostId = post.id else {
-            print("couldnt find forum post id")
+            print("couldn't find forum post id")
             return
         }
         guard let userId = userStore.currentUser?.userId else {
-            print("couldnt find user id")
+            print("couldn't find user id")
             return
         }
         do {
             if let index = posts.firstIndex(where: { $0.id == forumPostId }) {
                 try await ForumManager.shared.likePost(for: forumPostId, userId: userId)
+                // Update the local likes array to reflect the change
+                if !posts[index].likes.contains(userId) {
+                    posts[index].likes.append(userId)
+                } else {
+                    posts[index].likes.removeAll { $0 == userId }
+                }
                 print("liked the post")
             }
         } catch {
-            print("couldnt like the post: \(error)")
+            print("couldn't like the post: \(error)")
         }
     }
 
@@ -243,6 +274,7 @@ struct ForumPostRow: View {
                         Button(action: {
                             Task {
                                 await onLike()
+                                checkIfUserLiked()
                             }
                         }) {
                             HStack {
@@ -297,6 +329,16 @@ struct ForumPostRow: View {
         .onAppear {
             checkIfUserLiked()
         }
+        .onTapGesture(count: 2) {
+            Task {
+                print("double tapped")
+                await onLike()
+                checkIfUserLiked()
+            }
+        }
+        .onChange(of: post.likes) { newValue in
+            checkIfUserLiked()
+        }
     }
     
     private func checkIfUserLiked() {
@@ -307,6 +349,8 @@ struct ForumPostRow: View {
         
         if self.post.likes.contains(where: { $0 == userId }) {
             self.likedByUser = true
+        } else {
+            self.likedByUser = false
         }
     }
 }
@@ -346,11 +390,12 @@ struct PostDetailView: View {
             ScrollView {
                 VStack(alignment: .leading) {
                     ForumPostRow(post: post, onLike: onLike, onNavigate: {})
-                        .onTapGesture(count: 2) {
-                            Task {
-                                await onLike()
-                            }
-                        }
+//                        .onTapGesture(count: 2) {
+//                            Task {
+//                                await onLike()
+//                                checkIfUserLiked()
+//                            }
+//                        }
 
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
@@ -400,7 +445,7 @@ struct PostDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(trailing: Button(action: {
                 Task {
-                    onLike
+                    await onLike()
                 }
             }) {
                 Image(systemName: "heart.fill")
@@ -451,6 +496,8 @@ struct PostDetailView: View {
         
         if self.post.likes.contains(where: { $0 == userId }) {
             self.likedByUser = true
+        } else {
+            self.likedByUser = false
         }
     }
 }
