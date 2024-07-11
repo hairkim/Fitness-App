@@ -107,23 +107,13 @@ struct ChatView: View {
                         }
                     }
                     .padding()
+                    .onChange(of: messages) { _ in
+                        scrollToLastMessage(proxy: proxy)
+                    }
                     .onAppear {
-                        if let lastMessage = messages.last?.id {
-                            proxy.scrollTo(lastMessage, anchor: .bottom)
-                        }
+                        scrollToLastMessage(proxy: proxy)
                     }
                 }
-                .onChange(of: messages) { _ in
-                    scrollToBottom = true
-                }
-                .onReceive([scrollToBottom].publisher.first(), perform: { _ in
-                    if scrollToBottom, let lastMessage = messages.last?.id {
-                        withAnimation {
-                            proxy.scrollTo(lastMessage, anchor: .bottom)
-                        }
-                        scrollToBottom = false
-                    }
-                })
             }
 
             HStack {
@@ -150,11 +140,19 @@ struct ChatView: View {
         .onAppear {
             addMessagesListener()
             Task {
+                await fetchMessages()
                 await markMessagesAsRead()
+                scrollToBottom = true // Set the flag to scroll to the bottom
             }
         }
         .onDisappear {
             removeMessagesListener()
+        }
+    }
+
+    private func scrollToLastMessage(proxy: ScrollViewProxy) {
+        if let lastMessageID = messages.last?.id {
+            proxy.scrollTo(lastMessageID, anchor: .bottom)
         }
     }
 
@@ -306,4 +304,3 @@ extension Color {
     static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
     static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255)
 }
-
