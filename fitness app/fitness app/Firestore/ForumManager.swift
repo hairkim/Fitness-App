@@ -77,7 +77,7 @@ class ForumPost: Identifiable, ObservableObject, Codable {
 }
 
 class Reply: Codable, Identifiable, ObservableObject {
-    @DocumentID var id: String?
+    var id: String?
     let forumPostId: String
     let username: String
     let replyText: String
@@ -123,6 +123,7 @@ enum CodingKeys: String, CodingKey {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(id, forKey: .id)
+        try container.encode(forumPostId, forKey: .forumPostId)
         try container.encode(username, forKey: .username)
         try container.encode(replyText, forKey: .replyText)
         try container.encode(media, forKey: .media)
@@ -195,10 +196,17 @@ final class ForumManager {
 
 
     func createNewForumPost(forumPost: ForumPost) async throws {
-        let forumPostId = forumCollection.document().documentID
-        var forumPostWithId = forumPost
-        forumPostWithId.id = forumPostId
-        try forumDocument(forumId: forumPostId).setData(from: forumPostWithId, merge: false, encoder: Firestore.Encoder())
+        // Generate a new ID if it's not already set
+        let newForumPost = forumPost
+        if newForumPost.id == nil {
+            newForumPost.id = UUID().uuidString
+        }
+        
+        // Get the document reference using the ID
+        let forumDocument = forumCollection.document(newForumPost.id!)
+        
+        // Save the document
+        try forumDocument.setData(from: newForumPost, merge: false, encoder: Firestore.Encoder())
     }
 
     func createNewReply(for post: ForumPost, reply: Reply) async throws {
@@ -215,9 +223,15 @@ final class ForumManager {
                 throw NSError(domain: "App ErrorDomain", code: -5, userInfo: [NSLocalizedDescriptionKey: "Unable to decode forum post"])
             }
 
+            // Generate a new ID if it's not already set
+            let newReply = reply
+            if newReply.id == nil {
+                newReply.id = UUID().uuidString
+            }
+
             // Ensure the reply is unique before adding
-            if !forum.replies.contains(where: { $0.id == reply.id }) {
-                forum.replies.append(reply)
+            if !forum.replies.contains(where: { $0.id == newReply.id }) {
+                forum.replies.append(newReply)
 
                 // Update the forum post in Firestore
                 try forumRef.setData(from: forum, merge: true)
@@ -241,20 +255,18 @@ final class ForumManager {
             let forumRef = forumDocument(forumId: parentReply.forumPostId)
             let forumDoc = try await forumRef.getDocument()
 
-            guard let forum = try forumDoc.data(as: ForumPost?.self) else {
+            guard var forum = try forumDoc.data(as: ForumPost?.self) else {
                 throw NSError(domain: "App ErrorDomain", code: -5, userInfo: [NSLocalizedDescriptionKey: "Unable to decode forum post"])
             }
 
-            // Ensure the parent reply exists
-            guard let parentIndex = forum.replies.firstIndex(where: { $0.id == parentReplyId }) else {
-                print("Parent reply not found")
-                return
+            // Generate a new ID if it's not already set
+            var newReply = reply
+            if newReply.id == nil {
+                newReply.id = UUID().uuidString
             }
 
-            // Ensure the reply is unique before adding
-            if !forum.replies[parentIndex].replies.contains(where: { $0.id == reply.id }) {
-                forum.replies[parentIndex].replies.append(reply)
-
+            // Use the helper function to find and add the reply
+            if findAndAddReply(to: &forum.replies, parentReplyId: parentReplyId, newReply: newReply) {
                 // Update the forum post in Firestore
                 try forumRef.setData(from: forum, merge: true)
                 print("Reply added successfully")
@@ -265,6 +277,31 @@ final class ForumManager {
             print("Error adding reply: \(error.localizedDescription)")
             throw error
         }
+    }
+    
+    func addReply(to parentReply: inout Reply, newReply: Reply) {
+        // Check if the reply is already present to ensure uniqueness
+        if !parentReply.replies.contains(where: { $0.id == newReply.id }) {
+            parentReply.replies.append(newReply)
+        } else {
+            print("Reply already exists")
+        }
+    }
+
+    func findAndAddReply(to replies: inout [Reply], parentReplyId: String, newReply: Reply) -> Bool {
+        for i in 0..<replies.count {
+            if replies[i].id == parentReplyId {
+                // Found the parent reply, add the new reply to its replies
+                addReply(to: &replies[i], newReply: newReply)
+                return true
+            } else if !replies[i].replies.isEmpty {
+                // Recursively search in nested replies
+                if findAndAddReply(to: &replies[i].replies, parentReplyId: parentReplyId, newReply: newReply) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     
@@ -282,7 +319,10 @@ final class ForumManager {
                 try forumRef.setData(from: forumPost)
                 print("You liked the forum post")
             } else {
-                print("you already liked the forum post")
+                //remove the like from the likes array
+                forumPost.likes.removeAll(where: { $0 == userId })
+                try forumRef.setData(from: forumPost)
+                print("You unliked the forum post")
             }
         } catch {
             print("Error liking the forum post: \(error.localizedDescription)")

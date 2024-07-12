@@ -223,7 +223,7 @@ struct ForumView: View {
 
     func addReply(to parentReply: Reply, in post: ForumPost, reply: Reply) async {
         guard let parentReplyId = parentReply.id else {
-            print("Couldn't find post id")
+            print("Couldn't find reply id")
             return
         }
         do {
@@ -481,6 +481,7 @@ struct PostDetailView: View {
             await onReplyToReply(replyingTo, reply)
         } else {
             await onReply(reply)
+            self.post.replies.append(reply)
         }
 
         newReply = ""
@@ -605,9 +606,14 @@ struct ReplyView: View {
 
     private func postReply() async {
         guard !newReplyText.isEmpty else { return }
+        guard let username = userStore.currentUser?.username else {
+            print("couldnt get username")
+            return
+        }
         do {
-            let newReply = Reply(forumPostId: reply.forumPostId, username: "CurrentUser", replyText: "@\(reply.username) \(newReplyText)", media: selectedMediaItems)
-            await onReplyToReply(reply, newReply)
+            let newReply = Reply(forumPostId: reply.forumPostId, username: username, replyText: "@\(reply.username) \(newReplyText)", media: selectedMediaItems)
+            await onReplyToReply(self.reply, newReply)
+            reply.replies.append(newReply)
             newReplyText = ""
             selectedMediaItems = []
             showReplyField = false
