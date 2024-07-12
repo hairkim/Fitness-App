@@ -170,23 +170,24 @@ struct CalendarView: View {
     private var dates: [Date] {
         var dates: [Date] = []
         let calendar = Calendar.current
-        let range = calendar.range(of: .day, in: .month, for: Date())!
+        let currentDate = Date()
+        let range = calendar.range(of: .day, in: .month, for: currentDate)!
         for day in range {
-            if let date = calendar.date(bySetting: .day, value: day, of: Date()) {
+            if let date = calendar.date(bySetting: .day, value: day, of: currentDate) {
                 dates.append(date)
             }
         }
         return dates
     }
     
-    private func postForDate(_ date: Date) -> Post? {
-        return posts.first { Calendar.current.isDate($0.date, inSameDayAs: date) }
+    private func postForDate(_ date: Date) -> [Post] {
+        return posts.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
     }
     
     var body: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 16) {
             ForEach(dates, id: \.self) { date in
-                if let post = postForDate(date) {
+                if let post = postForDate(date).first {
                     AsyncImage(url: URL(string: post.imageName)) { phase in
                         switch phase {
                         case .empty:

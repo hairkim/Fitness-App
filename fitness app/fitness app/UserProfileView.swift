@@ -1,10 +1,3 @@
-//
-//  UserProfileView.swift
-//  fitnessapp
-//
-//  Created by Harris Kim on 6/5/24.
-//
-
 import SwiftUI
 
 @MainActor
@@ -76,13 +69,11 @@ class ChatViewModel: ObservableObject {
     }
 }
 
-import SwiftUI
-
 struct UserProfileView: View {
     @EnvironmentObject var userStore: UserStore
     
     let postUser: DBUser
-    @Binding var chats: [DBChat] // Add this binding
+    @Binding var chats: [DBChat]
     @State var posts = [Post]()
     @StateObject private var chatViewModel: ChatViewModel
     
@@ -177,41 +168,17 @@ struct UserProfileView: View {
                             .cornerRadius(10)
                     }
                 }
-            
-                // Posts (Grid Layout)
-                ScrollView {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                        ForEach(posts) { post in
-                            if let url = URL(string: post.imageName) {
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        Color.gray.opacity(0.5)
-                                            .frame(height: 150)
-                                            .cornerRadius(10)
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(height: 150)
-                                            .clipped()
-                                            .cornerRadius(10)
-                                    case .failure:
-                                        Color.gray.opacity(0.5)
-                                            .frame(height: 150)
-                                            .cornerRadius(10)
-                                    @unknown default:
-                                        Color.gray.opacity(0.5)
-                                            .frame(height: 150)
-                                            .cornerRadius(10)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                }
 
+                // Calendar Layout for Gym Posts
+                VStack(alignment: .leading) {
+                    Text("Gym Posts")
+                        .font(.headline)
+                        .padding(.leading)
+
+                    CalendarView(posts: posts)
+                }
+                .padding()
+                
                 Spacer()
             }
             .navigationTitle("Profile")
