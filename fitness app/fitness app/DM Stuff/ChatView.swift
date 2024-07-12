@@ -21,6 +21,9 @@ struct ChatView: View {
     @State private var scrollToBottom = false
     @State private var showUserProfile = false
     @State private var selectedUser: DBUser?
+    @State private var seshCount: Int = 0
+    @State private var showImagePicker = false
+    @State private var selectedImage: UIImage?
 
     var body: some View {
         VStack {
@@ -80,7 +83,7 @@ struct ChatView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "dumbbell.fill")
                         .foregroundColor(.gymPrimary)
-                    Text("7") // Placeholder for streak number
+                    Text("\(seshCount)") // Use seshCount instead of a placeholder number
                         .foregroundColor(.gymPrimary)
                         .font(.system(size: 20, weight: .bold))
                 }
@@ -99,21 +102,47 @@ struct ChatView: View {
                             HStack {
                                 if message.senderId == userStore.currentUser!.userId {
                                     Spacer()
-                                    Text(message.text)
-                                        .padding()
-                                        .background(Color.gymPrimary.opacity(0.8))
-                                        .foregroundColor(.white)
-                                        .cornerRadius(16)
+                                    if let imageURL = message.imageURL, !imageURL.isEmpty {
+                                        AsyncImage(url: URL(string: imageURL)) { image in
+                                            image.resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 150, height: 150)
+                                                .cornerRadius(16)
+                                        } placeholder: {
+                                            ProgressView()
+                                                .frame(width: 150, height: 150)
+                                        }
                                         .padding(.trailing)
-                                        .font(.system(size: 16, weight: .bold))
+                                    } else {
+                                        Text(message.text)
+                                            .padding()
+                                            .background(Color.gymPrimary.opacity(0.8))
+                                            .foregroundColor(.white)
+                                            .cornerRadius(16)
+                                            .padding(.trailing)
+                                            .font(.system(size: 16, weight: .bold))
+                                    }
                                 } else {
-                                    Text(message.text)
-                                        .padding()
-                                        .background(Color.green.opacity(0.8))
-                                        .foregroundColor(.white)
-                                        .cornerRadius(16)
+                                    if let imageURL = message.imageURL, !imageURL.isEmpty {
+                                        AsyncImage(url: URL(string: imageURL)) { image in
+                                            image.resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 150, height: 150)
+                                                .cornerRadius(16)
+                                        } placeholder: {
+                                            ProgressView()
+                                                .frame(width: 150, height: 150)
+                                        }
                                         .padding(.leading)
-                                        .font(.system(size: 16, weight: .bold))
+                                    } else {
+                                        Text(message.text)
+                                            .padding()
+                                            .background(Color.green.opacity(0.8))
+                                            .foregroundColor(.white)
+                                            .cornerRadius(16)
+                                            .padding(.leading)
+                                            .font(.system(size: 16, weight: .bold))
+                                    }
                                     Spacer()
                                 }
                             }
@@ -131,22 +160,35 @@ struct ChatView: View {
             }
 
             HStack {
-                TextField("Type your message...", text: $messageText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.horizontal)
-
                 Button(action: {
-                    Task {
-                        await sendMessage()
-                    }
+                    showImagePicker.toggle()
                 }) {
-                    Image(systemName: "paperplane.fill")
-                        .imageScale(.large)
+                    Image(systemName: "camera.fill")
                         .foregroundColor(.gymSecondary)
-                        .padding(.trailing)
+                        .padding(.leading, 12)
                 }
+                
+                TextField("Type your message...", text: $messageText)
+                    .padding(12)
+                    .background(Color.white)
+                    .cornerRadius(20)
+                    .overlay(
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                Task {
+                                    await sendMessage()
+                                }
+                            }) {
+                                Image(systemName: "paperplane.fill")
+                                    .foregroundColor(.gymSecondary)
+                                    .padding(.trailing, 12)
+                            }
+                        }
+                    )
+                    .padding(.horizontal)
             }
-            .padding()
+            .padding(.bottom)
         }
         .navigationTitle("")
         .navigationBarHidden(true)
@@ -157,10 +199,20 @@ struct ChatView: View {
                 await fetchMessages()
                 await markMessagesAsRead()
                 scrollToBottom = true // Set the flag to scroll to the bottom
+                await fetchSeshCount()
             }
         }
         .onDisappear {
             removeMessagesListener()
+        }
+        .sheet(isPresented: $showImagePicker, onDismiss: {
+            if let image = selectedImage {
+                Task {
+                    await uploadImage(image)
+                }
+            }
+        }) {
+            ImagePicker(selectedImage: $selectedImage, sourceType: .photoLibrary)
         }
     }
 
@@ -283,6 +335,29 @@ struct ChatView: View {
             count + (chat.unreadMessages[currentUserID] ?? 0)
         }
     }
+
+    private func fetchSeshCount() async {
+        do {
+            if let currentUser = userStore.currentUser {
+                let user = try await UserManager.shared.getUser(userId: currentUser.userId)
+                seshCount = user.sesh
+            }
+        } catch {
+            print("Failed to fetch sesh count: \(error)")
+        }
+    }
+
+    private func uploadImage(_ image: UIImage) async {
+        guard let currentUser = userStore.currentUser else { return }
+        do {
+            if let chatId = chat.id, let receiverId = getReceiverId(from: chat) {
+                try await ChatManager.shared.sendImageMessage(chatId: chatId, senderId: currentUser.userId, receiverId: receiverId, image: image)
+                await fetchMessages()
+            }
+        } catch {
+            print("Error uploading image: \(error)")
+        }
+    }
 }
 
 // Extension to add the initial() method to String
@@ -309,9 +384,6 @@ struct ChatView_Previews: PreviewProvider {
     }
 }
 
-
-
-
 import SwiftUI
 
 extension Color {
@@ -320,3 +392,5 @@ extension Color {
     static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
     static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255)
 }
+
+
