@@ -21,11 +21,7 @@ struct DMHomeView: View {
                     NavigationLink(destination: ChatView(chats: $chats, chat: chat, unreadMessagesCount: $unreadMessagesCount)) {
                         chatRowView(chat: chat)
                     }
-                    .onTapGesture {
-                        Task {
-                            await markMessagesAsRead(chat: chat)
-                        }
-                    }
+                    .buttonStyle(PlainButtonStyle()) // Ensures the whole row is clickable
                 }
             }
             .navigationTitle("Messages")
@@ -68,6 +64,7 @@ struct DMHomeView: View {
                     .padding(.trailing, 10)
             }
         }
+        .padding(.vertical, 10)
     }
 
     private func setupChatsListener() {
@@ -95,23 +92,6 @@ struct DMHomeView: View {
         guard let currentUserID = userStore.currentUser?.userId else { return }
         unreadMessagesCount = chats.reduce(0) { count, chat in
             count + (chat.unreadMessages[currentUserID] ?? 0)
-        }
-    }
-
-    private func markMessagesAsRead(chat: DBChat) async {
-        guard let currentUserID = userStore.currentUser?.userId else { return }
-        do {
-            print("Marking messages as read for chatId: \(chat.id!), userId: \(currentUserID)")
-            try await ChatManager.shared.markMessagesAsRead(chatId: chat.id!, userId: currentUserID)
-            if let index = chats.firstIndex(where: { $0.id == chat.id }) {
-                chats[index].unreadMessages[currentUserID] = 0
-                await MainActor.run {
-                    updateUnreadMessagesCount()
-                }
-                print("Marked messages as read and updated unread count")
-            }
-        } catch {
-            print("Failed to mark messages as read: \(error)")
         }
     }
 }

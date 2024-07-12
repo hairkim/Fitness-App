@@ -19,6 +19,8 @@ struct ChatView: View {
     @State var messages = [DBMessage]()
     @State private var messagesListener: ListenerRegistration?
     @State private var scrollToBottom = false
+    @State private var showUserProfile = false
+    @State private var selectedUser: DBUser?
 
     var body: some View {
         VStack {
@@ -32,34 +34,46 @@ struct ChatView: View {
                         .padding(.leading, 10)
                 }
 
-                HStack {
-                    if let profileImage = chat.profileImage, !profileImage.isEmpty {
-                        AsyncImage(url: URL(string: profileImage)) { image in
-                            image.resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                        } placeholder: {
-                            ProgressView()
-                                .frame(width: 50, height: 50)
+                NavigationLink(destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore, chats: $chats), isActive: $showUserProfile) {
+                    HStack {
+                        if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                            AsyncImage(url: URL(string: profileImage)) { image in
+                                image.resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 50, height: 50)
+                            }
+                        } else {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.gymAccent.opacity(0.2))
+                                    .frame(width: 50, height: 50)
+                                Text(chatInitials(for: chat))
+                                    .font(.headline)
+                                    .foregroundColor(.gymPrimary)
+                            }
                         }
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gymAccent.opacity(0.2))
-                                .frame(width: 50, height: 50)
-                            Text(chatInitials(for: chat))
-                                .font(.headline)
-                                .foregroundColor(.gymPrimary)
+
+                        Text(chatName(for: chat))
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.gymPrimary)
+                            .padding(.leading, 8)
+                    }
+                    .padding(.leading, 10)
+                    .onTapGesture {
+                        Task {
+                            if let participantId = chat.participants.first(where: { $0 != userStore.currentUser?.userId }) {
+                                self.selectedUser = try? await UserManager.shared.getUser(userId: participantId)
+                                if self.selectedUser != nil {
+                                    self.showUserProfile.toggle()
+                                }
+                            }
                         }
                     }
-
-                    Text(chatName(for: chat))
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.gymPrimary)
-                        .padding(.leading, 8)
                 }
-                .padding(.leading, 10)
 
                 Spacer()
 
@@ -294,6 +308,8 @@ struct ChatView_Previews: PreviewProvider {
             .environmentObject(userStore)
     }
 }
+
+
 
 
 import SwiftUI
