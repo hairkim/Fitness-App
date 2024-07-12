@@ -164,14 +164,15 @@ struct ProfileView: View {
     }
 }
 
+
 struct CalendarView: View {
     let posts: [Post]
+    @State private var currentDate = Date()
     
     private var dates: [Date] {
         var dates: [Date] = []
         let calendar = Calendar.current
-        let currentDate = Date()
-        let range = calendar.range(of: .day, in: .month, for: currentDate)!
+        guard let range = calendar.range(of: .day, in: .month, for: currentDate) else { return dates }
         for day in range {
             if let date = calendar.date(bySetting: .day, value: day, of: currentDate) {
                 dates.append(date)
@@ -184,46 +185,79 @@ struct CalendarView: View {
         return posts.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
     }
     
+    private func changeMonth(by offset: Int) {
+        let calendar = Calendar.current
+        if let newDate = calendar.date(byAdding: .month, value: offset, to: currentDate) {
+            currentDate = newDate
+        }
+    }
+    
+    private var monthYearFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter
+    }
+    
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 16) {
-            ForEach(dates, id: \.self) { date in
-                if let post = postForDate(date).first {
-                    AsyncImage(url: URL(string: post.imageName)) { phase in
-                        switch phase {
-                        case .empty:
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.5))
-                                .frame(width: 40, height: 50)
-                                .cornerRadius(10)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 40, height: 50)
-                                .clipped()
-                                .cornerRadius(10)
-                        case .failure:
-                            Rectangle()
-                                .fill(Color.red.opacity(0.5))
-                                .frame(width: 40, height: 50)
-                                .cornerRadius(10)
-                        @unknown default:
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.5))
-                                .frame(width: 40, height: 50)
-                                .cornerRadius(10)
-                        }
-                    }
-                } else {
-                    Text("\(Calendar.current.component(.day, from: date))")
-                        .font(.system(size: 14, weight: .medium))
-                        .frame(width: 40, height: 50)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(10)
+        VStack {
+            HStack {
+                Button(action: {
+                    changeMonth(by: -1)
+                }) {
+                    Image(systemName: "chevron.left")
+                }
+                Spacer()
+                Text(monthYearFormatter.string(from: currentDate))
+                    .font(.headline)
+                Spacer()
+                Button(action: {
+                    changeMonth(by: 1)
+                }) {
+                    Image(systemName: "chevron.right")
                 }
             }
+            .padding()
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 16) {
+                ForEach(dates, id: \.self) { date in
+                    if let post = postForDate(date).first {
+                        AsyncImage(url: URL(string: post.imageName)) { phase in
+                            switch phase {
+                            case .empty:
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.5))
+                                    .frame(height: 50)
+                                    .cornerRadius(10)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(height: 50)
+                                    .clipped()
+                                    .cornerRadius(10)
+                            case .failure:
+                                Rectangle()
+                                    .fill(Color.red.opacity(0.5))
+                                    .frame(height: 50)
+                                    .cornerRadius(10)
+                            @unknown default:
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.5))
+                                    .frame(height: 50)
+                                    .cornerRadius(10)
+                            }
+                        }
+                    } else {
+                        Text("\(Calendar.current.component(.day, from: date))")
+                            .font(.system(size: 14, weight: .medium))
+                            .frame(height: 50)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(10)
+                    }
+                }
+            }
+            .padding()
         }
-        .padding()
     }
 }
 
