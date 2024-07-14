@@ -303,26 +303,30 @@ class MessageManager {
     }
 }
 
+
+import SwiftUI
+
 struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
     @EnvironmentObject private var userStore: UserStore
-    
+
     @State private var isLiked = false
     @State private var showCommentSheet = false
     @State private var showReportSheet = false
     @State private var showLikesList = false
-    
+    @State private var isCaptionExpanded = false
+
     @State private var comments: [Comment]
     @State private var postUser: DBUser = DBUser.placeholder
     @State private var likesCount: Int = 0
-    
+
     init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
         self._post = post
         self.deleteComment = deleteComment
         self._comments = State(initialValue: post.wrappedValue.comments)
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack(alignment: .topLeading) {
@@ -355,7 +359,7 @@ struct CustomPostView: View {
                         }
                     }
                 }
-                
+
                 Circle()
                     .stroke(Color.indigo, lineWidth: 2)
                     .frame(width: 32, height: 32)
@@ -371,7 +375,7 @@ struct CustomPostView: View {
                     )
                     .padding([.top, .leading], 10)
             }
-            
+
             HStack {
                 HStack(spacing: 20) {
                     Button(action: {
@@ -389,14 +393,14 @@ struct CustomPostView: View {
                             .frame(width: 25, height: 25)
                             .foregroundColor(isLiked ? .green : Color(.darkGray))
                     }
-                    
+
                     Text("\(likesCount)")
                         .font(.caption)
                         .foregroundColor(.gray)
                         .onTapGesture {
                             showLikesList.toggle()
                         }
-                    
+
                     Button(action: {
                         withAnimation {
                             showCommentSheet.toggle()
@@ -407,19 +411,19 @@ struct CustomPostView: View {
                             .frame(width: 25, height: 25)
                             .foregroundColor(Color(.darkGray))
                     }
-                    
+
                     Text("\(comments.count + comments.flatMap { $0.replies }.count)")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
-                
+
                 Spacer()
-                
+
                 HStack {
                     Text(formatTimestamp(post.date))
                         .font(.caption)
                         .foregroundColor(.gray)
-                    
+
                     Button(action: {
                         withAnimation {
                             showReportSheet.toggle()
@@ -435,19 +439,40 @@ struct CustomPostView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 4)
-            
-            HStack {
-                Text(postUser.username)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                
-                Text(post.caption)
-                    .foregroundColor(.primary)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top) {
+                    Text(postUser.username)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text(firstLineOfCaption(post.caption))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                }
+                if hasMoreLines(post.caption) {
+                    Text(remainingLinesOfCaption(post.caption))
+                        .foregroundColor(.primary)
+                        .lineLimit(isCaptionExpanded ? nil : 1)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 0)
+                    
+                    if !isCaptionExpanded {
+                        Button(action: {
+                            isCaptionExpanded.toggle()
+                        }) {
+                            Text("more")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.leading, 0)
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)
-            
+
             if comments.count > 0 {
                 Button(action: {
                     withAnimation {
@@ -483,7 +508,29 @@ struct CustomPostView: View {
             ReportView(post: post, showReportSheet: $showReportSheet)
         }
     }
-    
+
+    private func firstLineOfCaption(_ caption: String) -> String {
+        let words = caption.split(separator: " ")
+        var firstLine = ""
+        for word in words {
+            if (firstLine + " " + word).count > 30 { // Adjust the character count threshold as needed
+                break
+            }
+            firstLine += firstLine.isEmpty ? String(word) : " " + word
+        }
+        return firstLine
+    }
+
+    private func remainingLinesOfCaption(_ caption: String) -> String {
+        let firstLine = firstLineOfCaption(caption)
+        let remainingText = caption.replacingOccurrences(of: firstLine, with: "").trimmingCharacters(in: .whitespaces)
+        return remainingText
+    }
+
+    private func hasMoreLines(_ caption: String) -> Bool {
+        return caption.count > firstLineOfCaption(caption).count
+    }
+
     private func loadPostUser() async {
         do {
             let fetchedUser = try await UserManager.shared.getUser(userId: post.userId)
@@ -496,7 +543,7 @@ struct CustomPostView: View {
             }
         }
     }
-    
+
     private func getColorForWorkoutSplit(_ workoutSplit: String) -> Color {
         switch workoutSplit {
         case "Push":
@@ -509,11 +556,11 @@ struct CustomPostView: View {
             return Color.white.opacity(0.8)
         }
     }
-    
+
     private func formatTimestamp(_ date: Date) -> String {
         let now = Date()
         let elapsedTime = now.timeIntervalSince(date)
-        
+
         if elapsedTime < 86400 { // Less than a day
             let hours = Int(elapsedTime / 3600)
             return "\(hours)h ago"
@@ -524,6 +571,7 @@ struct CustomPostView: View {
         }
     }
 }
+
 
 
 

@@ -392,5 +392,3 @@ extension Color {
     static let gymAccent = Color(red: 72 / 255, green: 201 / 255, blue: 176 / 255)
     static let gymBackground = Color(red: 245 / 255, green: 245 / 255, blue: 220 / 255)
 }
-
-
