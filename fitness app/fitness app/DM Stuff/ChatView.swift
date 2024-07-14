@@ -5,6 +5,7 @@
 //  Created by Harris Kim on 6/17/24.
 //
 
+
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
@@ -24,71 +25,17 @@ struct ChatView: View {
     @State private var seshCount: Int = 0
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
+    @State private var isFullScreenImagePresented: IdentifiableImageURL?
 
     var body: some View {
         VStack {
-            // Header
-            HStack {
-                Button(action: {
-                    self.presentationMode.wrappedValue.dismiss()
-                }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.gymPrimary)
-                        .padding(.leading, 10)
-                }
-
-                NavigationLink(destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore, chats: $chats), isActive: $showUserProfile) {
-                    HStack {
-                        if let profileImage = chat.profileImage, !profileImage.isEmpty {
-                            AsyncImage(url: URL(string: profileImage)) { image in
-                                image.resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 50, height: 50)
-                                    .clipShape(Circle())
-                            } placeholder: {
-                                ProgressView()
-                                    .frame(width: 50, height: 50)
-                            }
-                        } else {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.gymAccent.opacity(0.2))
-                                    .frame(width: 50, height: 50)
-                                Text(chatInitials(for: chat))
-                                    .font(.headline)
-                                    .foregroundColor(.gymPrimary)
-                            }
-                        }
-
-                        Text(chatName(for: chat))
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.gymPrimary)
-                            .padding(.leading, 8)
-                    }
-                    .padding(.leading, 10)
-                    .onTapGesture {
-                        Task {
-                            if let participantId = chat.participants.first(where: { $0 != userStore.currentUser?.userId }) {
-                                self.selectedUser = try? await UserManager.shared.getUser(userId: participantId)
-                                if self.selectedUser != nil {
-                                    self.showUserProfile.toggle()
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer()
-
-                HStack(spacing: 4) {
-                    Image(systemName: "dumbbell.fill")
-                        .foregroundColor(.gymPrimary)
-                    Text("\(seshCount)") // Use seshCount instead of a placeholder number
-                        .foregroundColor(.gymPrimary)
-                        .font(.system(size: 20, weight: .bold))
-                }
-                .padding(.trailing, 10)
-            }
+            ChatHeaderView(
+                chat: chat,
+                showUserProfile: $showUserProfile,
+                selectedUser: $selectedUser,
+                seshCount: seshCount,
+                presentationMode: presentationMode
+            )
             .padding()
             .background(Color.gymBackground)
             .cornerRadius(10)
@@ -97,58 +44,11 @@ struct ChatView: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 10) {
-                        ForEach(self.messages) { message in
-                            HStack {
-                                if message.senderId == userStore.currentUser!.userId {
-                                    Spacer()
-                                    if let imageURL = message.imageURL, !imageURL.isEmpty {
-                                        AsyncImage(url: URL(string: imageURL)) { image in
-                                            image.resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 150, height: 150)
-                                                .cornerRadius(16)
-                                        } placeholder: {
-                                            ProgressView()
-                                                .frame(width: 150, height: 150)
-                                        }
-                                        .padding(.trailing)
-                                    } else {
-                                        Text(message.text)
-                                            .padding()
-                                            .background(Color.gymPrimary.opacity(0.8))
-                                            .foregroundColor(.white)
-                                            .cornerRadius(16)
-                                            .padding(.trailing)
-                                            .font(.system(size: 16, weight: .bold))
-                                    }
-                                } else {
-                                    if let imageURL = message.imageURL, !imageURL.isEmpty {
-                                        AsyncImage(url: URL(string: imageURL)) { image in
-                                            image.resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 150, height: 150)
-                                                .cornerRadius(16)
-                                        } placeholder: {
-                                            ProgressView()
-                                                .frame(width: 150, height: 150)
-                                        }
-                                        .padding(.leading)
-                                    } else {
-                                        Text(message.text)
-                                            .padding()
-                                            .background(Color.green.opacity(0.8))
-                                            .foregroundColor(.white)
-                                            .cornerRadius(16)
-                                            .padding(.leading)
-                                            .font(.system(size: 16, weight: .bold))
-                                    }
-                                    Spacer()
-                                }
-                            }
-                            .id(message.id)
-                        }
-                    }
+                    ChatMessagesView(
+                        messages: messages,
+                        userStore: userStore,
+                        isFullScreenImagePresented: $isFullScreenImagePresented
+                    )
                     .padding()
                     .onChange(of: messages) { _ in
                         scrollToLastMessage(proxy: proxy)
@@ -167,7 +67,7 @@ struct ChatView: View {
                         .foregroundColor(.gymSecondary)
                         .padding(.leading, 12)
                 }
-                
+
                 TextField("Type your message...", text: $messageText)
                     .padding(12)
                     .background(Color.white)
@@ -213,6 +113,9 @@ struct ChatView: View {
             }
         }) {
             ImagePicker(selectedImage: $selectedImage, sourceType: .photoLibrary)
+        }
+        .fullScreenCover(item: $isFullScreenImagePresented) { fullScreenImage in
+            FullScreenImageView(imageURL: fullScreenImage.url, isPresented: $isFullScreenImagePresented)
         }
     }
 
@@ -378,11 +281,214 @@ struct ChatView_Previews: PreviewProvider {
             timestamp: Timestamp(),
             profileImage: nil
         )
-        
+
         ChatView(chats: .constant([newChat]), chat: newChat, unreadMessagesCount: .constant(0))
             .environmentObject(userStore)
     }
 }
+
+struct IdentifiableImageURL: Identifiable {
+    var id: String { url }
+    var url: String
+}
+
+struct FullScreenImageView: View {
+    var imageURL: String
+    @Binding var isPresented: IdentifiableImageURL?
+
+    var body: some View {
+        VStack {
+            HStack {
+                Spacer()
+                Button(action: {
+                    isPresented = nil
+                }) {
+                    Image(systemName: "xmark")
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.black.opacity(0.6))
+                        .clipShape(Circle())
+                }
+                .padding()
+            }
+            Spacer()
+            AsyncImage(url: URL(string: imageURL)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } placeholder: {
+                ProgressView()
+            }
+            Spacer()
+        }
+        .background(Color.black.edgesIgnoringSafeArea(.all))
+    }
+}
+
+struct ChatHeaderView: View {
+    let chat: DBChat
+    @Binding var showUserProfile: Bool
+    @Binding var selectedUser: DBUser?
+    let seshCount: Int
+    let presentationMode: Binding<PresentationMode>
+
+    var body: some View {
+        HStack {
+            Button(action: {
+                self.presentationMode.wrappedValue.dismiss()
+            }) {
+                Image(systemName: "chevron.left")
+                    .foregroundColor(.gymPrimary)
+                    .padding(.leading, 10)
+            }
+
+            NavigationLink(destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: UserStore(), chats: .constant([])), isActive: $showUserProfile) {
+                HStack {
+                    if let profileImage = chat.profileImage, !profileImage.isEmpty {
+                        AsyncImage(url: URL(string: profileImage)) { image in
+                            image.resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                        } placeholder: {
+                            ProgressView()
+                                .frame(width: 50, height: 50)
+                        }
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gymAccent.opacity(0.2))
+                                .frame(width: 50, height: 50)
+                            Text(chatInitials(for: chat))
+                                .font(.headline)
+                                .foregroundColor(.gymPrimary)
+                        }
+                    }
+
+                    Text(chatName(for: chat))
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.gymPrimary)
+                        .padding(.leading, 8)
+                }
+                .padding(.leading, 10)
+                .onTapGesture {
+                    Task {
+                        if let participantId = chat.participants.first(where: { $0 != UserStore().currentUser?.userId }) {
+                            self.selectedUser = try? await UserManager.shared.getUser(userId: participantId)
+                            if self.selectedUser != nil {
+                                self.showUserProfile.toggle()
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                Image(systemName: "dumbbell.fill")
+                    .foregroundColor(.gymPrimary)
+                Text("\(seshCount)")
+                    .foregroundColor(.gymPrimary)
+                    .font(.system(size: 20, weight: .bold))
+            }
+            .padding(.trailing, 10)
+        }
+    }
+
+    private func chatName(for chat: DBChat) -> String {
+        if let currentUserId = UserStore().currentUser?.userId {
+            return chat.participantNames
+                .filter { $0.key != currentUserId }
+                .map { $0.value }
+                .joined(separator: ", ")
+        } else {
+            print("couldn't find user id")
+            return ""
+        }
+    }
+
+    private func chatInitials(for chat: DBChat) -> String {
+        if let currentUserId = UserStore().currentUser?.userId {
+            return chat.participantNames
+                .filter { $0.key != currentUserId }
+                .map { $0.value.initial() }
+                .joined(separator: ", ")
+        } else {
+            print("couldn't find user id")
+            return ""
+        }
+    }
+}
+
+struct ChatMessagesView: View {
+    let messages: [DBMessage]
+    let userStore: UserStore
+    @Binding var isFullScreenImagePresented: IdentifiableImageURL?
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(messages) { message in
+                HStack {
+                    if message.senderId == userStore.currentUser!.userId {
+                        Spacer()
+                        if let imageURL = message.imageURL, !imageURL.isEmpty {
+                            AsyncImage(url: URL(string: imageURL)) { image in
+                                image.resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 150, height: 150)
+                                    .cornerRadius(16)
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 150, height: 150)
+                            }
+                            .padding(.trailing)
+                            .onTapGesture {
+                                isFullScreenImagePresented = IdentifiableImageURL(url: imageURL)
+                            }
+                        } else {
+                            Text(message.text)
+                                .padding()
+                                .background(Color.gymPrimary.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(16)
+                                .padding(.trailing)
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                    } else {
+                        if let imageURL = message.imageURL, !imageURL.isEmpty {
+                            AsyncImage(url: URL(string: imageURL)) { image in
+                                image.resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 150, height: 150)
+                                    .cornerRadius(16)
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 150, height: 150)
+                            }
+                            .padding(.leading)
+                            .onTapGesture {
+                                isFullScreenImagePresented = IdentifiableImageURL(url: imageURL)
+                            }
+                        } else {
+                            Text(message.text)
+                                .padding()
+                                .background(Color.green.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(16)
+                                .padding(.leading)
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        Spacer()
+                    }
+                }
+                .id(message.id)
+            }
+        }
+    }
+}
+
 
 import SwiftUI
 

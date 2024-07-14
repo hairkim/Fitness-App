@@ -116,54 +116,43 @@ final class ChatManager {
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
         
-        // Handle potential errors
         do {
-            try await storageRef.putDataAsync(imageData, metadata: metadata)
-        } catch {
-            throw NSError(domain: "ChatManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to upload image: \(error.localizedDescription)"])
-        }
-        
-        // Get the download URL
-        let downloadURL: URL
-        do {
-            downloadURL = try await storageRef.downloadURL()
-        } catch {
-            throw NSError(domain: "ChatManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to get download URL: \(error.localizedDescription)"])
-        }
-        
-        // Create a new message with the image URL
-        let newMessage = DBMessage(
-            chatId: chatId,
-            senderId: senderId,
-            receiverId: receiverId,
-            text: "[Image]", // Placeholder text
-            timestamp: Timestamp(), // Add timestamp here
-            imageURL: downloadURL.absoluteString
-        )
-        
-        // Send the message to Firestore
-        do {
-            try await messagesDocument(chatId: chatId, messageId: newMessage.id ?? "").setData(from: newMessage, encoder: Firestore.Encoder())
-        } catch {
-            throw NSError(domain: "ChatManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to send message: \(error.localizedDescription)"])
-        }
-
-        // Update last message in chat document
-        do {
+            // Upload the image data
+            let _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
+            
+            // Get the download URL
+            let downloadURL = try await storageRef.downloadURL()
+            
+            // Create a new message with the image URL
+            let newMessage = DBMessage(
+                chatId: chatId,
+                senderId: senderId,
+                receiverId: receiverId,
+                text: "[Image]",
+                timestamp: Timestamp(),
+                imageURL: downloadURL.absoluteString
+            )
+            
+            // Send the message to Firestore
+            try await messagesDocument(chatId: chatId, messageId: newMessage.id ?? UUID().uuidString).setData(from: newMessage, encoder: Firestore.Encoder())
+            
+            // Update last message in chat document
             try await chatDocument(chatId: chatId).updateData([
                 "lastMessage": "[Image]",
                 "timestamp": Timestamp(date: Date()),
                 "unreadMessages.\(receiverId)": FieldValue.increment(Int64(1))
             ])
+            
+            // Trigger local notification for other users' messages
+            if senderId != Auth.auth().currentUser?.uid {
+                sendNotification(for: chatId, messageText: "[Image]")
+            }
+            
         } catch {
-            throw NSError(domain: "ChatManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to update chat: \(error.localizedDescription)"])
-        }
-
-        // Trigger local notification for other users' messages
-        if senderId != Auth.auth().currentUser?.uid {
-            sendNotification(for: chatId, messageText: "[Image]")
+            throw NSError(domain: "ChatManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to send image message: \(error.localizedDescription)"])
         }
     }
+
 
     func sendNotification(for chatId: String, messageText: String) {
         let content = UNMutableNotificationContent()
