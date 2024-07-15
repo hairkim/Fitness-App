@@ -409,12 +409,13 @@ struct CustomPostView: View {
                 HStack(spacing: 20) {
                     Button(action: {
                         Task {
-                            let hasLiked = try await PostManager.shared.checkIfUserLikedPost(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
-                            if !hasLiked {
-                                self.isLiked.toggle()
+                            if isLiked {
+                                try await PostManager.shared.decrementLikes(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
+                            } else {
                                 try await PostManager.shared.incrementLikes(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
-                                likesCount = try await PostManager.shared.getLikes(postId: post.id.uuidString)
                             }
+                            isLiked.toggle()
+                            likesCount = try await PostManager.shared.getLikes(postId: post.id.uuidString)
                         }
                     }) {
                         Image(systemName: "dumbbell")

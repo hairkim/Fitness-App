@@ -332,6 +332,7 @@ struct ChatHeaderView: View {
     @Binding var selectedUser: DBUser?
     let seshCount: Int
     let presentationMode: Binding<PresentationMode>
+    @EnvironmentObject var userStore: UserStore
 
     var body: some View {
         HStack {
@@ -374,7 +375,7 @@ struct ChatHeaderView: View {
                 .padding(.leading, 10)
                 .onTapGesture {
                     Task {
-                        if let participantId = chat.participants.first(where: { $0 != UserStore().currentUser?.userId }) {
+                        if let participantId = chat.participants.first(where: { $0 != userStore.currentUser?.userId }) {
                             self.selectedUser = try? await UserManager.shared.getUser(userId: participantId)
                             if self.selectedUser != nil {
                                 self.showUserProfile.toggle()
@@ -398,29 +399,28 @@ struct ChatHeaderView: View {
     }
 
     private func chatName(for chat: DBChat) -> String {
-        if let currentUserId = UserStore().currentUser?.userId {
+        if let currentUserId = userStore.currentUser?.userId {
             return chat.participantNames
                 .filter { $0.key != currentUserId }
                 .map { $0.value }
                 .joined(separator: ", ")
         } else {
-            print("couldn't find user id")
             return ""
         }
     }
 
     private func chatInitials(for chat: DBChat) -> String {
-        if let currentUserId = UserStore().currentUser?.userId {
+        if let currentUserId = userStore.currentUser?.userId {
             return chat.participantNames
                 .filter { $0.key != currentUserId }
                 .map { $0.value.initial() }
                 .joined(separator: ", ")
         } else {
-            print("couldn't find user id")
             return ""
         }
     }
 }
+
 
 struct ChatMessagesView: View {
     let messages: [DBMessage]
