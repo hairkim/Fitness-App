@@ -164,7 +164,6 @@ struct ProfileView: View {
     }
 }
 
-
 struct CalendarView: View {
     let posts: [Post]
     @State private var currentDate = Date()
@@ -172,9 +171,10 @@ struct CalendarView: View {
     private var dates: [Date] {
         var dates: [Date] = []
         let calendar = Calendar.current
-        guard let range = calendar.range(of: .day, in: .month, for: currentDate) else { return dates }
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate))!
+        let range = calendar.range(of: .day, in: .month, for: startOfMonth)!
         for day in range {
-            if let date = calendar.date(bySetting: .day, value: day, of: currentDate) {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) {
                 dates.append(date)
             }
         }
@@ -198,6 +198,18 @@ struct CalendarView: View {
         return formatter
     }
     
+    private var daysOfWeek: [String] {
+        let formatter = DateFormatter()
+        return formatter.shortWeekdaySymbols
+    }
+    
+    private var startDayOffset: Int {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month], from: currentDate)
+        let firstDayOfMonth = calendar.date(from: components)!
+        return calendar.component(.weekday, from: firstDayOfMonth) - calendar.firstWeekday
+    }
+    
     var body: some View {
         VStack {
             HStack {
@@ -218,41 +230,52 @@ struct CalendarView: View {
             }
             .padding()
             
+            HStack {
+                ForEach(daysOfWeek, id: \.self) { day in
+                    Text(day)
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 16) {
+                ForEach(0..<startDayOffset, id: \.self) { _ in
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(height: 50)
+                }
+                
                 ForEach(dates, id: \.self) { date in
-                    if let post = postForDate(date).first {
-                        AsyncImage(url: URL(string: post.imageName)) { phase in
-                            switch phase {
-                            case .empty:
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.5))
-                                    .frame(height: 50)
-                                    .cornerRadius(10)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(height: 50)
-                                    .clipped()
-                                    .cornerRadius(10)
-                            case .failure:
-                                Rectangle()
-                                    .fill(Color.red.opacity(0.5))
-                                    .frame(height: 50)
-                                    .cornerRadius(10)
-                            @unknown default:
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.5))
-                                    .frame(height: 50)
-                                    .cornerRadius(10)
+                    VStack {
+                        if let post = postForDate(date).first {
+                            AsyncImage(url: URL(string: post.imageName)) { phase in
+                                switch phase {
+                                case .empty:
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.5))
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 40, height: 50) // Set fixed size for image
+                                        .clipped()
+                                case .failure:
+                                    Rectangle()
+                                        .fill(Color.red.opacity(0.5))
+                                @unknown default:
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.5))
+                                }
                             }
-                        }
-                    } else {
-                        Text("\(Calendar.current.component(.day, from: date))")
-                            .font(.system(size: 14, weight: .medium))
-                            .frame(height: 50)
-                            .background(Color.gray.opacity(0.2))
+                            .frame(width: 40, height: 50) // Set fixed size for image container
                             .cornerRadius(10)
+                        } else {
+                            Text("\(Calendar.current.component(.day, from: date))")
+                                .font(.system(size: 14, weight: .medium))
+                                .frame(width: 40, height: 50) // Set fixed size for text container
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(10)
+                        }
                     }
                 }
             }
