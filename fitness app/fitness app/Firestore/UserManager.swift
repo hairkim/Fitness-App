@@ -164,6 +164,12 @@ final class UserManager {
         }
     }
     
+    // New method to get followed user IDs
+    func getFollowedUserIds(for userId: String) async throws -> [String] {
+        let user = try await getUser(userId: userId)
+        return user.followers
+    }
+    
     // New Session Update Method
     func updateSesh(forUser userId: String, postDate: Date) async throws {
         var user = try await getUser(userId: userId)

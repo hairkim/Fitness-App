@@ -34,9 +34,22 @@ struct ExploreView: View {
     func loadPosts() {
         Task {
             do {
+                guard let currentUser = userStore.currentUser else {
+                    print("No current user found.")
+                    return
+                }
+
+                // Fetch the list of users the current user follows
+                let followedUserIds = try await UserManager.shared.getFollowedUserIds(for: currentUser.id)
+                
+                // Fetch all posts
                 let fetchedPosts = try await PostManager.shared.getPosts()
+                
+                // Filter posts to exclude those from followed users
+                let filteredPosts = fetchedPosts.filter { !followedUserIds.contains($0.userId) }
+                
                 DispatchQueue.main.async {
-                    posts = fetchedPosts
+                    posts = filteredPosts
                 }
             } catch {
                 print("Error fetching posts: \(error)")
