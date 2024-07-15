@@ -7,6 +7,7 @@
 import SwiftUI
 import AVKit
 import PhotosUI
+import FirebaseStorage
 
 // Main Forum View
 struct ForumView: View {
@@ -306,13 +307,36 @@ struct ForumPostRow: View {
                         .foregroundColor(.blue)
                 }
 
-                ForEach(post.media) { media in
+                ForEach(post.media, id: \.id) { media in
                     if media.type == .image {
-                        Image(uiImage: UIImage(contentsOfFile: media.url.path) ?? UIImage())
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                            .cornerRadius(10)
+                        AsyncImage(url: media.url) { phase in
+                            switch phase {
+                            case .empty:
+                                Image(systemName: "x.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 200)
+                                    .cornerRadius(10)
+                            case .failure:
+                                Image(systemName: "photo")
+                                    .resizable()
+                                    .scaledToFit()
+                            @unknown default:
+                                Image(systemName: "x.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                            }
+                        }
+                        
+//                        Image(uiImage: UIImage(contentsOfFile: media.url.path) ?? UIImage())
+//                            .resizable()
+//                            .scaledToFit()
+//                            .frame(height: 200)
+//                            .cornerRadius(10)
                     } else if media.type == .video {
                         VideoPlayer(player: AVPlayer(url: media.url))
                             .frame(height: 200)
@@ -544,7 +568,7 @@ struct ReplyView: View {
             Text(reply.replyText)
                 .font(.body)
 
-            ForEach(reply.media) { media in
+            ForEach(reply.media, id: \.id) { media in
                 if media.type == .image {
                     Image(uiImage: UIImage(contentsOfFile: media.url.path) ?? UIImage())
                         .resizable()

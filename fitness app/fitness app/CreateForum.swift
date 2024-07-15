@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseStorage
 
 struct CreateQuestionView: View {
     @EnvironmentObject var userStore: UserStore
@@ -70,8 +71,8 @@ struct CreateQuestionView: View {
 
             Button(action: {
                 Task {
-                    let url = URL(string: link)
-                    await onAddQuestion(title, bodyText, selectedMediaItems, url)
+                    let uploadedMediaItems = await uploadAllImages()
+                    await onAddQuestion(title, bodyText, uploadedMediaItems, URL(string: link))
                     presentationMode.wrappedValue.dismiss() // Dismiss the view after adding the post
                 }
             }) {
@@ -89,6 +90,59 @@ struct CreateQuestionView: View {
         .padding()
         .navigationTitle("Create Question")
         .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    
+    
+    func uploadImageToFirebase(image: UIImage) async throws -> URL {
+        let storageRef = Storage.storage().reference().child("images/\(UUID().uuidString).jpg")
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw ImageUploadError.compressionFailed
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            storageRef.putData(imageData, metadata: nil) { metadata, error in
+                if let error = error {
+                    print("Error uploading image: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                    return
+                }
+                print("Image uploaded successfully, fetching download URL...")
+                storageRef.downloadURL { url, error in
+                    if let error = error {
+                        print("Error fetching download URL: \(error.localizedDescription)")
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    
+                    guard let url = url else {
+                        print("Download URL is nil")
+                        continuation.resume(throwing: ImageUploadError.urlNil)
+                        return
+                    }
+                    
+                    print("Download URL fetched successfully: \(url.absoluteString)")
+                    continuation.resume(returning: url)
+                }
+            }
+        }
+    }
+    
+    func uploadAllImages() async -> [MediaItem] {
+        var uploadedMediaItems: [MediaItem] = []
+
+        for mediaItem in selectedMediaItems {
+            if mediaItem.type == .image, let image = UIImage(contentsOfFile: mediaItem.url.path) {
+                do {
+                    let url = try await uploadImageToFirebase(image: image)
+                    uploadedMediaItems.append(MediaItem(type: .image, url: url))
+                } catch {
+                    print("Error uploading image: \(error)")
+                }
+            }
+        }
+
+        return uploadedMediaItems
     }
 }
 
