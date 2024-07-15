@@ -26,9 +26,7 @@ struct ContentView: View {
         .onAppear {
             checkAuthStatus()
             setupUnreadMessagesListener()
-            Task {
-                await fetchPosts()
-            }
+            setupPostsListener()
             requestNotificationPermissions()
         }
     }
@@ -163,8 +161,11 @@ struct ContentView: View {
                         ForEach(posts.indices, id: \.self) { index in
                             CustomPostView(post: $posts[index], deleteComment: { comment in
                                 deleteComment(comment, at: index)
+                            }, deletePost: {
+                                deletePost(at: index)
                             })
                             .environmentObject(userStore)
+                            .id(posts[index].id) // Use the post ID to uniquely identify each view
                         }
                     }
                     .padding()
@@ -219,6 +220,41 @@ struct ContentView: View {
         posts[index].comments.removeAll(where: { $0.id == comment.id })
     }
     
+    private func deletePost(at index: Int) {
+        let post = posts[index]
+        let db = Firestore.firestore()
+        
+        db.collection("posts").document(post.id.uuidString).delete { error in
+            if let error = error {
+                print("Error removing post: \(error)")
+            } else {
+                // Update local state after successful deletion
+                DispatchQueue.main.async {
+                    posts.remove(at: index)
+                }
+            }
+        }
+    }
+    
+    private func setupPostsListener() {
+        let db = Firestore.firestore()
+        db.collection("posts").addSnapshotListener { querySnapshot, error in
+            if let error = error {
+                print("Error fetching posts: \(error)")
+                return
+            }
+            
+            if let documents = querySnapshot?.documents {
+                DispatchQueue.main.async {
+                    self.posts = documents.compactMap { document -> Post? in
+                        try? document.data(as: Post.self)
+                    }
+                    self.posts.sort { $0.date > $1.date }
+                }
+            }
+        }
+    }
+    
     func checkAuthStatus() {
         Task {
             let authUser = try? AuthenticationManager.shared.getAuthenticatedUser()
@@ -241,16 +277,14 @@ struct ContentView: View {
         }
     }
     
-    private func fetchPosts() async {
-        do {
-            var fetchedPosts = try await PostManager.shared.getPosts()
-            fetchedPosts.sort { $0.date > $1.date }
-            self.posts = fetchedPosts
-        } catch {
-            print("Error fetching posts: \(error)")
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if let error = error {
+                print("Error requesting notification permissions: \(error)")
+            }
         }
     }
-    
+
     private func setupUnreadMessagesListener() {
         guard let currentUserID = userStore.currentUser?.userId else { return }
         let db = Firestore.firestore()
@@ -278,17 +312,7 @@ struct ContentView: View {
             count + (chat.unreadMessages[currentUserID] ?? 0)
         }
     }
-    
-    private func requestNotificationPermissions() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if let error = error {
-                print("Error requesting notification permissions: \(error)")
-            }
-        }
-    }
 }
-
-
 
 class MessageManager {
     static let shared = MessageManager()
@@ -309,21 +333,26 @@ import SwiftUI
 struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
+    let deletePost: () -> Void
     @EnvironmentObject private var userStore: UserStore
 
     @State private var isLiked = false
     @State private var showCommentSheet = false
-    @State private var showReportSheet = false
+    @State private var showActionSheet = false
+    @State private var showDeleteConfirmation = false
     @State private var showLikesList = false
     @State private var isCaptionExpanded = false
+    @State private var showReportSheet = false
 
     @State private var comments: [Comment]
     @State private var postUser: DBUser = DBUser.placeholder
     @State private var likesCount: Int = 0
+    @State private var isOwnPost: Bool = false
 
-    init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void) {
+    init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void, deletePost: @escaping () -> Void) {
         self._post = post
         self.deleteComment = deleteComment
+        self.deletePost = deletePost
         self._comments = State(initialValue: post.wrappedValue.comments)
     }
 
@@ -425,15 +454,29 @@ struct CustomPostView: View {
                         .foregroundColor(.gray)
 
                     Button(action: {
-                        withAnimation {
-                            showReportSheet.toggle()
-                        }
+                        showActionSheet.toggle()
                     }) {
                         Image(systemName: "ellipsis")
                             .resizable()
                             .frame(width: 20, height: 5)
                             .foregroundColor(.gray)
                             .padding(.leading, 8)
+                    }
+                    .actionSheet(isPresented: $showActionSheet) {
+                        actionSheetContent()
+                    }
+                    .alert(isPresented: $showDeleteConfirmation) {
+                        Alert(
+                            title: Text("Delete Post"),
+                            message: Text("Are you sure you want to delete this post?"),
+                            primaryButton: .destructive(Text("Delete")) {
+                                Task {
+                                    try await PostManager.shared.deletePost(postId: post.id.uuidString)
+                                    deletePost()
+                                }
+                            },
+                            secondaryButton: .cancel()
+                        )
                     }
                 }
             }
@@ -496,6 +539,7 @@ struct CustomPostView: View {
                 await loadPostUser()
                 likesCount = try await PostManager.shared.getLikes(postId: post.id.uuidString)
                 self.isLiked = try await PostManager.shared.checkIfUserLikedPost(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
+                self.isOwnPost = post.userId == userStore.currentUser?.userId
             }
         }
         .sheet(isPresented: $showCommentSheet) {
@@ -506,6 +550,30 @@ struct CustomPostView: View {
         }
         .sheet(isPresented: $showReportSheet) {
             ReportView(post: post, showReportSheet: $showReportSheet)
+        }
+    }
+
+    private func actionSheetContent() -> ActionSheet {
+        if isOwnPost {
+            return ActionSheet(
+                title: Text("Actions"),
+                buttons: [
+                    .destructive(Text("Delete Post")) {
+                        showDeleteConfirmation.toggle()
+                    },
+                    .cancel()
+                ]
+            )
+        } else {
+            return ActionSheet(
+                title: Text("Actions"),
+                buttons: [
+                    .default(Text("Report")) {
+                        showReportSheet.toggle()
+                    },
+                    .cancel()
+                ]
+            )
         }
     }
 
@@ -571,8 +639,6 @@ struct CustomPostView: View {
         }
     }
 }
-
-
 
 
 import SwiftUI
@@ -863,7 +929,6 @@ func timeAgoSinceDate(_ date: Date) -> String {
         return "just now"
     }
 }
-
 
 
 // struct RotationPageView: View {

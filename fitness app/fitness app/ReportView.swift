@@ -9,7 +9,6 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-
 struct Report: Identifiable, Codable {
     @DocumentID var id: String?
     var userId: String
@@ -18,7 +17,6 @@ struct Report: Identifiable, Codable {
     var additionalDetails: String?
     var timestamp: Date = Date()
 }
-
 
 class FirestoreService {
     private let db = Firestore.firestore()
@@ -37,7 +35,6 @@ class FirestoreService {
         }
     }
 }
-
 
 struct ReportView: View {
     let post: Post

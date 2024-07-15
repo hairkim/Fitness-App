@@ -73,6 +73,11 @@ final class PostManager {
         try postDocument(postId: post.id.uuidString).setData(from: post, merge: false, encoder: Firestore.Encoder())
         try await UserManager.shared.updateSesh(forUser: post.userId, postDate: post.date)
     }
+    
+    func deletePost(postId: String) async throws {
+            try await postDocument(postId: postId).delete()
+        }
+    
 
     func getPosts() async throws -> [Post] {
         let snapshot = try await postCollection.getDocuments()
@@ -215,4 +220,5 @@ final class PostManager {
             return users
         }
     }
+    
 }
