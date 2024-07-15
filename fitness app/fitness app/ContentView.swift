@@ -348,6 +348,7 @@ struct CustomPostView: View {
     @State private var postUser: DBUser = DBUser.placeholder
     @State private var likesCount: Int = 0
     @State private var isOwnPost: Bool = false
+    @State private var showUserProfile: Bool = false
 
     init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void, deletePost: @escaping () -> Void) {
         self._post = post
@@ -490,6 +491,9 @@ struct CustomPostView: View {
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
+                        .onTapGesture {
+                            showUserProfile.toggle()
+                        }
 
                     Text(firstLineOfCaption(post.caption))
                         .foregroundColor(.primary)
@@ -552,6 +556,13 @@ struct CustomPostView: View {
         .sheet(isPresented: $showReportSheet) {
             ReportView(post: post, showReportSheet: $showReportSheet)
         }
+        .background(
+            NavigationLink(
+                destination: UserProfileView(postUser: postUser, userStore: userStore, chats: .constant([])),
+                isActive: $showUserProfile,
+                label: { EmptyView() }
+            )
+        )
     }
 
     private func actionSheetContent() -> ActionSheet {

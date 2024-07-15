@@ -164,6 +164,12 @@ final class UserManager {
         }
     }
     
+    // New method to check if a user is following another user
+    func isFollowing(senderId: String, receiverId: String) async throws -> Bool {
+        let sender = try await getUser(userId: senderId)
+        return sender.followers.contains(receiverId)
+    }
+    
     // New method to get followed user IDs
     func getFollowedUserIds(for userId: String) async throws -> [String] {
         let user = try await getUser(userId: userId)

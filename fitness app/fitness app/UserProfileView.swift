@@ -78,7 +78,8 @@ struct UserProfileView: View {
     @StateObject private var chatViewModel: ChatViewModel
     
     @State private var showChatView = false
-    
+    @State private var isFollowing = false
+
     init(postUser: DBUser, userStore: UserStore, chats: Binding<[DBChat]>) {
         self.postUser = postUser
         self._chatViewModel = StateObject(wrappedValue: ChatViewModel(userStore: userStore))
@@ -142,11 +143,11 @@ struct UserProfileView: View {
                             await addFollower()
                         }
                     }) {
-                        Text("Follow")
+                        Text(isFollowing ? "Following" : "Follow")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(isFollowing ? .gray : .white)
                             .padding()
-                            .background(Color.blue)
+                            .background(isFollowing ? Color.gray : Color.blue)
                             .cornerRadius(10)
                     }
                     
@@ -185,6 +186,7 @@ struct UserProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 fetchProfileData()
+                checkFollowingStatus()
             }
             .fullScreenCover(isPresented: $showChatView) {
                 if let chat = chatViewModel.chat {
@@ -203,6 +205,7 @@ struct UserProfileView: View {
         do {
             try await UserManager.shared.addFollower(sender: currentUser, receiver: postUser)
             print("Follower added successfully")
+            isFollowing = true
         } catch {
             print("Error adding follower: \(error.localizedDescription)")
         }
@@ -214,6 +217,17 @@ struct UserProfileView: View {
                 self.posts = try await PostManager.shared.getPosts(forUser: postUser.userId)
             } catch {
                 print("Error fetching profile data: \(error)")
+            }
+        }
+    }
+
+    private func checkFollowingStatus() {
+        Task {
+            guard let currentUser = userStore.currentUser else { return }
+            do {
+                isFollowing = try await UserManager.shared.isFollowing(senderId: currentUser.userId, receiverId: postUser.userId)
+            } catch {
+                print("Error checking following status: \(error.localizedDescription)")
             }
         }
     }
