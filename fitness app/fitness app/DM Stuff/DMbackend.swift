@@ -19,8 +19,8 @@ struct DBChat: Codable, Identifiable {
     let participantNames: [String: String]
     var lastMessage: String?
     var timestamp: Timestamp
-    var unreadMessages: [String: Int] // Unread message count for each participant
-    var profileImage: String? // URL to the profile image
+    var unreadMessages: [String: Int]
+    var profileImage: String?
 
     init(id: String? = nil, participants: [String], participantNames: [String: String], lastMessage: String? = nil, timestamp: Timestamp = Timestamp(), unreadMessages: [String: Int] = [:], profileImage: String? = nil) {
         self.id = id
@@ -41,7 +41,7 @@ struct DBMessage: Codable, Identifiable, Equatable {
     let text: String
     let timestamp: Timestamp
     var isRead: Bool
-    var imageURL: String? // New property
+    var imageURL: String?
 
     init(chatId: String, senderId: String, receiverId: String, text: String, timestamp: Timestamp = Timestamp(), isRead: Bool = false, imageURL: String? = nil) {
         self.chatId = chatId
@@ -78,9 +78,8 @@ final class ChatManager {
 
     func createNewChat(chat: inout DBChat) async throws {
         let chatId = chatCollection.document().documentID
-        var chatWithId = chat
-        chatWithId.id = chatId
-        try chatDocument(chatId: chatId).setData(from: chatWithId, merge: false, encoder: Firestore.Encoder())
+        chat.id = chatId
+        try chatDocument(chatId: chatId).setData(from: chat, merge: false, encoder: Firestore.Encoder())
     }
 
     func sendMessage(message: DBMessage) async throws {
@@ -89,41 +88,58 @@ final class ChatManager {
         messageWithId.id = messageId
         try messagesDocument(chatId: message.chatId, messageId: messageId).setData(from: messageWithId, encoder: Firestore.Encoder())
 
-        // Update last message in chat document
         try await chatDocument(chatId: message.chatId).updateData([
             "lastMessage": message.text,
             "timestamp": Timestamp(date: Date()),
             "unreadMessages.\(message.receiverId)": FieldValue.increment(Int64(1))
         ])
         
-        // Trigger local notification for other users' messages
         if message.senderId != Auth.auth().currentUser?.uid {
             sendNotification(for: message.chatId, messageText: message.text)
         }
     }
 
+    func sendPostMessage(chatId: String, senderId: String, receiverId: String, post: Post) async throws {
+        let messageId = messagesCollection(chatId: chatId).document().documentID
+        let postMessage = DBMessage(
+            chatId: chatId,
+            senderId: senderId,
+            receiverId: receiverId,
+            text: "[Post] \(post.caption)",
+            timestamp: Timestamp(),
+            isRead: false,
+            imageURL: post.imageName
+        )
+        
+        try await messagesDocument(chatId: chatId, messageId: messageId).setData(from: postMessage, encoder: Firestore.Encoder())
+        
+        try await chatDocument(chatId: chatId).updateData([
+            "lastMessage": "[Post] \(post.caption)",
+            "timestamp": Timestamp(date: Date()),
+            "unreadMessages.\(receiverId)": FieldValue.increment(Int64(1))
+        ])
+        
+        if senderId != Auth.auth().currentUser?.uid {
+            sendNotification(for: chatId, messageText: "[Post] \(post.caption)")
+        }
+    }
+
     func sendImageMessage(chatId: String, senderId: String, receiverId: String, image: UIImage) async throws {
-        // Convert UIImage to Data
         guard let imageData = image.jpegData(compressionQuality: 0.75) else {
             throw NSError(domain: "ChatManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to data"])
         }
         
-        // Create a unique image name
         let imageName = UUID().uuidString
         let storageRef = Storage.storage().reference().child("chat_images").child(imageName)
         
-        // Upload the image to Firebase Storage
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
         
         do {
-            // Upload the image data
             let _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
             
-            // Get the download URL
             let downloadURL = try await storageRef.downloadURL()
             
-            // Create a new message with the image URL
             let newMessage = DBMessage(
                 chatId: chatId,
                 senderId: senderId,
@@ -133,17 +149,14 @@ final class ChatManager {
                 imageURL: downloadURL.absoluteString
             )
             
-            // Send the message to Firestore
             try await messagesDocument(chatId: chatId, messageId: newMessage.id ?? UUID().uuidString).setData(from: newMessage, encoder: Firestore.Encoder())
             
-            // Update last message in chat document
             try await chatDocument(chatId: chatId).updateData([
                 "lastMessage": "[Image]",
                 "timestamp": Timestamp(date: Date()),
                 "unreadMessages.\(receiverId)": FieldValue.increment(Int64(1))
             ])
             
-            // Trigger local notification for other users' messages
             if senderId != Auth.auth().currentUser?.uid {
                 sendNotification(for: chatId, messageText: "[Image]")
             }
@@ -152,7 +165,6 @@ final class ChatManager {
             throw NSError(domain: "ChatManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to send image message: \(error.localizedDescription)"])
         }
     }
-
 
     func sendNotification(for chatId: String, messageText: String) {
         let content = UNMutableNotificationContent()
@@ -218,7 +230,6 @@ final class ChatManager {
             try await document.reference.updateData(["isRead": true])
         }
 
-        // Update unreadMessages count in chat document
         let chatDoc = chatDocument(chatId: chatId)
         try await chatDoc.updateData([
             "unreadMessages.\(userId)": 0

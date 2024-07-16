@@ -39,13 +39,8 @@ struct ExploreView: View {
                     return
                 }
 
-                // Fetch the list of users the current user follows
                 let followedUserIds = try await UserManager.shared.getFollowedUserIds(for: currentUser.id)
-                
-                // Fetch all posts
                 let fetchedPosts = try await PostManager.shared.getPosts()
-                
-                // Filter posts to exclude those from followed users
                 let filteredPosts = fetchedPosts.filter { !followedUserIds.contains($0.userId) }
                 
                 DispatchQueue.main.async {
@@ -255,41 +250,22 @@ struct ShareSheetView: View {
     }
     
     func sharePostWithSelectedUsers() {
-        for user in selectedUsers {
-            sendMessage(to: user)
-        }
-        isPresented = false
-    }
-    
-    func sendMessage(to user: DBUser) {
-        guard let currentUserId = userStore.currentUser?.id else {
-            print("No current user logged in.")
-            return
-        }
-        
-        let chatId = generateChatId(user1: currentUserId, user2: user.id)
-        let message = "Check out this post: \(post.caption)"
-        let messageData: [String: Any] = [
-            "senderId": currentUserId,
-            "text": message,
-            "postId": post.id.uuidString,
-            "postImageName": post.imageName,
-            "postCaption": post.caption,
-            "timestamp": Timestamp()
-        ]
-        
-        Firestore.firestore().collection("chats").document(chatId).collection("messages").addDocument(data: messageData) { error in
-            if let error = error {
-                print("Error sending message to \(user.username): \(error)")
-            } else {
-                print("Message sent to \(user.username)")
+        Task {
+            guard let currentUserId = userStore.currentUser?.id else {
+                print("No current user logged in.")
+                return
             }
+            for user in selectedUsers {
+                if let chat = try? await ChatManager.shared.getChatBetweenUsers(user1Id: currentUserId, user2Id: user.id) {
+                    try await ChatManager.shared.sendPostMessage(chatId: chat.id!, senderId: currentUserId, receiverId: user.id, post: post)
+                } else {
+                    var newChat = DBChat(participants: [currentUserId, user.id], participantNames: [currentUserId: userStore.currentUser?.username ?? "", user.id: user.username])
+                    try await ChatManager.shared.createNewChat(chat: &newChat)
+                    try await ChatManager.shared.sendPostMessage(chatId: newChat.id!, senderId: currentUserId, receiverId: user.id, post: post)
+                }
+            }
+            isPresented = false
         }
-    }
-    
-    func generateChatId(user1: String, user2: String) -> String {
-        let users = [user1, user2].sorted()
-        return users.joined(separator: "_")
     }
 }
 
@@ -302,7 +278,7 @@ struct ExploreCommentsSheetView: View {
     @Binding var showCommentSheet: Bool
     
     @State private var newCommentText = ""
-    
+
     var body: some View {
         NavigationView {
             VStack {
