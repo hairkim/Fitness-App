@@ -153,12 +153,18 @@ struct UserProfileView: View {
                                 .cornerRadius(10)
                         }
                     } else if followRequestSent {
-                        Text("Follow Request Sent")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                            .padding()
-                            .background(Color.blue.opacity(0.3))
-                            .cornerRadius(10)
+                        Button(action: {
+                            Task {
+                                await unrequestFollow()
+                            }
+                        }) {
+                            Text("Requested")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.gray)
+                                .cornerRadius(10)
+                        }
                     } else if postUser.isPublic {
                         Button(action: {
                             Task {
@@ -190,7 +196,7 @@ struct UserProfileView: View {
                     Button(action: {
                         Task {
                             if let currentUser = userStore.currentUser {
-                                try await chatViewModel.checkAndCreateChat(user1: currentUser, user2: postUser)
+                                await chatViewModel.checkAndCreateChat(user1: currentUser, user2: postUser)
                                 showChatView = true
                             } else {
                                 print("Could not find current user")
@@ -261,6 +267,20 @@ struct UserProfileView: View {
         }
     }
 
+    private func unrequestFollow() async {
+        guard let currentUser = userStore.currentUser else {
+            print("Current user is nil")
+            return
+        }
+        do {
+            try await UserManager.shared.removeFollowRequest(sender: currentUser, receiver: postUser)
+            followRequestSent = false
+            print("Follow request removed successfully")
+        } catch {
+            print("Error removing follow request: \(error.localizedDescription)")
+        }
+    }
+
     private func unfollow() async {
         guard let currentUser = userStore.currentUser else {
             print("Current user is nil")
@@ -288,13 +308,9 @@ struct UserProfileView: View {
     private func checkFollowingStatus() {
         Task {
             guard let currentUser = userStore.currentUser else { return }
-            do {
-                isFollowing = try await UserManager.shared.isFollowing(senderId: currentUser.userId, receiverId: postUser.userId)
-                if !isFollowing && !postUser.isPublic {
-                    followRequestSent = postUser.followRequests.contains(currentUser.userId)
-                }
-            } catch {
-                print("Error checking following status: \(error)")
+            isFollowing = await UserManager.shared.isFollowing(senderId: currentUser.userId, receiverId: postUser.userId)
+            if !isFollowing && !postUser.isPublic {
+                followRequestSent = postUser.followRequests.contains(currentUser.userId)
             }
         }
     }

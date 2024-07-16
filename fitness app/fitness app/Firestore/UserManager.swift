@@ -223,6 +223,31 @@ final class UserManager {
         }
     }
     
+    func removeFollowRequest(sender: DBUser, receiver: DBUser) async throws {
+            guard sender.userId != receiver.userId else {
+                return
+            }
+            do {
+                let userRef = userDocument(userId: receiver.userId)
+                let userDocument = try await userRef.getDocument()
+                
+                guard var user = try? userDocument.data(as: DBUser.self) else {
+                    throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
+                }
+                
+                if let index = user.followRequests.firstIndex(of: sender.userId) {
+                    user.followRequests.remove(at: index)
+                    try userRef.setData(from: user)
+                    print("Follow request removed")
+                } else {
+                    print("Follow request not found")
+                }
+            } catch {
+                print("Error removing follow request: \(error.localizedDescription)")
+                throw error
+            }
+        }
+    
     func searchFollowers(for userId: String, searchTerm: String, completion: @escaping ([DBUser]?) -> Void) {
         fetchFollowers(for: userId) { followerIds in
             guard let followerIds = followerIds else {

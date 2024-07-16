@@ -352,6 +352,7 @@ struct CustomPostView: View {
     @State private var postUser: DBUser = DBUser.placeholder
     @State private var likesCount: Int = 0
     @State private var isOwnPost: Bool = false
+    @State private var captionExceedsTwoLines: Bool = false
 
     init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void, deletePost: @escaping () -> Void, onUsernameTapped: @escaping (DBUser) -> Void) {
         self._post = post
@@ -504,14 +505,14 @@ struct CustomPostView: View {
                         .foregroundColor(.primary)
                         .lineLimit(1)
                 }
-                if hasMoreLines(post.caption) {
-                    Text(remainingLinesOfCaption(post.caption))
-                        .foregroundColor(.primary)
-                        .lineLimit(isCaptionExpanded ? nil : 2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.leading, 0)
-                    
-                    if !isCaptionExpanded && captionExceedsTwoLines(post.caption) {
+                Text(secondLineOfCaption(post.caption))
+                    .foregroundColor(.primary)
+                    .lineLimit(isCaptionExpanded ? nil : 1)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 0)
+                
+                if captionExceedsTwoLines {
+                    if !isCaptionExpanded {
                         Button(action: {
                             isCaptionExpanded.toggle()
                         }) {
@@ -550,6 +551,7 @@ struct CustomPostView: View {
                 likesCount = try await PostManager.shared.getLikes(postId: post.id.uuidString)
                 self.isLiked = try await PostManager.shared.checkIfUserLikedPost(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
                 self.isOwnPost = post.userId == userStore.currentUser?.userId
+                self.captionExceedsTwoLines = doesCaptionExceedTwoLines(post.caption)
             }
         }
         .sheet(isPresented: $showCommentSheet) {
@@ -599,17 +601,26 @@ struct CustomPostView: View {
         return firstLine
     }
 
-    private func remainingLinesOfCaption(_ caption: String) -> String {
-        let firstLine = firstLineOfCaption(caption)
-        let remainingText = caption.replacingOccurrences(of: firstLine, with: "").trimmingCharacters(in: .whitespaces)
-        return remainingText
+    private func secondLineOfCaption(_ caption: String) -> String {
+        let words = caption.split(separator: " ")
+        var firstLine = ""
+        var secondLine = ""
+        var onSecondLine = false
+        
+        for word in words {
+            if !onSecondLine && (firstLine + " " + word).count > 30 {
+                onSecondLine = true
+            }
+            if onSecondLine {
+                secondLine += secondLine.isEmpty ? String(word) : " " + word
+            } else {
+                firstLine += firstLine.isEmpty ? String(word) : " " + word
+            }
+        }
+        return secondLine
     }
 
-    private func hasMoreLines(_ caption: String) -> Bool {
-        return caption.count > firstLineOfCaption(caption).count
-    }
-
-    private func captionExceedsTwoLines(_ caption: String) -> Bool {
+    private func doesCaptionExceedTwoLines(_ caption: String) -> Bool {
         let words = caption.split(separator: " ")
         var lineCount = 0
         var currentLine = ""
@@ -617,17 +628,12 @@ struct CustomPostView: View {
         for word in words {
             if (currentLine + " " + word).count > 30 { // Adjust the character count threshold as needed
                 lineCount += 1
-                currentLine = String(word)
-            } else {
-                currentLine += currentLine.isEmpty ? String(word) : " " + word
+                currentLine = ""
             }
-            
-            if lineCount >= 2 {
-                return true
-            }
+            currentLine += currentLine.isEmpty ? String(word) : " " + word
         }
         
-        return false
+        return lineCount >= 2
     }
 
     private func loadPostUser() async {
