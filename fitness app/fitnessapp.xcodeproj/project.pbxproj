@@ -50,6 +50,7 @@
 		A995DD682C34ED4700870D10 /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A995DD672C34ED4700870D10 /* ReportView.swift */; };
 		A99912372C1A82BB00272817 /* DMbackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A99912362C1A82BB00272817 /* DMbackend.swift */; };
 		A9D0C9BE2C2276FC00E5F435 /* Search.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D0C9BD2C2276FC00E5F435 /* Search.swift */; };
+		A9F36A3B2C46203D008D0F7D /* FollowRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F36A3A2C46203D008D0F7D /* FollowRequestView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -92,6 +93,7 @@
 		A995DD672C34ED4700870D10 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
 		A99912362C1A82BB00272817 /* DMbackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMbackend.swift; sourceTree = "<group>"; };
 		A9D0C9BD2C2276FC00E5F435 /* Search.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Search.swift; sourceTree = "<group>"; };
+		A9F36A3A2C46203D008D0F7D /* FollowRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowRequestView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +159,7 @@
 				A964BAE42BFFE9C30055403A /* CreateForum.swift */,
 				A995DD672C34ED4700870D10 /* ReportView.swift */,
 				A93F6DB82C3A327000F4300A /* LikesListView.swift */,
+				A9F36A3A2C46203D008D0F7D /* FollowRequestView.swift */,
 				6F962CE12B896AB900C52234 /* ImageChooser.swift */,
 				A9D0C9BD2C2276FC00E5F435 /* Search.swift */,
 				27B322532C22895E002FAC36 /* Rotation.swift */,
@@ -316,6 +319,7 @@
 				6FB142322C10071200DCB572 /* Leaderboard.swift in Sources */,
 				8CE99DC22C194EF600AA680D /* HealthViewProfile.swift in Sources */,
 				A9D0C9BE2C2276FC00E5F435 /* Search.swift in Sources */,
+				A9F36A3B2C46203D008D0F7D /* FollowRequestView.swift in Sources */,
 				8C1F3FDD2BD20114002C1465 /* SettingsViewModel.swift in Sources */,
 				273BD46D2BFFEABE00C658A8 /* Healthpage.swift in Sources */,
 				A99912372C1A82BB00272817 /* DMbackend.swift in Sources */,

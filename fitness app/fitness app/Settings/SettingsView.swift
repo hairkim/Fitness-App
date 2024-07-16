@@ -13,7 +13,6 @@ struct AlertMessage: Identifiable {
     let message: String
 }
 
-
 import SwiftUI
 
 struct SettingsView: View {
@@ -72,6 +71,21 @@ struct SettingsView: View {
                     }
                 } label: {
                     Text("Delete account")
+                }
+
+                Toggle(isOn: Binding(
+                    get: { userStore.currentUser?.isPublic ?? true },
+                    set: { newValue in
+                        Task {
+                            do {
+                                try await viewModel.togglePrivacy()
+                            } catch {
+                                print("Error toggling privacy: \(error)")
+                            }
+                        }
+                    }
+                )) {
+                    Text("Public Account")
                 }
             }
             .navigationTitle("Settings")

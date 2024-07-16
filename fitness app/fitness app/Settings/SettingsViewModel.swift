@@ -32,4 +32,11 @@ final class SettingsViewModel: ObservableObject {
         
         try await AuthenticationManager.shared.resetPassword(email: email)
     }
+    
+    func togglePrivacy() async throws {
+        guard var currentUser = userStore.currentUser else { return }
+        currentUser.isPublic.toggle()
+        try await UserManager.shared.updateUser(currentUser)
+        userStore.setCurrentUser(user: currentUser) // Update the userStore with the modified user
+    }
 }

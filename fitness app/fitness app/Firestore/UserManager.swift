@@ -8,7 +8,11 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-struct DBUser: Codable, Identifiable, Equatable {
+import Foundation
+import FirebaseFirestore
+import FirebaseFirestoreSwift
+
+struct DBUser: Codable, Identifiable, Equatable, Hashable {
     var id: String { userId }
     let userId: String
     let username: String
@@ -16,7 +20,8 @@ struct DBUser: Codable, Identifiable, Equatable {
     let email: String?
     let photoUrl: String?
     var followers: [String]
-    let isPublic: Bool
+    var followRequests: [String] // New field for follow requests
+    var isPublic: Bool // Changed from let to var
     var sesh: Int = 0 // New field for tracking sessions
     var lastGymVisit: Date? = nil // New field
     
@@ -27,6 +32,7 @@ struct DBUser: Codable, Identifiable, Equatable {
         self.email = auth.email
         self.photoUrl = auth.photoUrl
         self.followers = [String]()
+        self.followRequests = [String]() // Initialize followRequests
         self.isPublic = true
     }
     
@@ -39,6 +45,11 @@ struct DBUser: Codable, Identifiable, Equatable {
     // Implement Equatable
     static func ==(lhs: DBUser, rhs: DBUser) -> Bool {
         return lhs.userId == rhs.userId
+    }
+
+    // Implement Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(userId)
     }
 }
 
@@ -130,9 +141,74 @@ final class UserManager {
         }
     }
 
-    func isFollowing(senderId: String, receiverId: String) async throws -> Bool {
-        let receiver = try await getUser(userId: receiverId)
-        return receiver.followers.contains(senderId)
+    func isFollowing(senderId: String, receiverId: String) async -> Bool {
+        do {
+            let receiver = try await getUser(userId: receiverId)
+            return receiver.followers.contains(senderId)
+        } catch {
+            print("Error checking follow status: \(error.localizedDescription)")
+            return false
+        }
+    }
+    
+    func sendFollowRequest(sender: DBUser, receiver: DBUser) async throws {
+        guard sender.userId != receiver.userId else {
+            return
+        }
+        do {
+            let userRef = userDocument(userId: receiver.userId)
+            let userDocument = try await userRef.getDocument()
+            
+            guard var user = try? userDocument.data(as: DBUser.self) else {
+                throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
+            }
+            
+            if !user.followRequests.contains(sender.userId) {
+                user.followRequests.append(sender.userId)
+                try userRef.setData(from: user)
+                print("Follow request sent")
+            } else {
+                print("Follow request already sent")
+            }
+        } catch {
+            print("Error sending follow request: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
+    func acceptFollowRequest(senderId: String, receiverId: String) async throws {
+        let userRef = userDocument(userId: receiverId)
+        let userDocument = try await userRef.getDocument()
+        
+        guard var user = try? userDocument.data(as: DBUser.self) else {
+            throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
+        }
+        
+        if let index = user.followRequests.firstIndex(of: senderId) {
+            user.followRequests.remove(at: index)
+            user.followers.append(senderId)
+            try userRef.setData(from: user)
+            print("Follow request accepted")
+        } else {
+            print("Follow request not found")
+        }
+    }
+    
+    func declineFollowRequest(senderId: String, receiverId: String) async throws {
+        let userRef = userDocument(userId: receiverId)
+        let userDocument = try await userRef.getDocument()
+        
+        guard var user = try? userDocument.data(as: DBUser.self) else {
+            throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
+        }
+        
+        if let index = user.followRequests.firstIndex(of: senderId) {
+            user.followRequests.remove(at: index)
+            try userRef.setData(from: user)
+            print("Follow request declined")
+        } else {
+            print("Follow request not found")
+        }
     }
     
     func fetchFollowers(for userId: String, completion: @escaping ([String]?) -> Void) {
