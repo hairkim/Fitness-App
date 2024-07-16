@@ -104,6 +104,36 @@ final class UserManager {
             throw error
         }
     }
+
+    func removeFollower(sender: DBUser, receiver: DBUser) async throws {
+        guard sender.userId != receiver.userId else {
+            return
+        }
+        do {
+            let userRef = userDocument(userId: receiver.userId)
+            let userDocument = try await userRef.getDocument()
+            
+            guard var user = try? userDocument.data(as: DBUser.self) else {
+                throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
+            }
+            
+            if let index = user.followers.firstIndex(of: sender.userId) {
+                user.followers.remove(at: index)
+                try userRef.setData(from: user)
+                print("Removed as follower")
+            } else {
+                print("User is not a follower")
+            }
+        } catch {
+            print("Error removing follower: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    func isFollowing(senderId: String, receiverId: String) async throws -> Bool {
+        let receiver = try await getUser(userId: receiverId)
+        return receiver.followers.contains(senderId)
+    }
     
     func fetchFollowers(for userId: String, completion: @escaping ([String]?) -> Void) {
         userDocument(userId: userId).getDocument { (document, error) in
@@ -162,12 +192,6 @@ final class UserManager {
                 }
             }
         }
-    }
-    
-    // New method to check if a user is following another user
-    func isFollowing(senderId: String, receiverId: String) async throws -> Bool {
-        let sender = try await getUser(userId: senderId)
-        return sender.followers.contains(receiverId)
     }
     
     // New method to get followed user IDs

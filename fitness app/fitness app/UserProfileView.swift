@@ -79,6 +79,7 @@ struct UserProfileView: View {
     
     @State private var showChatView = false
     @State private var isFollowing = false
+    @State private var showUnfollowConfirmation = false
 
     init(postUser: DBUser, userStore: UserStore, chats: Binding<[DBChat]>) {
         self.postUser = postUser
@@ -139,16 +140,36 @@ struct UserProfileView: View {
                 HStack {
                     // Follow Button
                     Button(action: {
-                        Task {
-                            await addFollower()
+                        if isFollowing {
+                            showUnfollowConfirmation = true
+                        } else {
+                            Task {
+                                await followUser()
+                            }
                         }
                     }) {
                         Text(isFollowing ? "Following" : "Follow")
                             .font(.headline)
-                            .foregroundColor(isFollowing ? .gray : .white)
+                            .foregroundColor(isFollowing ? .black : .white)
                             .padding()
-                            .background(isFollowing ? Color.gray : Color.blue)
+                            .background(isFollowing ? Color.gray.opacity(0.2) : Color.blue)
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isFollowing ? Color.gray : Color.clear, lineWidth: 1)
+                            )
+                    }
+                    .alert(isPresented: $showUnfollowConfirmation) {
+                        Alert(
+                            title: Text("Unfollow"),
+                            message: Text("Are you sure you want to unfollow \(postUser.username)?"),
+                            primaryButton: .destructive(Text("Unfollow")) {
+                                Task {
+                                    await unfollowUser()
+                                }
+                            },
+                            secondaryButton: .cancel()
+                        )
                     }
                     
                     Button(action: {
@@ -197,7 +218,7 @@ struct UserProfileView: View {
         }
     }
 
-    private func addFollower() async {
+    private func followUser() async {
         guard let currentUser = userStore.currentUser else {
             print("Current user is nil")
             return
@@ -208,6 +229,20 @@ struct UserProfileView: View {
             isFollowing = true
         } catch {
             print("Error adding follower: \(error.localizedDescription)")
+        }
+    }
+
+    private func unfollowUser() async {
+        guard let currentUser = userStore.currentUser else {
+            print("Current user is nil")
+            return
+        }
+        do {
+            try await UserManager.shared.removeFollower(sender: currentUser, receiver: postUser)
+            print("Follower removed successfully")
+            isFollowing = false
+        } catch {
+            print("Error removing follower: \(error.localizedDescription)")
         }
     }
 

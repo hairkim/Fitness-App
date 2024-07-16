@@ -107,7 +107,10 @@ struct ContentView: View {
             .background(
                 NavigationLink(
                     destination: UserProfileView(postUser: selectedUser ?? DBUser.placeholder, userStore: userStore, chats: $chats),
-                    isActive: .constant(selectedUser != nil),
+                    isActive: Binding<Bool>(
+                        get: { selectedUser != nil },
+                        set: { if !$0 { selectedUser = nil } }
+                    ),
                     label: { EmptyView() }
                 )
             )
@@ -163,6 +166,8 @@ struct ContentView: View {
                                 deleteComment(comment, at: index)
                             }, deletePost: {
                                 deletePost(at: index)
+                            }, onUsernameTapped: { user in
+                                self.selectedUser = user
                             })
                             .environmentObject(userStore)
                             .id(posts[index].id) // Use the post ID to uniquely identify each view
@@ -246,9 +251,7 @@ struct ContentView: View {
             
             if let documents = querySnapshot?.documents {
                 DispatchQueue.main.async {
-                    self.posts = documents.compactMap { document -> Post? in
-                        try? document.data(as: Post.self)
-                    }
+                    self.posts = documents.compactMap { try? $0.data(as: Post.self) }
                     self.posts.sort { $0.date > $1.date }
                 }
             }
@@ -298,9 +301,7 @@ struct ContentView: View {
                 }
 
                 guard let documents = querySnapshot?.documents else { return }
-                self.chats = documents.compactMap { document -> DBChat? in
-                    try? document.data(as: DBChat.self)
-                }
+                self.chats = documents.compactMap { try? $0.data(as: DBChat.self) }
 
                 self.updateUnreadMessagesCount()
             }
@@ -314,26 +315,13 @@ struct ContentView: View {
     }
 }
 
-class MessageManager {
-    static let shared = MessageManager()
-
-    func getUnreadMessagesCount(userId: String) async throws -> Int {
-        let db = Firestore.firestore()
-        let snapshot = try await db.collection("messages")
-            .whereField("receiverId", isEqualTo: userId)
-            .whereField("isRead", isEqualTo: false)
-            .getDocuments()
-        return snapshot.documents.count
-    }
-}
-
-
 import SwiftUI
 
 struct CustomPostView: View {
     @Binding var post: Post
     let deleteComment: (Comment) -> Void
     let deletePost: () -> Void
+    let onUsernameTapped: (DBUser) -> Void
     @EnvironmentObject private var userStore: UserStore
 
     @State private var isLiked = false
@@ -348,12 +336,12 @@ struct CustomPostView: View {
     @State private var postUser: DBUser = DBUser.placeholder
     @State private var likesCount: Int = 0
     @State private var isOwnPost: Bool = false
-    @State private var showUserProfile: Bool = false
 
-    init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void, deletePost: @escaping () -> Void) {
+    init(post: Binding<Post>, deleteComment: @escaping (Comment) -> Void, deletePost: @escaping () -> Void, onUsernameTapped: @escaping (DBUser) -> Void) {
         self._post = post
         self.deleteComment = deleteComment
         self.deletePost = deletePost
+        self.onUsernameTapped = onUsernameTapped
         self._comments = State(initialValue: post.wrappedValue.comments)
     }
 
@@ -487,13 +475,14 @@ struct CustomPostView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top) {
-                    Text(postUser.username)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                        .onTapGesture {
-                            showUserProfile.toggle()
-                        }
+                    Button(action: {
+                        onUsernameTapped(postUser)
+                    }) {
+                        Text(postUser.username)
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
 
                     Text(firstLineOfCaption(post.caption))
                         .foregroundColor(.primary)
@@ -556,13 +545,6 @@ struct CustomPostView: View {
         .sheet(isPresented: $showReportSheet) {
             ReportView(post: post, showReportSheet: $showReportSheet)
         }
-        .background(
-            NavigationLink(
-                destination: UserProfileView(postUser: postUser, userStore: userStore, chats: .constant([])),
-                isActive: $showUserProfile,
-                label: { EmptyView() }
-            )
-        )
     }
 
     private func actionSheetContent() -> ActionSheet {
