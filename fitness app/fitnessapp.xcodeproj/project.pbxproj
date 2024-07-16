@@ -51,6 +51,8 @@
 		A99912372C1A82BB00272817 /* DMbackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A99912362C1A82BB00272817 /* DMbackend.swift */; };
 		A9D0C9BE2C2276FC00E5F435 /* Search.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D0C9BD2C2276FC00E5F435 /* Search.swift */; };
 		A9F36A3B2C46203D008D0F7D /* FollowRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F36A3A2C46203D008D0F7D /* FollowRequestView.swift */; };
+		A9F36A3F2C4629A7008D0F7D /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F36A3E2C4629A7008D0F7D /* NotificationManager.swift */; };
+		A9F36A412C4629B7008D0F7D /* NotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F36A402C4629B7008D0F7D /* NotificationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -94,6 +96,8 @@
 		A99912362C1A82BB00272817 /* DMbackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMbackend.swift; sourceTree = "<group>"; };
 		A9D0C9BD2C2276FC00E5F435 /* Search.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Search.swift; sourceTree = "<group>"; };
 		A9F36A3A2C46203D008D0F7D /* FollowRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowRequestView.swift; sourceTree = "<group>"; };
+		A9F36A3E2C4629A7008D0F7D /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		A9F36A402C4629B7008D0F7D /* NotificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,6 +147,7 @@
 		6F962CCE2B8969FB00C52234 /* fitness app */ = {
 			isa = PBXGroup;
 			children = (
+				A9F36A3D2C462995008D0F7D /* Notifications */,
 				6FFA86E62C20254D00C47C74 /* DM Stuff */,
 				2776123A2C0EBEE700863E15 /* Leaderboard.swift */,
 				8CAD9A6C2BD303DD00CDC07C /* Firestore */,
@@ -222,6 +227,15 @@
 				6F41DEAB2C3A66ED0009B689 /* ForumManager.swift */,
 			);
 			path = Firestore;
+			sourceTree = "<group>";
+		};
+		A9F36A3D2C462995008D0F7D /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				A9F36A3E2C4629A7008D0F7D /* NotificationManager.swift */,
+				A9F36A402C4629B7008D0F7D /* NotificationView.swift */,
+			);
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -338,8 +352,10 @@
 				8CE99DC02C194E3C00AA680D /* LeaderboardViewProfile.swift in Sources */,
 				8CE99DBE2C194E1B00AA680D /* HealthDataModelProfile.swift in Sources */,
 				A93F6DB92C3A327000F4300A /* LikesListView.swift in Sources */,
+				A9F36A3F2C4629A7008D0F7D /* NotificationManager.swift in Sources */,
 				A98B0A1C2C100158004673FE /* DM.swift in Sources */,
 				A914E2302BFED23B001116AF /* Forum.swift in Sources */,
+				A9F36A412C4629B7008D0F7D /* NotificationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

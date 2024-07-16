@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
     @State private var showDMHomeView: Bool = false
+    @State private var showNotificationView: Bool = false
     @State private var selectedTab: Int = 0
     @State private var selectedUser: DBUser? = nil
     @State private var unreadMessagesCount: Int = 0
@@ -36,6 +37,10 @@ struct ContentView: View {
             ZStack {
                 if showDMHomeView {
                     DMHomeView(showDMHomeView: $showDMHomeView, chats: $chats, unreadMessagesCount: $unreadMessagesCount)
+                        .environmentObject(userStore)
+                        .transition(.move(edge: .trailing))
+                } else if showNotificationView {
+                    NotificationView(userStore: userStore, showNotificationView: $showNotificationView)
                         .environmentObject(userStore)
                         .transition(.move(edge: .trailing))
                 } else {
@@ -147,6 +152,17 @@ struct ContentView: View {
                         }
                         .imageScale(.large)
                         .foregroundColor(Color(.darkGray))
+                    }
+                    .padding(.trailing, 16)
+
+                    Button(action: {
+                        withAnimation {
+                            showNotificationView.toggle()
+                        }
+                    }) {
+                        Image(systemName: "bell.fill")
+                            .imageScale(.large)
+                            .foregroundColor(Color(.darkGray))
                     }
                     .padding(.trailing, 16)
 
@@ -491,11 +507,11 @@ struct CustomPostView: View {
                 if hasMoreLines(post.caption) {
                     Text(remainingLinesOfCaption(post.caption))
                         .foregroundColor(.primary)
-                        .lineLimit(isCaptionExpanded ? nil : 1)
+                        .lineLimit(isCaptionExpanded ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.leading, 0)
                     
-                    if !isCaptionExpanded {
+                    if !isCaptionExpanded && captionExceedsTwoLines(post.caption) {
                         Button(action: {
                             isCaptionExpanded.toggle()
                         }) {
@@ -593,6 +609,27 @@ struct CustomPostView: View {
         return caption.count > firstLineOfCaption(caption).count
     }
 
+    private func captionExceedsTwoLines(_ caption: String) -> Bool {
+        let words = caption.split(separator: " ")
+        var lineCount = 0
+        var currentLine = ""
+        
+        for word in words {
+            if (currentLine + " " + word).count > 30 { // Adjust the character count threshold as needed
+                lineCount += 1
+                currentLine = String(word)
+            } else {
+                currentLine += currentLine.isEmpty ? String(word) : " " + word
+            }
+            
+            if lineCount >= 2 {
+                return true
+            }
+        }
+        
+        return false
+    }
+
     private func loadPostUser() async {
         do {
             let fetchedUser = try await UserManager.shared.getUser(userId: post.userId)
@@ -633,7 +670,6 @@ struct CustomPostView: View {
         }
     }
 }
-
 
 import SwiftUI
 
