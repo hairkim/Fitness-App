@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct NotificationView: View {
+    @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var userStore: UserStore
     @StateObject private var viewModel: NotificationViewModel
 
@@ -46,7 +47,13 @@ struct NotificationView: View {
                     }
                 }
             }
-            .navigationTitle("Notifications")
+            .navigationBarTitle("Notifications", displayMode: .inline)
+            .navigationBarItems(leading: Button(action: {
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                Image(systemName: "chevron.left")
+                    .foregroundColor(.primary)
+            })
             .onAppear {
                 Task {
                     await viewModel.fetchNotifications()
