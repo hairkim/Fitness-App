@@ -546,7 +546,7 @@ struct ReplyView: View {
                     .foregroundColor(.green)
                 Spacer()
                 HStack(spacing: 20) {
-                    Button(action: { 
+                    Button(action: {
                         Task {
                             await onLikeReply(reply)
                         }
@@ -806,4 +806,5 @@ struct ForumView_Previews: PreviewProvider {
         ForumView()
     }
 }
+
 
