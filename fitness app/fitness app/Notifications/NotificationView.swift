@@ -47,9 +47,7 @@ struct NotificationView: View {
         }
         .navigationBarTitle("Notifications", displayMode: .inline)
         .onAppear {
-            Task {
-                await viewModel.fetchNotifications()
-            }
+            viewModel.listenForNotifications()
         }
     }
 }
@@ -117,3 +115,5 @@ struct NotificationUserView: View {
         }
     }
 }
+
+

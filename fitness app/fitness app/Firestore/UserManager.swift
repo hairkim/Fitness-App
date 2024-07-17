@@ -8,10 +8,6 @@ import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-import Foundation
-import FirebaseFirestore
-import FirebaseFirestoreSwift
-
 struct DBUser: Codable, Identifiable, Equatable, Hashable {
     var id: String { userId }
     let userId: String
@@ -92,52 +88,46 @@ final class UserManager {
     }
     
     func addFollower(sender: DBUser, receiver: DBUser) async throws {
-        guard sender.userId != receiver.userId else {
-            return
+        let userRef = userDocument(userId: receiver.userId)
+        let userDocument = try await userRef.getDocument()
+        
+        guard var user = try? userDocument.data(as: DBUser.self) else {
+            throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
         }
-        do {
-            let userRef = userDocument(userId: receiver.userId)
-            let userDocument = try await userRef.getDocument()
+        
+        if !user.followers.contains(sender.userId) {
+            user.followers.append(sender.userId)
+            try userRef.setData(from: user)
+            print("Added as follower")
             
-            guard var user = try? userDocument.data(as: DBUser.self) else {
-                throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
-            }
-            
-            if !user.followers.contains(sender.userId) {
-                user.followers.append(sender.userId)
-                try userRef.setData(from: user)
-                print("Added as follower")
-            } else {
-                print("User is already a follower")
-            }
-        } catch {
-            print("Error adding follower: \(error.localizedDescription)")
-            throw error
+            // Create notification for following
+            let notification = Notification(
+                type: .follow,
+                fromUserId: sender.userId,
+                postId: nil,
+                toUserId: receiver.userId,
+                timestamp: Date()
+            )
+            try await NotificationManager.shared.addNotification(notification)
+        } else {
+            print("User is already a follower")
         }
     }
 
     func removeFollower(sender: DBUser, receiver: DBUser) async throws {
-        guard sender.userId != receiver.userId else {
-            return
+        let userRef = userDocument(userId: receiver.userId)
+        let userDocument = try await userRef.getDocument()
+        
+        guard var user = try? userDocument.data(as: DBUser.self) else {
+            throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
         }
-        do {
-            let userRef = userDocument(userId: receiver.userId)
-            let userDocument = try await userRef.getDocument()
-            
-            guard var user = try? userDocument.data(as: DBUser.self) else {
-                throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
-            }
-            
-            if let index = user.followers.firstIndex(of: sender.userId) {
-                user.followers.remove(at: index)
-                try userRef.setData(from: user)
-                print("Removed as follower")
-            } else {
-                print("User is not a follower")
-            }
-        } catch {
-            print("Error removing follower: \(error.localizedDescription)")
-            throw error
+        
+        if let index = user.followers.firstIndex(of: sender.userId) {
+            user.followers.remove(at: index)
+            try userRef.setData(from: user)
+            print("Removed as follower")
+        } else {
+            print("User is not a follower")
         }
     }
 
@@ -150,29 +140,31 @@ final class UserManager {
             return false
         }
     }
-    
+
     func sendFollowRequest(sender: DBUser, receiver: DBUser) async throws {
-        guard sender.userId != receiver.userId else {
-            return
+        let userRef = userDocument(userId: receiver.userId)
+        let userDocument = try await userRef.getDocument()
+        
+        guard var user = try? userDocument.data(as: DBUser.self) else {
+            throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
         }
-        do {
-            let userRef = userDocument(userId: receiver.userId)
-            let userDocument = try await userRef.getDocument()
+        
+        if !user.followRequests.contains(sender.userId) {
+            user.followRequests.append(sender.userId)
+            try userRef.setData(from: user)
+            print("Follow request sent")
             
-            guard var user = try? userDocument.data(as: DBUser.self) else {
-                throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
-            }
-            
-            if !user.followRequests.contains(sender.userId) {
-                user.followRequests.append(sender.userId)
-                try userRef.setData(from: user)
-                print("Follow request sent")
-            } else {
-                print("Follow request already sent")
-            }
-        } catch {
-            print("Error sending follow request: \(error.localizedDescription)")
-            throw error
+            // Create notification for follow request
+            let notification = Notification(
+                type: .followRequest,
+                fromUserId: sender.userId,
+                postId: nil,
+                toUserId: receiver.userId,
+                timestamp: Date()
+            )
+            try await NotificationManager.shared.addNotification(notification)
+        } else {
+            print("Follow request already sent")
         }
     }
     
@@ -189,6 +181,16 @@ final class UserManager {
             user.followers.append(senderId)
             try userRef.setData(from: user)
             print("Follow request accepted")
+            
+            // Create notification for follow request acceptance
+            let notification = Notification(
+                type: .follow,
+                fromUserId: receiverId,
+                postId: nil,
+                toUserId: senderId,
+                timestamp: Date()
+            )
+            try await NotificationManager.shared.addNotification(notification)
         } else {
             print("Follow request not found")
         }
@@ -224,29 +226,21 @@ final class UserManager {
     }
     
     func removeFollowRequest(sender: DBUser, receiver: DBUser) async throws {
-            guard sender.userId != receiver.userId else {
-                return
-            }
-            do {
-                let userRef = userDocument(userId: receiver.userId)
-                let userDocument = try await userRef.getDocument()
-                
-                guard var user = try? userDocument.data(as: DBUser.self) else {
-                    throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
-                }
-                
-                if let index = user.followRequests.firstIndex(of: sender.userId) {
-                    user.followRequests.remove(at: index)
-                    try userRef.setData(from: user)
-                    print("Follow request removed")
-                } else {
-                    print("Follow request not found")
-                }
-            } catch {
-                print("Error removing follow request: \(error.localizedDescription)")
-                throw error
-            }
+        let userRef = userDocument(userId: receiver.userId)
+        let userDocument = try await userRef.getDocument()
+        
+        guard var user = try? userDocument.data(as: DBUser.self) else {
+            throw NSError(domain: "App ErrorDomain", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unable to decode user"])
         }
+        
+        if let index = user.followRequests.firstIndex(of: sender.userId) {
+            user.followRequests.remove(at: index)
+            try userRef.setData(from: user)
+            print("Follow request removed")
+        } else {
+            print("Follow request not found")
+        }
+    }
     
     func searchFollowers(for userId: String, searchTerm: String, completion: @escaping ([DBUser]?) -> Void) {
         fetchFollowers(for: userId) { followerIds in
@@ -307,5 +301,35 @@ final class UserManager {
         user.sesh += 1
         user.lastGymVisit = postDate
         try await updateUser(user)
+    }
+
+    // Add Notification for Liking a Post
+    func likePost(postId: String, fromUserId: String, toUserId: String) async throws {
+        // Logic to like a post
+        
+        // Create notification
+        let notification = Notification(
+            type: .like,
+            fromUserId: fromUserId,
+            postId: postId,
+            toUserId: toUserId,
+            timestamp: Date()
+        )
+        try await NotificationManager.shared.addNotification(notification)
+    }
+
+    // Add Notification for Commenting on a Post
+    func commentOnPost(postId: String, fromUserId: String, toUserId: String, comment: String) async throws {
+        // Logic to add a comment
+        
+        // Create notification
+        let notification = Notification(
+            type: .comment,
+            fromUserId: fromUserId,
+            postId: postId,
+            toUserId: toUserId,
+            timestamp: Date()
+        )
+        try await NotificationManager.shared.addNotification(notification)
     }
 }
