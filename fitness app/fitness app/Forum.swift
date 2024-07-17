@@ -665,11 +665,15 @@ struct MediaPickerButton: View {
                 .onDisappear {
                     for image in selectedImages {
                         if let url = saveImage(image) {
+                            print("image url: \(url)")
                             selectedMediaItems.append(MediaItem(type: .image, url: url))
                         }
                     }
                     if let videoURL = selectedVideo {
+                        print("video url: \(videoURL)")
                         selectedMediaItems.append(MediaItem(type: .video, url: videoURL))
+                        print(selectedMediaItems.count)
+                        print(selectedMediaItems[0].type)
                     }
                     selectedImages = []
                     selectedVideo = nil
@@ -681,8 +685,13 @@ struct MediaPickerButton: View {
         guard let data = image.jpegData(compressionQuality: 1) else { return nil }
         let filename = UUID().uuidString + ".jpg"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-        try? data.write(to: url)
-        return url
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            print("Error saving image: \(error.localizedDescription)")
+            return nil
+        }
     }
 }
 
@@ -716,12 +725,48 @@ struct CustomImagePicker: UIViewControllerRepresentable {
                 } else if result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
                     result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { (url, error) in
                         if let url = url {
-                            DispatchQueue.main.async {
-                                self.parent.selectedVideo = url
+                            // Immediately copy to a persistent location
+                            if let persistentURL = self.copyVideoToDocumentsDirectory(from: url) {
+                                DispatchQueue.main.async {
+                                    self.parent.selectedVideo = persistentURL
+                                    print("Video selected and copied to: \(persistentURL)")
+                                }
+                            } else {
+                                print("Failed to copy video to persistent location.")
                             }
                         }
                     }
                 }
+            }
+        }
+
+        private func copyVideoToDocumentsDirectory(from url: URL) -> URL? {
+            let fileManager = FileManager.default
+            let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let persistentURL = documentsDirectory.appendingPathComponent(url.lastPathComponent)
+
+            do {
+                // Check if the source file exists
+                guard fileManager.fileExists(atPath: url.path) else {
+                    print("Source file does not exist at path: \(url.path)")
+                    return nil
+                }
+
+                // Read data from the source URL
+                let videoData = try Data(contentsOf: url)
+
+                // If a file already exists at the destination, remove it
+                if fileManager.fileExists(atPath: persistentURL.path) {
+                    try fileManager.removeItem(at: persistentURL)
+                }
+
+                // Write the data to the destination URL
+                try videoData.write(to: persistentURL)
+
+                return persistentURL
+            } catch {
+                print("Error copying video: \(error.localizedDescription)")
+                return nil
             }
         }
     }
@@ -737,6 +782,7 @@ struct CustomImagePicker: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
 }
+
 
 // Filter View
 struct FilterView: View {

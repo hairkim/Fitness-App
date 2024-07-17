@@ -128,15 +128,29 @@ struct CreateQuestionView: View {
         }
     }
     
+    //        let storageRef = Storage.storage().reference().child("videos/\(UUID().uuidString)")
+    //        let metadata = StorageMetadata()
+    //        metadata.contentType = "video/quicktime"
+    //
+    //        do {
+    //            let _ = try await storageRef.putDataAsync(videoData, metadata: metadata)
+    //            let url = try await storageRef.downloadURL()
+    //            return url.absoluteString
+    //        } catch {
+    //            print("failed to upload video with error: \(error.localizedDescription)")
+    //            return nil
+    //        }
+    
     func uploadVideoToFirebase(videoURL: URL) async throws -> URL {
         let storageRef = Storage.storage().reference().child("videos/\(UUID().uuidString).mp4")
-
+        
         // Ensure that the video file exists
         guard FileManager.default.fileExists(atPath: videoURL.path) else {
+            print("File does not exist at path: \(videoURL)")
             throw ImageUploadError.urlNil
         }
-
-        // Read video data from the file URL
+        
+        // Read the video data
         let videoData = try Data(contentsOf: videoURL)
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -146,20 +160,17 @@ struct CreateQuestionView: View {
                     continuation.resume(throwing: error)
                     return
                 }
-                print("Video uploaded successfully, fetching download URL...")
                 storageRef.downloadURL { url, error in
                     if let error = error {
                         print("Error fetching download URL: \(error.localizedDescription)")
                         continuation.resume(throwing: error)
                         return
                     }
-
                     guard let url = url else {
                         print("Download URL is nil")
                         continuation.resume(throwing: ImageUploadError.urlNil)
                         return
                     }
-
                     print("Download URL fetched successfully: \(url.absoluteString)")
                     continuation.resume(returning: url)
                 }
@@ -168,24 +179,21 @@ struct CreateQuestionView: View {
     }
 
 
+
     func uploadAllMedia() async -> [MediaItem] {
         var uploadedMediaItems: [MediaItem] = []
-
+        
         for mediaItem in selectedMediaItems {
-            if mediaItem.type == .image, let image = UIImage(contentsOfFile: mediaItem.url.path) {
-                do {
+            do {
+                if mediaItem.type == .image, let image = UIImage(contentsOfFile: mediaItem.url.path) {
                     let url = try await uploadImageToFirebase(image: image)
                     uploadedMediaItems.append(MediaItem(type: .image, url: url))
-                } catch {
-                    print("Error uploading image: \(error)")
-                }
-            } else if mediaItem.type == .video {
-                do {
+                } else if mediaItem.type == .video {
                     let url = try await uploadVideoToFirebase(videoURL: mediaItem.url)
                     uploadedMediaItems.append(MediaItem(type: .video, url: url))
-                } catch {
-                    print("Error uploading video: \(error)")
                 }
+            } catch {
+                print("Error uploading media: \(error)")
             }
         }
 

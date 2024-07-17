@@ -204,7 +204,6 @@ final class ForumManager {
         
         // Get the document reference using the ID
         let forumDocument = forumCollection.document(newForumPost.id!)
-        
         // Save the document
         try forumDocument.setData(from: newForumPost, merge: false, encoder: Firestore.Encoder())
     }
