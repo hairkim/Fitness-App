@@ -39,10 +39,6 @@ struct ContentView: View {
                     DMHomeView(showDMHomeView: $showDMHomeView, chats: $chats, unreadMessagesCount: $unreadMessagesCount)
                         .environmentObject(userStore)
                         .transition(.move(edge: .trailing))
-                } else if showNotificationView {
-                    NotificationView(userStore: userStore) // Pass userStore here
-                        .environmentObject(userStore)
-                        .transition(.move(edge: .trailing))
                 } else {
                     if selectedTab != 1 {
                         TabView(selection: $selectedTab) {
@@ -119,6 +115,14 @@ struct ContentView: View {
                     label: { EmptyView() }
                 )
             )
+            .background(
+                NavigationLink(
+                    destination: NotificationView(userStore: userStore)
+                        .environmentObject(userStore),
+                    isActive: $showNotificationView,
+                    label: { EmptyView() }
+                )
+            )
         }
         .background(Color.white.edgesIgnoringSafeArea(.all))
     }
@@ -157,7 +161,7 @@ struct ContentView: View {
 
                     Button(action: {
                         withAnimation {
-                            showNotificationView.toggle()
+                            showNotificationView = true
                         }
                     }) {
                         Image(systemName: "bell.fill")
@@ -330,6 +334,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 import SwiftUI
 

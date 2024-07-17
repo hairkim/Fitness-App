@@ -8,47 +8,52 @@
 
 import Foundation
 import Combine
+import FirebaseFirestore
 
 class NotificationViewModel: ObservableObject {
     @Published var notifications: [Notification] = []
     private let userStore: UserStore
+    private var db = Firestore.firestore()
+    private var listener: ListenerRegistration?
 
     init(userStore: UserStore) {
         self.userStore = userStore
         fetchNotifications()
     }
 
+    deinit {
+        listener?.remove()
+    }
+
     func fetchNotifications() {
         guard let currentUser = userStore.currentUser else { return }
-        
-        NotificationManager.shared.getNotifications(for: currentUser.userId) { [weak self] notifications in
-            DispatchQueue.main.async {
-                self?.notifications = notifications
+        listener = db.collection("notifications")
+            .whereField("toUserId", isEqualTo: currentUser.userId)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error fetching notifications: \(error)")
+                    return
+                }
+                guard let documents = querySnapshot?.documents else { return }
+                self.notifications = documents.compactMap { try? $0.data(as: Notification.self) }
             }
-        }
     }
-    
-    func acceptFollowRequest(from user: DBUser) async {
+
+    func acceptFollowRequest(from notification: Notification) async {
         guard let currentUser = userStore.currentUser else { return }
         do {
-            try await UserManager.shared.acceptFollowRequest(senderId: user.userId, receiverId: currentUser.userId)
-            DispatchQueue.main.async {
-                self.notifications.removeAll { $0.fromUserId == user.userId && $0.type == .followRequest }
-            }
-            try await UserManager.shared.updateUser(currentUser) // Refresh currentUser
+            try await UserManager.shared.acceptFollowRequest(senderId: notification.fromUserId, receiverId: currentUser.userId)
+            try await NotificationManager.shared.removeNotification(notification.id ?? "")
         } catch {
             print("Error accepting follow request: \(error)")
         }
     }
 
-    func declineFollowRequest(from user: DBUser) async {
+    func declineFollowRequest(from notification: Notification) async {
         guard let currentUser = userStore.currentUser else { return }
         do {
-            try await UserManager.shared.declineFollowRequest(senderId: user.userId, receiverId: currentUser.userId)
-            DispatchQueue.main.async {
-                self.notifications.removeAll { $0.fromUserId == user.userId && $0.type == .followRequest }
-            }
-            try await UserManager.shared.updateUser(currentUser) // Refresh currentUser
+            try await UserManager.shared.declineFollowRequest(senderId: notification.fromUserId, receiverId: currentUser.userId)
+            try await NotificationManager.shared.removeNotification(notification.id ?? "")
         } catch {
             print("Error declining follow request: \(error)")
         }
@@ -56,26 +61,27 @@ class NotificationViewModel: ObservableObject {
 }
 
 import Foundation
+import FirebaseFirestore
 import FirebaseFirestoreSwift
 
 struct Notification: Identifiable, Codable {
-    var id: String
+    @DocumentID var id: String?
     var type: NotificationType
     var fromUserId: String
     var toUserId: String
     var postId: String?
     var timestamp: Date
-    
+
     enum NotificationType: String, Codable {
         case followRequest
         case like
         case comment
+        case newFollower
     }
 }
 
 import Foundation
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 
 final class NotificationManager {
     
@@ -84,21 +90,16 @@ final class NotificationManager {
     
     private let notificationsCollection = Firestore.firestore().collection("notifications")
     
-    func getNotifications(for userId: String, completion: @escaping ([Notification]) -> Void) {
-        notificationsCollection.whereField("toUserId", isEqualTo: userId)
-            .addSnapshotListener { snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    print("No documents or there was an error: \(error?.localizedDescription ?? "Unknown error")")
-                    return
-                }
-                
-                let notifications = documents.compactMap { try? $0.data(as: Notification.self) }
-                completion(notifications)
-            }
+    func getNotifications(for userId: String) async throws -> [Notification] {
+        let snapshot = try await notificationsCollection.whereField("toUserId", isEqualTo: userId).getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: Notification.self) }
     }
     
-    func addNotification(_ notification: Notification, for userId: String) async throws {
-        try notificationsCollection.document(userId).setData(from: notification, merge: true)
+    func addNotification(_ notification: Notification) async throws {
+        try notificationsCollection.addDocument(from: notification)
+    }
+
+    func removeNotification(_ notificationId: String) async throws {
+        try await notificationsCollection.document(notificationId).delete()
     }
 }
-

@@ -16,45 +16,49 @@ struct NotificationView: View {
     }
 
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(viewModel.notifications) { notification in
-                    HStack {
-                        Text(notification.fromUserId) // Replace with actual username retrieval
-                        Spacer()
-                        switch notification.type {
-                        case .followRequest:
-                            Button("Accept") {
-                                Task {
-                                    if let user = try? await UserManager.shared.getUser(userId: notification.fromUserId) {
-                                        await viewModel.acceptFollowRequest(from: user)
-                                    }
-                                }
+        List {
+            ForEach(viewModel.notifications) { notification in
+                HStack {
+                    Text(notification.fromUserId) // Placeholder, replace with actual username fetching logic
+                    Spacer()
+                    switch notification.type {
+                    case .followRequest:
+                        Button("Accept") {
+                            Task {
+                                await viewModel.acceptFollowRequest(from: notification)
                             }
-                            .buttonStyle(BorderlessButtonStyle())
-                            Button("Decline") {
-                                Task {
-                                    if let user = try? await UserManager.shared.getUser(userId: notification.fromUserId) {
-                                        await viewModel.declineFollowRequest(from: user)
-                                    }
-                                }
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-                        case .like:
-                            Text("liked your post")
-                        case .comment:
-                            Text("commented on your post")
                         }
+                        .buttonStyle(BorderlessButtonStyle())
+                        Button("Decline") {
+                            Task {
+                                await viewModel.declineFollowRequest(from: notification)
+                            }
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    case .like:
+                        Text("liked your post")
+                    case .comment:
+                        Text("commented on your post")
+                    case .newFollower:
+                        Text("started following you")
                     }
                 }
             }
-            .navigationTitle("Notifications")
-            .onAppear {
-                viewModel.fetchNotifications()
-            }
+        }
+        .navigationTitle("Notifications")
+        .onAppear {
+            viewModel.fetchNotifications()
         }
     }
 }
+
+struct NotificationView_Previews: PreviewProvider {
+    static var previews: some View {
+        NotificationView(userStore: UserStore())
+            .environmentObject(UserStore())
+    }
+}
+
 
 
 struct NotificationUserView: View {
