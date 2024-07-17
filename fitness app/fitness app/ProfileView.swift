@@ -248,27 +248,29 @@ struct CalendarView: View {
                 ForEach(dates, id: \.self) { date in
                     VStack {
                         if let post = postForDate(date).first {
-                            AsyncImage(url: URL(string: post.imageName)) { phase in
-                                switch phase {
-                                case .empty:
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.5))
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 40, height: 50) // Set fixed size for image
-                                        .clipped()
-                                case .failure:
-                                    Rectangle()
-                                        .fill(Color.red.opacity(0.5))
-                                @unknown default:
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.5))
+                            NavigationLink(destination: SeshView(post: post)) {
+                                AsyncImage(url: URL(string: post.imageName)) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.5))
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 40, height: 50) // Set fixed size for image
+                                            .clipped()
+                                    case .failure:
+                                        Rectangle()
+                                            .fill(Color.red.opacity(0.5))
+                                    @unknown default:
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.5))
+                                    }
                                 }
+                                .frame(width: 40, height: 50) // Set fixed size for image container
+                                .cornerRadius(10)
                             }
-                            .frame(width: 40, height: 50) // Set fixed size for image container
-                            .cornerRadius(10)
                         } else {
                             Text("\(Calendar.current.component(.day, from: date))")
                                 .font(.system(size: 14, weight: .medium))
