@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct NotificationView: View {
-    @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var userStore: UserStore
     @StateObject private var viewModel: NotificationViewModel
 
@@ -17,47 +16,39 @@ struct NotificationView: View {
     }
 
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(viewModel.notifications) { notification in
-                    HStack {
-                        NotificationUserView(userId: notification.fromUserId)
-                        Spacer()
-                        switch notification.type {
-                        case .followRequest:
-                            Button("Accept") {
-                                Task {
-                                    await viewModel.acceptFollowRequest(from: notification)
-                                }
+        List {
+            ForEach(viewModel.notifications) { notification in
+                HStack {
+                    NotificationUserView(userId: notification.fromUserId)
+                    Spacer()
+                    switch notification.type {
+                    case .followRequest:
+                        Button("Accept") {
+                            Task {
+                                await viewModel.acceptFollowRequest(from: notification)
                             }
-                            .buttonStyle(BorderlessButtonStyle())
-                            Button("Decline") {
-                                Task {
-                                    await viewModel.declineFollowRequest(from: notification)
-                                }
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-                        case .like:
-                            Text("liked your post")
-                        case .comment:
-                            Text("commented on your post")
-                        case .follow:
-                            Text("started following you")
                         }
+                        .buttonStyle(BorderlessButtonStyle())
+                        Button("Decline") {
+                            Task {
+                                await viewModel.declineFollowRequest(from: notification)
+                            }
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    case .like:
+                        Text("liked your post")
+                    case .comment:
+                        Text("commented on your post")
+                    case .follow:
+                        Text("started following you")
                     }
                 }
             }
-            .navigationBarTitle("Notifications", displayMode: .inline)
-            .navigationBarItems(leading: Button(action: {
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Image(systemName: "chevron.left")
-                    .foregroundColor(.primary)
-            })
-            .onAppear {
-                Task {
-                    await viewModel.fetchNotifications()
-                }
+        }
+        .navigationBarTitle("Notifications", displayMode: .inline)
+        .onAppear {
+            Task {
+                await viewModel.fetchNotifications()
             }
         }
     }
@@ -65,11 +56,12 @@ struct NotificationView: View {
 
 struct NotificationView_Previews: PreviewProvider {
     static var previews: some View {
-        NotificationView(userStore: UserStore())
-            .environmentObject(UserStore())
+        NavigationView {
+            NotificationView(userStore: UserStore())
+                .environmentObject(UserStore())
+        }
     }
 }
-
 
 
 import SwiftUI

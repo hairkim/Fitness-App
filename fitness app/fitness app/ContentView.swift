@@ -30,7 +30,7 @@ struct ContentView: View {
             requestNotificationPermissions()
         }
     }
-    
+
     var mainContentView: some View {
         NavigationView {
             ZStack {
@@ -38,70 +38,62 @@ struct ContentView: View {
                     DMHomeView(showDMHomeView: $showDMHomeView, chats: $chats, unreadMessagesCount: $unreadMessagesCount)
                         .environmentObject(userStore)
                         .transition(.move(edge: .trailing))
-                } else if showNotificationView {
-                    NotificationView(userStore: userStore)
-                        .environmentObject(userStore)
-                        .transition(.move(edge: .trailing))
                 } else {
-                    if selectedTab != 1 {
-                        TabView(selection: $selectedTab) {
-                            homeView
-                                .tabItem {
-                                    Image(systemName: "house.fill")
-                                    Text("Home")
-                                }
-                                .tag(0)
-                            
-                            forumView
-                                .tabItem {
-                                    Image(systemName: "bubble.left.and.bubble.right")
-                                    Text("Forum")
-                                }
-                                .tag(1)
-                            
-                            Text("")
-                                .tabItem {
-                                    Image(systemName: "")
-                                    Text("")
-                                }
-                                .disabled(true)
-                            
-                            exploreView
-                                .tabItem {
-                                    Image(systemName: "magnifyingglass")
-                                    Text("Explore")
-                                }
-                                .tag(2)
-                            
-                            profileView
-                                .tabItem {
-                                    Image(systemName: "person.circle.fill")
-                                    Text("Profile")
-                                }
-                                .tag(3)
-                        }
-                        
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Button(action: {
-                                    showImageChooser = true
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .resizable()
-                                        .frame(width: 60, height: 60)
-                                        .foregroundColor(Color(.darkGray))
-                                        .background(Color.white)
-                                        .clipShape(Circle())
-                                        .shadow(radius: 10)
-                                }
-                                .offset(y: -10)
-                                Spacer()
+                    TabView(selection: $selectedTab) {
+                        homeView
+                            .tabItem {
+                                Image(systemName: "house.fill")
+                                Text("Home")
                             }
-                        }
-                    } else {
+                            .tag(0)
+                        
                         forumView
+                            .tabItem {
+                                Image(systemName: "bubble.left.and.bubble.right")
+                                Text("Forum")
+                            }
+                            .tag(1)
+                        
+                        Text("")
+                            .tabItem {
+                                Image(systemName: "")
+                                Text("")
+                            }
+                            .disabled(true)
+                        
+                        exploreView
+                            .tabItem {
+                                Image(systemName: "magnifyingglass")
+                                Text("Explore")
+                            }
+                            .tag(2)
+                        
+                        profileView
+                            .tabItem {
+                                Image(systemName: "person.circle.fill")
+                                Text("Profile")
+                            }
+                            .tag(3)
+                    }
+                    
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                showImageChooser = true
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .foregroundColor(Color(.darkGray))
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 10)
+                            }
+                            .offset(y: -10)
+                            Spacer()
+                        }
                     }
                 }
             }
@@ -118,85 +110,90 @@ struct ContentView: View {
                     label: { EmptyView() }
                 )
             )
+            .background(
+                NavigationLink(
+                    destination: NotificationView(userStore: userStore)
+                        .environmentObject(userStore),
+                    isActive: $showNotificationView,
+                    label: { EmptyView() }
+                )
+            )
         }
         .background(Color.white.edgesIgnoringSafeArea(.all))
     }
-    
+
     var homeView: some View {
-        NavigationView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Plates")
-                        .font(.title)
-                        .foregroundColor(Color(.darkGray))
-                        .padding(.leading, 16)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Plates")
+                    .font(.title)
+                    .foregroundColor(Color(.darkGray))
+                    .padding(.leading, 16)
 
-                    Spacer()
+                Spacer()
 
-                    Button(action: {
-                        withAnimation {
-                            showDMHomeView.toggle()
+                Button(action: {
+                    withAnimation {
+                        showDMHomeView.toggle()
+                    }
+                }) {
+                    ZStack {
+                        Image(systemName: "message.fill")
+                        if unreadMessagesCount > 0 {
+                            Text("\(unreadMessagesCount)")
+                                .font(.caption2)
+                                .foregroundColor(.white)
+                                .padding(5)
+                                .background(Circle().fill(Color.red))
+                                .offset(x: 10, y: -10)
                         }
-                    }) {
-                        ZStack {
-                            Image(systemName: "message.fill")
-                            if unreadMessagesCount > 0 {
-                                Text("\(unreadMessagesCount)")
-                                    .font(.caption2)
-                                    .foregroundColor(.white)
-                                    .padding(5)
-                                    .background(Circle().fill(Color.red))
-                                    .offset(x: 10, y: -10)
-                            }
-                        }
+                    }
+                    .imageScale(.large)
+                    .foregroundColor(Color(.darkGray))
+                }
+                .padding(.trailing, 16)
+
+                Button(action: {
+                    withAnimation {
+                        showNotificationView = true
+                    }
+                }) {
+                    Image(systemName: "bell.fill")
                         .imageScale(.large)
                         .foregroundColor(Color(.darkGray))
-                    }
-                    .padding(.trailing, 16)
-
-                    Button(action: {
-                        withAnimation {
-                            showNotificationView.toggle()
-                        }
-                    }) {
-                        Image(systemName: "bell.fill")
-                            .imageScale(.large)
-                            .foregroundColor(Color(.darkGray))
-                    }
-                    .padding(.trailing, 16)
-
-                    NavigationLink(destination: SearchView(selectedUser: $selectedUser, chats: $chats)) {
-                        Image(systemName: "magnifyingglass")
-                            .imageScale(.large)
-                            .foregroundColor(Color(.darkGray))
-                    }
-                    .padding(.trailing, 16)
                 }
-                .padding(.horizontal)
+                .padding(.trailing, 16)
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 16) {
-                        ForEach(posts.indices, id: \.self) { index in
-                            CustomPostView(post: $posts[index], deleteComment: { comment in
-                                deleteComment(comment, at: index)
-                            }, deletePost: {
-                                deletePost(at: index)
-                            }, onUsernameTapped: { user in
-                                self.selectedUser = user
-                            })
-                            .environmentObject(userStore)
-                            .id(posts[index].id) // Use the post ID to uniquely identify each view
-                        }
-                    }
-                    .padding()
+                NavigationLink(destination: SearchView(selectedUser: $selectedUser, chats: $chats)) {
+                    Image(systemName: "magnifyingglass")
+                        .imageScale(.large)
+                        .foregroundColor(Color(.darkGray))
                 }
+                .padding(.trailing, 16)
             }
-            .background(Color.white)
-            .navigationTitle("")
+            .padding(.horizontal)
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    ForEach(posts.indices, id: \.self) { index in
+                        CustomPostView(post: $posts[index], deleteComment: { comment in
+                            deleteComment(comment, at: index)
+                        }, deletePost: {
+                            deletePost(at: index)
+                        }, onUsernameTapped: { user in
+                            self.selectedUser = user
+                        })
+                        .environmentObject(userStore)
+                        .id(posts[index].id) // Use the post ID to uniquely identify each view
+                    }
+                }
+                .padding()
+            }
         }
+        .background(Color.white)
+        .navigationTitle("")
     }
 
-    
     var forumView: some View {
         NavigationView {
             ForumView()
@@ -329,6 +326,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 
 import SwiftUI
