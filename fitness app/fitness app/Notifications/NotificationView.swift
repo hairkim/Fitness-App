@@ -26,21 +26,50 @@ struct NotificationView: View {
                         Button("Accept") {
                             Task {
                                 await viewModel.acceptFollowRequest(from: notification)
+                                await viewModel.markNotificationAsRead(notification)
                             }
                         }
                         .buttonStyle(BorderlessButtonStyle())
                         Button("Decline") {
                             Task {
                                 await viewModel.declineFollowRequest(from: notification)
+                                await viewModel.markNotificationAsRead(notification)
                             }
                         }
                         .buttonStyle(BorderlessButtonStyle())
                     case .like:
                         Text("liked your post")
+                        Spacer()
+                        Button(action: {
+                            Task {
+                                await viewModel.markNotificationAsRead(notification)
+                            }
+                        }) {
+                            Text("Mark as Read")
+                                .foregroundColor(.blue)
+                        }
                     case .comment:
                         Text("commented on your post")
+                        Spacer()
+                        Button(action: {
+                            Task {
+                                await viewModel.markNotificationAsRead(notification)
+                            }
+                        }) {
+                            Text("Mark as Read")
+                                .foregroundColor(.blue)
+                        }
                     case .follow:
                         Text("started following you")
+                        Spacer()
+                        Button(action: {
+                            Task {
+                                await viewModel.markNotificationAsRead(notification)
+                            }
+                        }) {
+                            Text("Mark as Read")
+                                .foregroundColor(.blue)
+                        }
                     }
                 }
             }

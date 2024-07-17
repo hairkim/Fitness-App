@@ -17,7 +17,7 @@ struct ContentView: View {
     @State private var unreadMessagesCount: Int = 0
 
     init(userStore: UserStore) {
-        _notificationViewModel = StateObject(wrappedValue: NotificationViewModel(userStore: userStore))
+        self._notificationViewModel = StateObject(wrappedValue: NotificationViewModel(userStore: userStore))
     }
 
     var body: some View {
@@ -199,7 +199,7 @@ struct ContentView: View {
                             self.selectedUser = user
                         })
                         .environmentObject(userStore)
-                        .id(posts[index].id) // Use the post ID to uniquely identify each view
+                        .id(posts[index].id)
                     }
                 }
                 .padding()
@@ -260,7 +260,6 @@ struct ContentView: View {
             if let error = error {
                 print("Error removing post: \(error)")
             } else {
-                // Update local state after successful deletion
                 DispatchQueue.main.async {
                     posts.remove(at: index)
                 }
@@ -341,7 +340,6 @@ struct ContentView: View {
         }
     }
 }
-
 
 import SwiftUI
 

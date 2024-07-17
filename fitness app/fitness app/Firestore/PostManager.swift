@@ -21,9 +21,9 @@ struct Post: Codable, Identifiable {
     var comments: [Comment]
     let date: Date
     var likes: Int
-    var likedBy: [String] // Add this line
+    var likedBy: [String]
 
-    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date(), likes: Int = 0, likedBy: [String] = []) { // Modify this line
+    init(id: UUID = UUID(), userId: String, username: String, imageName: String, caption: String, multiplePictures: Bool, workoutSplit: String, workoutSplitEmoji: String, comments: [Comment], date: Date = Date(), likes: Int = 0, likedBy: [String] = []) {
         self.id = id
         self.userId = userId
         self.username = username
@@ -35,7 +35,7 @@ struct Post: Codable, Identifiable {
         self.comments = comments
         self.date = date
         self.likes = likes
-        self.likedBy = likedBy // Add this line
+        self.likedBy = likedBy
     }
 }
 
@@ -118,7 +118,7 @@ final class PostManager {
             throw NSError(domain: "AppErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to decode post"])
         }
         post.comments.append(newComment)
-        try postRef.setData(from: post)
+        try postRef.setData(from: post, merge: true, encoder: Firestore.Encoder())
     }
 
     func addReply(postId: String, commentId: UUID, username: String, reply: String) async throws {
@@ -131,7 +131,7 @@ final class PostManager {
         if let commentIndex = post.comments.firstIndex(where: { $0.id == commentId }) {
             post.comments[commentIndex].replies.append(newReply)
         }
-        try postRef.setData(from: post)
+        try postRef.setData(from: post, merge: true, encoder: Firestore.Encoder())
     }
 
     func getComments(postId: String) async throws -> [Comment] {
@@ -238,13 +238,11 @@ final class PostManager {
         }
     }
 
-    // Function to share a post with another user
     func sharePost(postId: UUID, sharedByUserId: String, sharedWithUserId: String) async throws {
         let sharedPost = SharedPost(postId: postId, sharedByUserId: sharedByUserId, sharedWithUserId: sharedWithUserId)
-        try await sharedPostCollection.document(sharedPost.id!).setData(from: sharedPost, merge: false, encoder: Firestore.Encoder())
+        try await sharedPostCollection.document(sharedPost.id!).setData(from: sharedPost, encoder: Firestore.Encoder())
     }
 
-    // Function to get posts shared with a specific user
     func getSharedPosts(forUser userId: String) async throws -> [SharedPost] {
         let snapshot = try await sharedPostCollection.whereField("sharedWithUserId", isEqualTo: userId).getDocuments()
         return snapshot.documents.compactMap { document -> SharedPost? in
@@ -252,15 +250,13 @@ final class PostManager {
         }
     }
 
-    // Method to like a post and create a notification
     func likePost(postId: UUID, fromUserId: String, toUserId: String) async throws {
         try await incrementLikes(postId: postId.uuidString, userId: fromUserId)
-        try await UserManager.shared.likePost(postId: postId, fromUserId: fromUserId, toUserId: toUserId)
+        try await UserManager.shared.likePost(postId: postId.uuidString, fromUserId: fromUserId, toUserId: toUserId)
     }
 
-    // Method to comment on a post and create a notification
     func commentOnPost(postId: UUID, fromUserId: String, toUserId: String, comment: String) async throws {
         try await addComment(postId: postId.uuidString, username: fromUserId, comment: comment)
-        try await UserManager.shared.commentOnPost(postId: postId, fromUserId: fromUserId, toUserId: toUserId, comment: comment)
+        try await UserManager.shared.commentOnPost(postId: postId.uuidString, fromUserId: fromUserId, toUserId: toUserId, comment: comment)
     }
 }
