@@ -5,6 +5,7 @@ import FirebaseFirestore
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
+    @StateObject private var notificationViewModel: NotificationViewModel
     @State var posts = [Post]()
     @State var chats = [DBChat]()
     @State private var showSignInView: Bool = false
@@ -14,6 +15,10 @@ struct ContentView: View {
     @State private var selectedTab: Int = 0
     @State private var selectedUser: DBUser? = nil
     @State private var unreadMessagesCount: Int = 0
+
+    init(userStore: UserStore) {
+        _notificationViewModel = StateObject(wrappedValue: NotificationViewModel(userStore: userStore))
+    }
 
     var body: some View {
         Group {
@@ -158,9 +163,19 @@ struct ContentView: View {
                         showNotificationView = true
                     }
                 }) {
-                    Image(systemName: "bell.fill")
-                        .imageScale(.large)
-                        .foregroundColor(Color(.darkGray))
+                    ZStack {
+                        Image(systemName: "bell.fill")
+                        if notificationViewModel.unreadNotificationsCount > 0 {
+                            Text("\(notificationViewModel.unreadNotificationsCount)")
+                                .font(.caption2)
+                                .foregroundColor(.white)
+                                .padding(5)
+                                .background(Circle().fill(Color.red))
+                                .offset(x: 10, y: -10)
+                        }
+                    }
+                    .imageScale(.large)
+                    .foregroundColor(Color(.darkGray))
                 }
                 .padding(.trailing, 16)
 
@@ -326,7 +341,6 @@ struct ContentView: View {
         }
     }
 }
-
 
 
 import SwiftUI
@@ -1259,7 +1273,7 @@ func timeAgoSinceDate(_ date: Date) -> String {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         let userStore = UserStore()
-        ContentView()
+        ContentView(userStore: userStore)
             .environmentObject(userStore)
     }
 }

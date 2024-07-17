@@ -10,6 +10,7 @@ import Combine
 
 class NotificationViewModel: ObservableObject {
     @Published var notifications: [Notification] = []
+    @Published var unreadNotificationsCount: Int = 0
     private let userStore: UserStore
     private var listener: ListenerRegistration?
 
@@ -31,7 +32,7 @@ class NotificationViewModel: ObservableObject {
         listener = NotificationManager.shared.addRealTimeListener(for: currentUser.userId) { [weak self] notifications in
             DispatchQueue.main.async {
                 self?.notifications = notifications
-                print("Received Notifications: \(notifications)")
+                self?.unreadNotificationsCount = notifications.count // Assuming all notifications are unread initially
             }
         }
     }
@@ -105,23 +106,19 @@ final class NotificationManager {
     
     private let notificationsCollection = Firestore.firestore().collection("notifications")
     
-    /// Fetches notifications for a given user asynchronously.
     func getNotifications(for userId: String) async throws -> [Notification] {
         let snapshot = try await notificationsCollection.whereField("toUserId", isEqualTo: userId).getDocuments()
         return snapshot.documents.compactMap { try? $0.data(as: Notification.self) }
     }
     
-    /// Adds a notification document to Firestore.
     func addNotification(_ notification: Notification) async throws {
         try await notificationsCollection.addDocument(from: notification)
     }
     
-    /// Removes a notification document from Firestore.
     func removeNotification(_ notificationId: String) async throws {
         try await notificationsCollection.document(notificationId).delete()
     }
     
-    /// Sets up a real-time listener for notifications targeting a specific user.
     func addRealTimeListener(for userId: String, completion: @escaping ([Notification]) -> Void) -> ListenerRegistration {
         return notificationsCollection.whereField("toUserId", isEqualTo: userId)
             .addSnapshotListener { querySnapshot, error in
