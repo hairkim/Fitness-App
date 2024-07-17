@@ -5,7 +5,6 @@
 //  Created by Daniel Han on 7/15/24.
 //
 
-
 import Foundation
 import Combine
 import FirebaseFirestore
@@ -17,7 +16,6 @@ class NotificationViewModel: ObservableObject {
 
     init(userStore: UserStore) {
         self.userStore = userStore
-        fetchNotifications()
         listenForNotifications()
     }
 
@@ -25,17 +23,15 @@ class NotificationViewModel: ObservableObject {
         listener?.remove()
     }
 
-    func fetchNotifications() {
+    func fetchNotifications() async {
         guard let currentUser = userStore.currentUser else { return }
-        Task {
-            do {
-                let notifications = try await NotificationManager.shared.getNotifications(for: currentUser.userId)
-                DispatchQueue.main.async {
-                    self.notifications = notifications
-                }
-            } catch {
-                print("Error fetching notifications: \(error)")
+        do {
+            let notifications = try await NotificationManager.shared.getNotifications(for: currentUser.userId)
+            DispatchQueue.main.async {
+                self.notifications = notifications
             }
+        } catch {
+            print("Error fetching notifications: \(error)")
         }
     }
 
@@ -68,6 +64,7 @@ class NotificationViewModel: ObservableObject {
         }
     }
 }
+
 
 
 import Foundation
@@ -106,10 +103,9 @@ final class NotificationManager {
     }
     
     func addNotification(_ notification: Notification, for userId: String) async throws {
-        guard let notificationId = notification.id else {
-            throw NSError(domain: "Notification Error", code: -1, userInfo: [NSLocalizedDescriptionKey: "Notification ID is missing"])
-        }
-        try await notificationsCollection.document(notificationId).setData(from: notification, merge: true)
+        var notification = notification
+        notification.id = notificationsCollection.document().documentID
+        try await notificationsCollection.document(notification.id!).setData(from: notification)
     }
     
     func removeNotification(_ notificationId: String) async throws {

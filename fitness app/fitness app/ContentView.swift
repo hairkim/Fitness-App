@@ -331,7 +331,6 @@ struct ContentView: View {
 }
 
 
-
 import SwiftUI
 
 struct CustomPostView: View {
