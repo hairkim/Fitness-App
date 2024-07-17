@@ -19,7 +19,7 @@ struct fitness_appApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView(userStore: <#UserStore#>)
+            ContentView(userStore: userStore) // Pass the userStore here
                 .environmentObject(userStore)
         }
     }
