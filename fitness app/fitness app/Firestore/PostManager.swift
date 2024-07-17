@@ -58,12 +58,30 @@ struct Comment: Identifiable, Codable {
     }
 }
 
+struct SharedPost: Codable, Identifiable {
+    @DocumentID var id: String? = UUID().uuidString
+    let postId: UUID
+    let sharedByUserId: String
+    let sharedWithUserId: String
+    let sharedAt: Date
+
+    init(postId: UUID, sharedByUserId: String, sharedWithUserId: String, sharedAt: Date = Date()) {
+        self.postId = postId
+        self.sharedByUserId = sharedByUserId
+        self.sharedWithUserId = sharedWithUserId
+        self.sharedAt = sharedAt
+    }
+}
+
 final class PostManager {
 
     static let shared = PostManager()
     private init() { }
 
     private let postCollection = Firestore.firestore().collection("posts")
+    private var sharedPostCollection: CollectionReference {
+        Firestore.firestore().collection("sharedPosts")
+    }
 
     private func postDocument(postId: String) -> DocumentReference {
         postCollection.document(postId)
@@ -73,11 +91,10 @@ final class PostManager {
         try postDocument(postId: post.id.uuidString).setData(from: post, merge: false, encoder: Firestore.Encoder())
         try await UserManager.shared.updateSesh(forUser: post.userId, postDate: post.date)
     }
-    
+
     func deletePost(postId: String) async throws {
-            try await postDocument(postId: postId).delete()
-        }
-    
+        try await postDocument(postId: postId).delete()
+    }
 
     func getPosts() async throws -> [Post] {
         let snapshot = try await postCollection.getDocuments()
@@ -220,5 +237,30 @@ final class PostManager {
             return users
         }
     }
-    
+
+    // Function to share a post with another user
+    func sharePost(postId: UUID, sharedByUserId: String, sharedWithUserId: String) async throws {
+        let sharedPost = SharedPost(postId: postId, sharedByUserId: sharedByUserId, sharedWithUserId: sharedWithUserId)
+        try await sharedPostCollection.document(sharedPost.id!).setData(from: sharedPost, merge: false, encoder: Firestore.Encoder())
+    }
+
+    // Function to get posts shared with a specific user
+    func getSharedPosts(forUser userId: String) async throws -> [SharedPost] {
+        let snapshot = try await sharedPostCollection.whereField("sharedWithUserId", isEqualTo: userId).getDocuments()
+        return snapshot.documents.compactMap { document -> SharedPost? in
+            try? document.data(as: SharedPost.self)
+        }
+    }
+
+    // Method to like a post and create a notification
+    func likePost(postId: UUID, fromUserId: String, toUserId: String) async throws {
+        try await incrementLikes(postId: postId.uuidString, userId: fromUserId)
+        try await UserManager.shared.likePost(postId: postId, fromUserId: fromUserId, toUserId: toUserId)
+    }
+
+    // Method to comment on a post and create a notification
+    func commentOnPost(postId: UUID, fromUserId: String, toUserId: String, comment: String) async throws {
+        try await addComment(postId: postId.uuidString, username: fromUserId, comment: comment)
+        try await UserManager.shared.commentOnPost(postId: postId, fromUserId: fromUserId, toUserId: toUserId, comment: comment)
+    }
 }

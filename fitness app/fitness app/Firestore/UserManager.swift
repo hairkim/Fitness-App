@@ -304,14 +304,12 @@ final class UserManager {
     }
 
     // Add Notification for Liking a Post
-    func likePost(postId: String, fromUserId: String, toUserId: String) async throws {
-        // Logic to like a post
-        
+    func likePost(postId: UUID, fromUserId: String, toUserId: String) async throws {
         // Create notification
         let notification = Notification(
             type: .like,
             fromUserId: fromUserId,
-            postId: postId,
+            postId: postId.uuidString,
             toUserId: toUserId,
             timestamp: Date()
         )
@@ -319,14 +317,12 @@ final class UserManager {
     }
 
     // Add Notification for Commenting on a Post
-    func commentOnPost(postId: String, fromUserId: String, toUserId: String, comment: String) async throws {
-        // Logic to add a comment
-        
+    func commentOnPost(postId: UUID, fromUserId: String, toUserId: String, comment: String) async throws {
         // Create notification
         let notification = Notification(
             type: .comment,
             fromUserId: fromUserId,
-            postId: postId,
+            postId: postId.uuidString,
             toUserId: toUserId,
             timestamp: Date()
         )
