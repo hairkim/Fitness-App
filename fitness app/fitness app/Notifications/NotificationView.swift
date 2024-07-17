@@ -9,36 +9,34 @@ import SwiftUI
 
 struct NotificationView: View {
     @EnvironmentObject var userStore: UserStore
-    @Binding var showNotificationView: Bool
     @StateObject private var viewModel: NotificationViewModel
 
-    init(userStore: UserStore, showNotificationView: Binding<Bool>) {
+    init(userStore: UserStore) {
         self._viewModel = StateObject(wrappedValue: NotificationViewModel(userStore: userStore))
-        self._showNotificationView = showNotificationView
     }
 
     var body: some View {
         NavigationView {
             List {
-                ForEach(viewModel.notifications, id: \.notification.id) { (notification, user) in
+                ForEach(viewModel.notifications) { notification in
                     HStack {
-                        if let user = user {
-                            Text(user.username)
-                        } else {
-                            Text("Unknown user")
-                        }
+                        Text(notification.fromUserId) // Replace with actual username retrieval
                         Spacer()
                         switch notification.type {
                         case .followRequest:
                             Button("Accept") {
                                 Task {
-                                    await viewModel.acceptFollowRequest(from: notification.fromUserId)
+                                    if let user = try? await UserManager.shared.getUser(userId: notification.fromUserId) {
+                                        await viewModel.acceptFollowRequest(from: user)
+                                    }
                                 }
                             }
                             .buttonStyle(BorderlessButtonStyle())
                             Button("Decline") {
                                 Task {
-                                    await viewModel.declineFollowRequest(from: notification.fromUserId)
+                                    if let user = try? await UserManager.shared.getUser(userId: notification.fromUserId) {
+                                        await viewModel.declineFollowRequest(from: user)
+                                    }
                                 }
                             }
                             .buttonStyle(BorderlessButtonStyle())
@@ -51,18 +49,13 @@ struct NotificationView: View {
                 }
             }
             .navigationTitle("Notifications")
-            .navigationBarItems(leading: Button(action: {
-                showNotificationView = false
-            }) {
-                Image(systemName: "chevron.left")
-                    .foregroundColor(.primary)
-            })
             .onAppear {
                 viewModel.fetchNotifications()
             }
         }
     }
 }
+
 
 struct NotificationUserView: View {
     let userId: String

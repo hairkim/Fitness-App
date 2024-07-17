@@ -40,7 +40,7 @@ struct ContentView: View {
                         .environmentObject(userStore)
                         .transition(.move(edge: .trailing))
                 } else if showNotificationView {
-                    NotificationView(userStore: userStore, showNotificationView: $showNotificationView)
+                    NotificationView(userStore: userStore) // Pass userStore here
                         .environmentObject(userStore)
                         .transition(.move(edge: .trailing))
                 } else {
