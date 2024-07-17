@@ -22,7 +22,6 @@ struct CreatePostView: View {
     var image: Image?
     var inputImage: UIImage?
     
-    
     var body: some View {
         VStack() {
             HStack {
@@ -96,7 +95,8 @@ struct CreatePostView: View {
 
         }
         .fullScreenCover(isPresented: $showContentView) {
-            ContentView()
+            ContentView(userStore: userStore) // Pass the userStore here
+                .environmentObject(userStore)
         }
     }
     
@@ -111,7 +111,7 @@ struct CreatePostView: View {
             print("Image URL: \(imageUrl.absoluteString)")
             
             let newPost = Post(
-                userId: currentUser.userId, 
+                userId: currentUser.userId,
                 username: currentUser.username,
                 imageName: imageUrl.absoluteString,
                 caption: caption,
