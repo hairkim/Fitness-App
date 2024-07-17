@@ -13,12 +13,12 @@ import FirebaseFirestore
 class NotificationViewModel: ObservableObject {
     @Published var notifications: [Notification] = []
     private let userStore: UserStore
-    private var db = Firestore.firestore()
     private var listener: ListenerRegistration?
 
     init(userStore: UserStore) {
         self.userStore = userStore
         fetchNotifications()
+        listenForNotifications()
     }
 
     deinit {
@@ -27,16 +27,25 @@ class NotificationViewModel: ObservableObject {
 
     func fetchNotifications() {
         guard let currentUser = userStore.currentUser else { return }
-        listener = db.collection("notifications")
-            .whereField("toUserId", isEqualTo: currentUser.userId)
-            .addSnapshotListener { querySnapshot, error in
-                if let error = error {
-                    print("Error fetching notifications: \(error)")
-                    return
+        Task {
+            do {
+                let notifications = try await NotificationManager.shared.getNotifications(for: currentUser.userId)
+                DispatchQueue.main.async {
+                    self.notifications = notifications
                 }
-                guard let documents = querySnapshot?.documents else { return }
-                self.notifications = documents.compactMap { try? $0.data(as: Notification.self) }
+            } catch {
+                print("Error fetching notifications: \(error)")
             }
+        }
+    }
+
+    func listenForNotifications() {
+        guard let currentUser = userStore.currentUser else { return }
+        NotificationManager.shared.addRealTimeListener(for: currentUser.userId) { notifications in
+            DispatchQueue.main.async {
+                self.notifications = notifications
+            }
+        }
     }
 
     func acceptFollowRequest(from notification: Notification) async {
@@ -60,28 +69,29 @@ class NotificationViewModel: ObservableObject {
     }
 }
 
+
 import Foundation
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 
 struct Notification: Identifiable, Codable {
-    @DocumentID var id: String?
+    var id: String?
     var type: NotificationType
     var fromUserId: String
-    var toUserId: String
     var postId: String?
     var timestamp: Date
-
+    
     enum NotificationType: String, Codable {
         case followRequest
         case like
         case comment
-        case newFollower
+        case follow
     }
 }
 
+
 import Foundation
 import FirebaseFirestore
+import FirebaseFirestoreSwift
 
 final class NotificationManager {
     
@@ -95,11 +105,27 @@ final class NotificationManager {
         return snapshot.documents.compactMap { try? $0.data(as: Notification.self) }
     }
     
-    func addNotification(_ notification: Notification) async throws {
-        try notificationsCollection.addDocument(from: notification)
+    func addNotification(_ notification: Notification, for userId: String) async throws {
+        guard let notificationId = notification.id else {
+            throw NSError(domain: "Notification Error", code: -1, userInfo: [NSLocalizedDescriptionKey: "Notification ID is missing"])
+        }
+        try await notificationsCollection.document(notificationId).setData(from: notification, merge: true)
     }
-
+    
     func removeNotification(_ notificationId: String) async throws {
         try await notificationsCollection.document(notificationId).delete()
+    }
+    
+    func addRealTimeListener(for userId: String, completion: @escaping ([Notification]) -> Void) {
+        notificationsCollection.whereField("toUserId", isEqualTo: userId)
+            .addSnapshotListener { querySnapshot, error in
+                if let error = error {
+                    print("Error fetching notifications: \(error)")
+                    return
+                }
+                guard let documents = querySnapshot?.documents else { return }
+                let notifications = documents.compactMap { try? $0.data(as: Notification.self) }
+                completion(notifications)
+            }
     }
 }

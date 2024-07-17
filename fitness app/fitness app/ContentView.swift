@@ -7,7 +7,6 @@ struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
     @State var posts = [Post]()
     @State var chats = [DBChat]()
-    
     @State private var showSignInView: Bool = false
     @State private var showImageChooser: Bool = false
     @State private var showDMHomeView: Bool = false
@@ -37,6 +36,10 @@ struct ContentView: View {
             ZStack {
                 if showDMHomeView {
                     DMHomeView(showDMHomeView: $showDMHomeView, chats: $chats, unreadMessagesCount: $unreadMessagesCount)
+                        .environmentObject(userStore)
+                        .transition(.move(edge: .trailing))
+                } else if showNotificationView {
+                    NotificationView(userStore: userStore)
                         .environmentObject(userStore)
                         .transition(.move(edge: .trailing))
                 } else {
@@ -115,14 +118,6 @@ struct ContentView: View {
                     label: { EmptyView() }
                 )
             )
-            .background(
-                NavigationLink(
-                    destination: NotificationView(userStore: userStore)
-                        .environmentObject(userStore),
-                    isActive: $showNotificationView,
-                    label: { EmptyView() }
-                )
-            )
         }
         .background(Color.white.edgesIgnoringSafeArea(.all))
     }
@@ -161,7 +156,7 @@ struct ContentView: View {
 
                     Button(action: {
                         withAnimation {
-                            showNotificationView = true
+                            showNotificationView.toggle()
                         }
                     }) {
                         Image(systemName: "bell.fill")
@@ -334,6 +329,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 
 import SwiftUI
