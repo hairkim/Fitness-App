@@ -42,8 +42,9 @@ struct DBMessage: Codable, Identifiable, Equatable {
     let timestamp: Timestamp
     var isRead: Bool
     var imageURL: String?
+    var linkURL: String? // New property for storing link URLs
 
-    init(chatId: String, senderId: String, receiverId: String, text: String, timestamp: Timestamp = Timestamp(), isRead: Bool = false, imageURL: String? = nil) {
+    init(chatId: String, senderId: String, receiverId: String, text: String, timestamp: Timestamp = Timestamp(), isRead: Bool = false, imageURL: String? = nil, linkURL: String? = nil) {
         self.chatId = chatId
         self.senderId = senderId
         self.receiverId = receiverId
@@ -51,11 +52,13 @@ struct DBMessage: Codable, Identifiable, Equatable {
         self.timestamp = timestamp
         self.isRead = isRead
         self.imageURL = imageURL
+        self.linkURL = linkURL // Initialize linkURL
     }
 
     static func ==(lhs: DBMessage, rhs: DBMessage) -> Bool {
         return lhs.id == rhs.id
     }
+
 }
 
 final class ChatManager {

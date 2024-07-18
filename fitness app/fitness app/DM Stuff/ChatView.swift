@@ -448,7 +448,8 @@ struct ChatMessagesView: View {
                                 isFullScreenImagePresented = IdentifiableImageURL(url: imageURL)
                             }
                         } else {
-                            Text(message.text)
+                            // Display message text with clickable links
+                            MessageTextView(text: message.text)
                                 .padding()
                                 .background(Color.gymPrimary.opacity(0.8))
                                 .foregroundColor(.white)
@@ -472,7 +473,8 @@ struct ChatMessagesView: View {
                                 isFullScreenImagePresented = IdentifiableImageURL(url: imageURL)
                             }
                         } else {
-                            Text(message.text)
+                            // Display message text with clickable links
+                            MessageTextView(text: message.text)
                                 .padding()
                                 .background(Color.green.opacity(0.8))
                                 .foregroundColor(.white)
@@ -486,6 +488,37 @@ struct ChatMessagesView: View {
                 .id(message.id)
             }
         }
+    }
+}
+
+// Custom Text view to handle clickable links
+struct MessageTextView: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .fixedSize(horizontal: false, vertical: true)
+            .onTapGesture {
+                // Detect if the text contains a link
+                if let detectedURL = text.extractURL() {
+                    UIApplication.shared.open(detectedURL)
+                }
+            }
+    }
+}
+
+// Extension to extract URLs from strings
+extension String {
+    func extractURL() -> URL? {
+        let detector = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+        let matches = detector.matches(in: self, options: [], range: NSRange(location: 0, length: self.utf16.count))
+
+        for match in matches {
+            guard let range = Range(match.range, in: self) else { continue }
+            let url = self[range]
+            return URL(string: String(url))
+        }
+        return nil
     }
 }
 
