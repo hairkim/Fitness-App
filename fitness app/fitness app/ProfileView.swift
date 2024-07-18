@@ -361,44 +361,44 @@ struct DietCaloriesView: View {
     }
 }
 
-struct HealthTrackerView: View {
-    var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text("Steps")
-                    .font(.headline)
-                Spacer()
-                Text("3,848 / 10,000")
-                    .font(.subheadline)
-            }
-            .padding(.bottom, 5)
-            
-            Divider()
-            
-            HStack {
-                Text("Weight")
-                    .font(.headline)
-                Spacer()
-                Text("210 lbs")
-                    .font(.subheadline)
-            }
-            .padding(.bottom, 5)
-            
-            Divider()
-            
-            HStack {
-                Text("Exercise")
-                    .font(.headline)
-                Spacer()
-                Text("0 cal")
-                    .font(.subheadline)
-            }
-        }
-        .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
-    }
-}
+//struct HealthTrackerView: View {
+//    var body: some View {
+//        VStack(alignment: .leading) {
+//            HStack {
+//                Text("Steps")
+//                    .font(.headline)
+//                Spacer()
+//                Text("3,848 / 10,000")
+//                    .font(.subheadline)
+//            }
+//            .padding(.bottom, 5)
+//            
+//            Divider()
+//            
+//            HStack {
+//                Text("Weight")
+//                    .font(.headline)
+//                Spacer()
+//                Text("210 lbs")
+//                    .font(.subheadline)
+//            }
+//            .padding(.bottom, 5)
+//            
+//            Divider()
+//            
+//            HStack {
+//                Text("Exercise")
+//                    .font(.headline)
+//                Spacer()
+//                Text("0 cal")
+//                    .font(.subheadline)
+//            }
+//        }
+//        .padding()
+//        .background(Color.gray.opacity(0.1))
+//        .cornerRadius(10)
+//    }
+//}
 
 // Preview
 struct ProfileView_Previews: PreviewProvider {

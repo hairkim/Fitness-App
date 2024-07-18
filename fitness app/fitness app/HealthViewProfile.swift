@@ -6,6 +6,9 @@
 //
 import SwiftUI
 import Charts
+import Combine
+import HealthKit
+
 
 struct HealthViewProfile: View {
     @ObservedObject var healthDataModel: HealthDataModelProfile
@@ -321,5 +324,170 @@ struct WeekGraphViewProfile: View {
 struct HealthViewProfile_Previews: PreviewProvider {
     static var previews: some View {
         HealthViewProfile(healthDataModel: HealthDataModelProfile())
+    }
+}
+
+class HealthViewModel: ObservableObject {
+    @Published var isAuthorized = false
+    @Published var errorMessage: String? = nil
+    @Published var stepCount: String = "0"
+    @Published var caloriesBurned: String = "0"
+    
+    private var healthStore = HealthKitManager.shared.healthStore
+
+    func requestAuthorization() {
+        HealthKitManager.shared.requestAuthorization { [weak self] success, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isAuthorized = success
+                if let error = error {
+                    self.errorMessage = error.localizedDescription
+                } else {
+                    Task {
+                        await self.fetchStepCount()
+                        await self.fetchCaloriesBurned()
+                    }
+                }
+            }
+        }
+    }
+    
+    func fetchStepCount() async {
+        do {
+            let steps = try await getStepCount()
+            DispatchQueue.main.async {
+                self.stepCount = String(Int(steps))
+                print("health step count: \(steps)")
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func fetchCaloriesBurned() async {
+        do {
+            let calories = try await getCaloriesBurned()
+            DispatchQueue.main.async { [weak self] in
+                self?.caloriesBurned = String(format: "%.2f", calories)
+                print("calories burned: \(calories)")
+            }
+        } catch {
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func getStepCount() async throws -> Double {
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
+                continuation.resume(throwing: NSError(domain: "HealthKit", code: 1, userInfo: [NSLocalizedDescriptionKey: "Step Count Type is no longer available in HealthKit"]))
+                return
+            }
+
+            let startDate = Calendar.current.startOfDay(for: Date())
+            let endDate = Date()
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let result = result, let sum = result.sumQuantity() {
+                    let steps = sum.doubleValue(for: HKUnit.count())
+                    continuation.resume(returning: steps)
+                } else {
+                    continuation.resume(returning: 0)
+                }
+            }
+
+            healthStore.execute(query)
+        }
+    }
+    
+    private func getCaloriesBurned() async throws -> Double {
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let energyBurnedType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) else {
+                continuation.resume(throwing: NSError(domain: "HealthKit", code: 1, userInfo: [NSLocalizedDescriptionKey: "Active Energy Burned Type is no longer available in HealthKit"]))
+                return
+            }
+
+            let startDate = Calendar.current.startOfDay(for: Date())
+            let endDate = Date()
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+            
+            let query = HKStatisticsQuery(quantityType: energyBurnedType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
+                if let error = error {
+                    print("Error fetching calories burned: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
+                } else if let result = result, let sum = result.sumQuantity() {
+                    let calories = sum.doubleValue(for: HKUnit.kilocalorie())
+                    print("Calories burned: \(calories)")
+                    continuation.resume(returning: calories)
+                } else {
+                    print("No data found for calories burned")
+                    continuation.resume(returning: 0)
+                }
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+}
+
+
+
+struct HealthTrackerView: View {
+    @StateObject private var viewModel = HealthViewModel()
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            if(viewModel.isAuthorized) {
+                HStack {
+                    Text("Steps")
+                        .font(.headline)
+                    Spacer()
+                    Text(viewModel.stepCount + " / 10,000")
+                        .font(.subheadline)
+                }
+                .padding(.bottom, 5)
+                
+                Divider()
+                
+                HStack {
+                    Text("Weight")
+                        .font(.headline)
+                    Spacer()
+                    Text("210 lbs")
+                        .font(.subheadline)
+                }
+                .padding(.bottom, 5)
+                
+                Divider()
+                
+                HStack {
+                    Text("Exercise")
+                        .font(.headline)
+                    Spacer()
+                    Text(viewModel.caloriesBurned + " cal")
+                        .font(.subheadline)
+                }
+            } else {
+                Button("Request HealthKit Authorization") {
+                    viewModel.requestAuthorization()
+                }
+            }
+            if let errorMessage = viewModel.errorMessage {
+                Text("Error: \(errorMessage)")
+                    .foregroundColor(.red)
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
+        .onAppear {
+            viewModel.requestAuthorization()
+        }
     }
 }
