@@ -26,6 +26,8 @@ struct ChatView: View {
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var isFullScreenImagePresented: IdentifiableImageURL?
+    @State private var showAlert = false
+    @State private var copiedText = ""
 
     var body: some View {
         VStack {
@@ -47,7 +49,9 @@ struct ChatView: View {
                     ChatMessagesView(
                         messages: messages,
                         userStore: userStore,
-                        isFullScreenImagePresented: $isFullScreenImagePresented
+                        isFullScreenImagePresented: $isFullScreenImagePresented,
+                        showAlert: $showAlert,
+                        copiedText: $copiedText
                     )
                     .padding()
                     .onChange(of: messages) { _ in
@@ -116,6 +120,13 @@ struct ChatView: View {
         }
         .fullScreenCover(item: $isFullScreenImagePresented) { fullScreenImage in
             FullScreenImageView(imageURL: fullScreenImage.url, isPresented: $isFullScreenImagePresented)
+        }
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text("Text Copied"),
+                message: Text("\"\(copiedText)\" has been copied to your clipboard."),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 
@@ -421,11 +432,12 @@ struct ChatHeaderView: View {
     }
 }
 
-
 struct ChatMessagesView: View {
     let messages: [DBMessage]
     let userStore: UserStore
     @Binding var isFullScreenImagePresented: IdentifiableImageURL?
+    @Binding var showAlert: Bool
+    @Binding var copiedText: String
 
     var body: some View {
         VStack(spacing: 10) {
@@ -448,8 +460,8 @@ struct ChatMessagesView: View {
                                 isFullScreenImagePresented = IdentifiableImageURL(url: imageURL)
                             }
                         } else {
-                            // Display message text with clickable links
-                            MessageTextView(text: message.text)
+                            // Display message text with selectable text and double-tap gesture for copying
+                            MessageTextView(text: message.text, showAlert: $showAlert, copiedText: $copiedText)
                                 .padding()
                                 .background(Color.gymPrimary.opacity(0.8))
                                 .foregroundColor(.white)
@@ -473,8 +485,8 @@ struct ChatMessagesView: View {
                                 isFullScreenImagePresented = IdentifiableImageURL(url: imageURL)
                             }
                         } else {
-                            // Display message text with clickable links
-                            MessageTextView(text: message.text)
+                            // Display message text with selectable text and double-tap gesture for copying
+                            MessageTextView(text: message.text, showAlert: $showAlert, copiedText: $copiedText)
                                 .padding()
                                 .background(Color.green.opacity(0.8))
                                 .foregroundColor(.white)
@@ -491,19 +503,53 @@ struct ChatMessagesView: View {
     }
 }
 
-// Custom Text view to handle clickable links
+// Custom Text view to handle clickable links, double-tap to copy, and enable text selection
 struct MessageTextView: View {
     let text: String
+    @Binding var showAlert: Bool
+    @Binding var copiedText: String
 
     var body: some View {
-        Text(text)
-            .fixedSize(horizontal: false, vertical: true)
-            .onTapGesture {
-                // Detect if the text contains a link
-                if let detectedURL = text.extractURL() {
-                    UIApplication.shared.open(detectedURL)
+        if #available(iOS 15.0, *) {
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+                .onTapGesture {
+                    // Detect if the text contains a link
+                    if let detectedURL = text.extractURL() {
+                        UIApplication.shared.open(detectedURL)
+                    }
                 }
-            }
+                .onTapGesture(count: 2) {
+                    UIPasteboard.general.string = text
+                    copiedText = text
+                    showAlert = true
+                }
+                .textSelection(.enabled)
+        } else {
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+                .onTapGesture {
+                    // Detect if the text contains a link
+                    if let detectedURL = text.extractURL() {
+                        UIApplication.shared.open(detectedURL)
+                    }
+                }
+                .onTapGesture(count: 2) {
+                    UIPasteboard.general.string = text
+                    copiedText = text
+                    showAlert = true
+                }
+                .contextMenu {
+                    Button(action: {
+                        UIPasteboard.general.string = text
+                        copiedText = text
+                        showAlert = true
+                    }) {
+                        Text("Copy")
+                        Image(systemName: "doc.on.doc")
+                    }
+                }
+        }
     }
 }
 
@@ -521,7 +567,6 @@ extension String {
         return nil
     }
 }
-
 
 import SwiftUI
 
