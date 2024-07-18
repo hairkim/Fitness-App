@@ -1,7 +1,10 @@
 // created by the daniel han
 
+
 import SwiftUI
 import FirebaseFirestore
+import Combine
+import UserNotifications
 
 struct ContentView: View {
     @EnvironmentObject var userStore: UserStore
@@ -117,8 +120,7 @@ struct ContentView: View {
             )
             .background(
                 NavigationLink(
-                    destination: NotificationView(userStore: userStore)
-                        .environmentObject(userStore),
+                    destination: NotificationView(notificationViewModel: notificationViewModel),
                     isActive: $showNotificationView,
                     label: { EmptyView() }
                 )
@@ -341,7 +343,6 @@ struct ContentView: View {
     }
 }
 
-import SwiftUI
 
 struct CustomPostView: View {
     @Binding var post: Post
@@ -975,7 +976,6 @@ func timeAgoSinceDate(_ date: Date) -> String {
         return "just now"
     }
 }
-
 
 // struct RotationPageView: View {
 //     @Binding var showRotationPage: Bool

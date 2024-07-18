@@ -5,144 +5,93 @@
 //  Created by Daniel Han on 7/15/24.
 //
 
+import Foundation
+import Combine
+import FirebaseFirestore
 import SwiftUI
 
 struct NotificationView: View {
-    @EnvironmentObject var userStore: UserStore
-    @StateObject private var viewModel: NotificationViewModel
+    @ObservedObject var notificationViewModel: NotificationViewModel
+    
+    var body: some View {
+        List(notificationViewModel.notifications) { notification in
+            Text(notification.type.rawValue)
+        }
+        .navigationTitle("Notifications")
+    }
+}
+
+class NotificationViewModel: ObservableObject {
+    @Published var notifications: [Notification] = []
+    @Published var unreadNotificationsCount: Int = 0
+    private let userStore: UserStore
+    private var listener: ListenerRegistration?
 
     init(userStore: UserStore) {
-        _viewModel = StateObject(wrappedValue: NotificationViewModel(userStore: userStore))
+        self.userStore = userStore
+        listenForNotifications()
     }
 
-    var body: some View {
-        List {
-            ForEach(viewModel.notifications) { notification in
-                HStack {
-                    NotificationUserView(userId: notification.fromUserId)
-                    Spacer()
-                    switch notification.type {
-                    case .followRequest:
-                        Button("Accept") {
-                            Task {
-                                await viewModel.acceptFollowRequest(from: notification)
-                                await viewModel.markNotificationAsRead(notification)
-                            }
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                        Button("Decline") {
-                            Task {
-                                await viewModel.declineFollowRequest(from: notification)
-                                await viewModel.markNotificationAsRead(notification)
-                            }
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                    case .like:
-                        Text("liked your post")
-                        Spacer()
-                        Button(action: {
-                            Task {
-                                await viewModel.markNotificationAsRead(notification)
-                            }
-                        }) {
-                            Text("Mark as Read")
-                                .foregroundColor(.blue)
-                        }
-                    case .comment:
-                        Text("commented on your post")
-                        Spacer()
-                        Button(action: {
-                            Task {
-                                await viewModel.markNotificationAsRead(notification)
-                            }
-                        }) {
-                            Text("Mark as Read")
-                                .foregroundColor(.blue)
-                        }
-                    case .follow:
-                        Text("started following you")
-                        Spacer()
-                        Button(action: {
-                            Task {
-                                await viewModel.markNotificationAsRead(notification)
-                            }
-                        }) {
-                            Text("Mark as Read")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
+    deinit {
+        listener?.remove()
+    }
+
+    func listenForNotifications() {
+        guard let currentUser = userStore.currentUser else {
+            print("Current user is nil.")
+            return
+        }
+
+        listener = NotificationManager.shared.addRealTimeListener(for: currentUser.userId) { [weak self] notifications in
+            DispatchQueue.main.async {
+                self?.notifications = notifications
+                self?.unreadNotificationsCount = notifications.filter { !$0.isRead }.count
             }
         }
-        .navigationBarTitle("Notifications", displayMode: .inline)
-        .onAppear {
-            viewModel.listenForNotifications()
-        }
     }
-}
 
-struct NotificationView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            NotificationView(userStore: UserStore())
-                .environmentObject(UserStore())
+    func acceptFollowRequest(from notification: Notification) async {
+        guard let currentUser = userStore.currentUser else {
+            print("Current user is nil.")
+            return
         }
-    }
-}
 
-
-import SwiftUI
-
-struct NotificationUserView: View {
-    let userId: String
-    @State private var username: String = "Loading..."
-    @State private var profilePictureUrl: String?
-
-    var body: some View {
-        HStack {
-            if let url = profilePictureUrl, let imageUrl = URL(string: url) {
-                AsyncImage(url: imageUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .scaledToFit()
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                    case .failure:
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .scaledToFit()
-                    @unknown default:
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .scaledToFit()
-                    }
-                }
-                .clipShape(Circle())
-                .frame(width: 40, height: 40)
+        do {
+            try await UserManager.shared.acceptFollowRequest(senderId: notification.fromUserId, receiverId: currentUser.userId)
+            if let notificationId = notification.id {
+                try await NotificationManager.shared.removeNotification(notificationId)
             } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(Circle())
-                    .frame(width: 40, height: 40)
+                print("Notification ID is nil.")
             }
-            Text(username)
+        } catch {
+            print("Error accepting follow request: \(error)")
         }
-        .onAppear {
-            Task {
-                if let user = try? await UserManager.shared.getUser(userId: userId) {
-                    username = user.username
-                    profilePictureUrl = user.photoUrl
-                } else {
-                    username = "Unknown user"
-                }
+    }
+
+    func declineFollowRequest(from notification: Notification) async {
+        guard let currentUser = userStore.currentUser else {
+            print("Current user is nil.")
+            return
+        }
+
+        do {
+            try await UserManager.shared.declineFollowRequest(senderId: notification.fromUserId, receiverId: currentUser.userId)
+            if let notificationId = notification.id {
+                try await NotificationManager.shared.removeNotification(notificationId)
+            } else {
+                print("Notification ID is nil.")
             }
+        } catch {
+            print("Error declining follow request: \(error)")
+        }
+    }
+
+    func markNotificationAsRead(_ notification: Notification) async {
+        guard let notificationId = notification.id else { return }
+        do {
+            try await NotificationManager.shared.markNotificationAsRead(notificationId)
+        } catch {
+            print("Error marking notification as read: \(error)")
         }
     }
 }
-
-
