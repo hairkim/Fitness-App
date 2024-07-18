@@ -59,6 +59,7 @@ struct ExploreItemView: View {
     @State private var showCommentSheet = false
     @State private var showShareSheet = false
     @State private var selectedUsers: [DBUser] = []
+    @State private var likesCount: Int = 0
     @EnvironmentObject var userStore: UserStore
 
     var body: some View {
@@ -126,6 +127,13 @@ struct ExploreItemView: View {
                                 .foregroundColor(isLiked ? .red : .primary)
                         }
                         .padding(.horizontal)
+                        
+                        Text("\(likesCount)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .onTapGesture {
+                                showLikesList()
+                            }
 
                         Button(action: {
                             showCommentSheet = true
@@ -179,93 +187,37 @@ struct ExploreItemView: View {
             .contentShape(Rectangle())
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
+        .onAppear {
+            loadInitialData()
+        }
+    }
+
+    private func loadInitialData() {
+        Task {
+            likesCount = try await PostManager.shared.getLikes(postId: post.id.uuidString)
+            self.isLiked = try await PostManager.shared.checkIfUserLikedPost(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
+        }
     }
 
     private func toggleLike() {
         isLiked.toggle()
         if isLiked {
-            post.likes += 1
+            likesCount += 1
         } else {
-            post.likes -= 1
+            likesCount -= 1
         }
-    }
-}
-
-struct ShareSheetView: View {
-    @Binding var isPresented: Bool
-    @Binding var selectedUsers: [DBUser]
-    @State private var allUsers: [DBUser] = []
-    let post: Post
-    @EnvironmentObject var userStore: UserStore
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                List(allUsers, id: \.id) { user in
-                    HStack {
-                        Text(user.username)
-                        Spacer()
-                        if selectedUsers.contains(where: { $0.id == user.id }) {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if let index = selectedUsers.firstIndex(where: { $0.id == user.id }) {
-                            selectedUsers.remove(at: index)
-                        } else {
-                            selectedUsers.append(user)
-                        }
-                    }
-                }
-                .navigationBarTitle("Share Post", displayMode: .inline)
-                .onAppear(perform: loadUsers)
-
-                Button(action: {
-                    sharePostWithSelectedUsers()
-                }) {
-                    Text("Send")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(10)
-                        .padding()
-                }
-            }
-        }
-    }
-    
-    func loadUsers() {
+        
         Task {
-            do {
-                let users = try await UserManager.shared.getAllUsers()
-                DispatchQueue.main.async {
-                    allUsers = users
-                }
-            } catch {
-                print("Error loading users: \(error)")
+            if isLiked {
+                try await PostManager.shared.incrementLikes(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
+            } else {
+                try await PostManager.shared.decrementLikes(postId: post.id.uuidString, userId: userStore.currentUser!.userId)
             }
         }
     }
-    
-    func sharePostWithSelectedUsers() {
-        Task {
-            guard let currentUserId = userStore.currentUser?.id else {
-                print("No current user logged in.")
-                return
-            }
-            for user in selectedUsers {
-                if let chat = try? await ChatManager.shared.getChatBetweenUsers(user1Id: currentUserId, user2Id: user.id) {
-                    try await ChatManager.shared.sendPostMessage(chatId: chat.id!, senderId: currentUserId, receiverId: user.id, post: post)
-                } else {
-                    var newChat = DBChat(participants: [currentUserId, user.id], participantNames: [currentUserId: userStore.currentUser?.username ?? "", user.id: user.username])
-                    try await ChatManager.shared.createNewChat(chat: &newChat)
-                    try await ChatManager.shared.sendPostMessage(chatId: newChat.id!, senderId: currentUserId, receiverId: user.id, post: post)
-                }
-            }
-            isPresented = false
-        }
+
+    private func showLikesList() {
+        // Functionality to show the list of users who liked the post
     }
 }
 
@@ -556,11 +508,81 @@ func exploreTimeAgoSinceDate(_ date: Date) -> String {
     }
 }
 
-extension DateFormatter {
-    static var shortDateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        return formatter
+struct ShareSheetView: View {
+    @Binding var isPresented: Bool
+    @Binding var selectedUsers: [DBUser]
+    @State private var allUsers: [DBUser] = []
+    let post: Post
+    @EnvironmentObject var userStore: UserStore
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                List(allUsers, id: \.id) { user in
+                    HStack {
+                        Text(user.username)
+                        Spacer()
+                        if selectedUsers.contains(where: { $0.id == user.id }) {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if let index = selectedUsers.firstIndex(where: { $0.id == user.id }) {
+                            selectedUsers.remove(at: index)
+                        } else {
+                            selectedUsers.append(user)
+                        }
+                    }
+                }
+                .navigationBarTitle("Share Post", displayMode: .inline)
+                .onAppear(perform: loadUsers)
+
+                Button(action: {
+                    sharePostWithSelectedUsers()
+                }) {
+                    Text("Send")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                        .padding()
+                }
+            }
+        }
+    }
+    
+    func loadUsers() {
+        Task {
+            do {
+                let users = try await UserManager.shared.getAllUsers()
+                DispatchQueue.main.async {
+                    allUsers = users
+                }
+            } catch {
+                print("Error loading users: \(error)")
+            }
+        }
+    }
+    
+    func sharePostWithSelectedUsers() {
+        Task {
+            guard let currentUserId = userStore.currentUser?.id else {
+                print("No current user logged in.")
+                return
+            }
+            for user in selectedUsers {
+                if let chat = try? await ChatManager.shared.getChatBetweenUsers(user1Id: currentUserId, user2Id: user.id) {
+                    try await ChatManager.shared.sendPostMessage(chatId: chat.id!, senderId: currentUserId, receiverId: user.id, post: post)
+                } else {
+                    var newChat = DBChat(participants: [currentUserId, user.id], participantNames: [currentUserId: userStore.currentUser?.username ?? "", user.id: user.username])
+                    try await ChatManager.shared.createNewChat(chat: &newChat)
+                    try await ChatManager.shared.sendPostMessage(chatId: newChat.id!, senderId: currentUserId, receiverId: user.id, post: post)
+                }
+            }
+            isPresented = false
+        }
     }
 }
 
@@ -568,5 +590,13 @@ struct ExploreView_Previews: PreviewProvider {
     static var previews: some View {
         ExploreView()
             .environmentObject(UserStore()) // Provide a mock environment object for preview
+    }
+}
+
+extension DateFormatter {
+    static var shortDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter
     }
 }
