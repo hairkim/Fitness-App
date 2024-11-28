@@ -45,29 +45,42 @@ struct ForumView: View {
         }
         .navigationTitle("Gym Forum")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(trailing: Button(action: {
-            isShowingFilters.toggle()
-        }) {
-            Image(systemName: "line.horizontal.3.decrease.circle")
-                .imageScale(.large)
+        .navigationBarItems(trailing:
+        HStack {
+            Button(action: {
+                isShowingFilters.toggle()
+            }) {
+                Image(systemName: "line.horizontal.3.decrease.circle")
+                    .imageScale(.large)
+            }
+            Button(action: { isShowingQuestionForm = true }) {
+                Image(systemName: "plus.circle.fill")
+                    .imageScale(.large)
+            }
         })
         .background(Color(.systemBackground))
-        .overlay(
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: { isShowingQuestionForm = true }) {
-                        Image(systemName: "plus.circle.fill")
-                            .resizable()
-                            .frame(width: 60, height: 60)
-                            .foregroundColor(.blue)
-                    }
-                    .padding()
-                    Spacer()
-                }
-            }
-        )
+//        .overlay(
+//            Button(action: { isShowingQuestionForm = true }) {
+//                Image(systemName: "plus.circle.fill")
+//                    .resizable()
+//                    .frame(width: 60, height: 60)
+//                    .foregroundColor(.blue)
+//            }
+//            VStack {
+//                Spacer()
+//                HStack {
+//                    Spacer()
+//                    Button(action: { isShowingQuestionForm = true }) {
+//                        Image(systemName: "plus.circle.fill")
+//                            .resizable()
+//                            .frame(width: 60, height: 60)
+//                            .foregroundColor(.blue)
+//                    }
+//                    .padding()
+//                    Spacer()
+//                }
+//            }
+//        )
         .sheet(isPresented: $isShowingFilters) {
             FilterView(selectedSortOption: $selectedSortOption)
         }
